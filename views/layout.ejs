@@ -39,11 +39,11 @@
     <nav class="mx-auto max-w-md px-4 h-14 flex items-center justify-between">
       <a href="/" class="font-semibold">Puzzeltocht</a>
       <div class="flex items-center gap-3 text-sm">
-        <% if (session?.isAdmin) { %>
-          <a href="/admin-dashboard" class="text-blue-700 hover:underline">Dashboard</a>
-          <a href="/admin-logout" class="text-blue-700 hover:underline">Logout</a>
+        <% if (session && session.isAdmin) { %>
+          <a href="/admin-dashboard" class="text-blue-600">Dashboard</a>
+          <a href="/admin-logout" class="text-blue-600">Logout</a>
         <% } else { %>
-          <a href="/admin-login" class="text-blue-700 hover:underline">Admin</a>
+          <a href="/admin-login" class="text-blue-600">Admin</a>
         <% } %>
       </div>
     </nav>
