@@ -1,2 +1,24 @@
-<h1>Admin Dashboard</h1>
-<p>Hier kan je puzzels toevoegen, codes beheren, etc.</p>
+<%-
+  include("layout", {
+    body: `
+      <section class='space-y-5'>
+        <h1 class="text-2xl font-bold">Admin Dashboard</h1>
+
+        <div class="grid gap-4">
+          <a href="/admin-theme" class="card p-4 border hover:shadow">
+            <h2 class="font-semibold mb-1">Opmaak (Thema) aanpassen</h2>
+            <p class="text-sm text-gray-600">Kleuren, typografie en hoekradius wijzigen met live preview.</p>
+          </a>
+
+          <div class="card p-4 border">
+            <h2 class="font-semibold mb-1">Snelstart</h2>
+            <ul class="list-disc pl-5 text-sm text-gray-700 space-y-1">
+              <li>Gebruik <strong>Codes</strong> collectie in MongoDB: <code>{"code":"TEST123","type":"user"}</code></li>
+              <li>Admin-code: zet <code>{"code":"ADMIN123","type":"admin"}</code> om naar login te sturen.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+    `
+  })
+%>
