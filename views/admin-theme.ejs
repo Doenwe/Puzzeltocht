@@ -1,9 +1,7 @@
 <section class="space-y-5">
   <div class="flex items-center justify-between">
     <h1 class="text-2xl font-bold">Thema aanpassen</h1>
-    <% if (saved) { %>
-      <span class="text-green-700 text-sm">Opgeslagen</span>
-    <% } %>
+    <% if (saved) { %><span class="text-green-700 text-sm">Opgeslagen</span><% } %>
   </div>
 
   <form id="theme-form" action="/admin-theme" method="POST" class="space-y-4">
@@ -45,8 +43,7 @@
 
     <div class="mt-2">
       <h2 class="font-semibold mb-2">Live voorbeeld</h2>
-      <div class="p-4 border rounded"
-           style="background: var(--bg); color: var(--text); border-radius: var(--radius);">
+      <div class="p-4 border rounded" style="background: var(--bg); color: var(--text); border-radius: var(--radius);">
         <p class="mb-3">Zo ziet een knop eruit:</p>
         <button type="button" class="btn-primary px-4 py-2">Voorbeeldknop</button>
         <div class="mt-4">
