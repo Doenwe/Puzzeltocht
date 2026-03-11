@@ -5,16 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Puzzeltocht</title>
 
-  <!-- TailwindCSS via CDN (geen build nodig) -->
+  <!-- TailwindCSS via CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
 
   <style>
     :root{
-      --primary: <%= theme.primaryColor %>;
-      --bg: <%= theme.backgroundColor %>;
-      --text: <%= theme.textColor %>;
-      --radius: <%= theme.borderRadius %>;
-      --font: <%= theme.fontFamily %>;
+      --primary: <%= (theme && theme.primaryColor) || '#2563eb' %>;
+      --bg: <%= (theme && theme.backgroundColor) || '#ffffff' %>;
+      --text: <%= (theme && theme.textColor) || '#111827' %>;
+      --radius: <%= (theme && theme.borderRadius) || '0.75rem' %>;
+      --font: <%= (theme && theme.fontFamily) || 'Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Noto Sans, Apple Color Emoji, Segoe UI Emoji' %>;
     }
     body{
       background: var(--bg);
@@ -31,19 +31,20 @@
       backdrop-filter: blur(6px);
       border-radius: var(--radius);
     }
+    a.link { color: var(--primary); }
   </style>
 </head>
 <body class="min-h-screen">
   <!-- Bovenbalk / navigatie -->
   <header class="sticky top-0 z-30 bg-white/80 backdrop-blur border-b">
     <nav class="mx-auto max-w-md px-4 h-14 flex items-center justify-between">
-      <a href="/" class="font-semibold">Puzzeltocht</a>
+      <a href="/" class="font-semibold text-lg">Puzzeltocht</a>
       <div class="flex items-center gap-3 text-sm">
         <% if (session && session.isAdmin) { %>
-          <a href="/admin-dashboard" class="text-blue-600">Dashboard</a>
-          <a href="/admin-logout" class="text-blue-600">Logout</a>
+          <a class="link" href="/admin-dashboard">Dashboard</a>
+          <a class="link" href="/admin-logout">Logout</a>
         <% } else { %>
-          <a href="/admin-login" class="text-blue-600">Admin</a>
+          <a class="link" href="/admin-login">Admin</a>
         <% } %>
       </div>
     </nav>
