@@ -1,13 +1,60 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-  <% include ./partials/head %>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Puzzeltocht</title>
+
+  <!-- TailwindCSS via CDN (geen build nodig) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    :root{
+      --primary: <%= theme.primaryColor %>;
+      --bg: <%= theme.backgroundColor %>;
+      --text: <%= theme.textColor %>;
+      --radius: <%= theme.borderRadius %>;
+      --font: <%= theme.fontFamily %>;
+    }
+    body{
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+    }
+    .btn-primary{
+      background: var(--primary);
+      color: #fff;
+      border-radius: var(--radius);
+    }
+    .card{
+      background: #ffffffcc;
+      backdrop-filter: blur(6px);
+      border-radius: var(--radius);
+    }
+  </style>
 </head>
 <body class="min-h-screen">
-  <% include ./partials/nav %>
+  <!-- Bovenbalk / navigatie -->
+  <header class="sticky top-0 z-30 bg-white/80 backdrop-blur border-b">
+    <nav class="mx-auto max-w-md px-4 h-14 flex items-center justify-between">
+      <a href="/" class="font-semibold">Puzzeltocht</a>
+      <div class="flex items-center gap-3 text-sm">
+        <% if (session?.isAdmin) { %>
+          <a class="hover:underline" href="/admin-dashboard">Dashboard</a>
+          <a class="hover:underline" href="/admin-logout">Logout</a>
+        <% } else { %>
+          <a class="hover:underline" href="/admin-login">Admin</a>
+        <% } %>
+      </div>
+    </nav>
+  </header>
+
+  <!-- Pagina-inhoud -->
   <main class="mx-auto max-w-md px-4 py-6">
     <%- body %>
   </main>
-  <script src="/app.js" defer></script>
+
+  <!-- App JS (o.a. live theme preview) -->
+  <script src="/app.js"></script>
 </body>
 </html>
