@@ -8,6 +8,4 @@ const AdminSchema = new mongoose.Schema(
   { collection: "admins", timestamps: true }
 );
 
-AdminSchema.index({ username: 1 }, { unique: true });
-
 export default mongoose.models.Admin || mongoose.model("Admin", AdminSchema);
