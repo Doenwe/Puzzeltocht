@@ -1,2 +1,14 @@
-<h1>Welkom bij de puzzeltocht!</h1>
-<p>De volgende opdracht verschijnt hier.</p>
+<%-
+  include("layout", {
+    body: `
+      <section class='space-y-4'>
+        <h1 class="text-2xl font-bold">Volgende opdracht</h1>
+        <div class="card p-4 border">
+          <p>Hier komt de volgende opdracht van de puzzeltocht.</p>
+        </div>
+        <a href="/" class="underline">Terug naar start</a>
+      </section>
+    `
+  })
+%>
+``
