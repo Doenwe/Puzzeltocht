@@ -8,6 +8,4 @@ const CodeSchema = new mongoose.Schema(
   { collection: "codes", timestamps: true }
 );
 
-CodeSchema.index({ code: 1 }, { unique: true });
-
 export default mongoose.models.Code || mongoose.model("Code", CodeSchema);
