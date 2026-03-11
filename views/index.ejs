@@ -1,26 +1,21 @@
-<%-
-  include("layout", {
-    body: `
-      <section class='space-y-5'>
-        <h1 class="text-2xl font-bold">Voer je code in</h1>
-        ${error ? `<p class="text-red-600">${error}</p>` : ""}
+<section class="space-y-5">
+  <h1 class="text-2xl font-bold">Voer je code in</h1>
+  <% if (error) { %>
+    <p class="text-red-600"><%= error %></p>
+  <% } %>
 
-        <form action="/check-code" method="POST" class="space-y-3 card p-4 border">
-          <input
-            type="text"
-            name="code"
-            placeholder="Code"
-            class="w-full border rounded p-3"
-            required
-          />
+  <form method="POST" action="/check-code" class="space-y-3">
+    <input
+      type="text"
+      name="code"
+      placeholder="Code"
+      class="w-full border rounded p-3"
+      required
+    />
+    <button class="btn-primary w-full p-3">Verder</button>
+  </form>
 
-          <button class="btn-primary w-full p-3">Verder</button>
-        </form>
-
-        <p class="text-sm text-gray-600">
-          Tip: Admin-code stuurt je naar het inlogscherm.
-        </p>
-      </section>
-    `
-  })
-%>
+  <p class="text-sm text-gray-600">
+    Tip: een admin-code stuurt je naar het inlogscherm.
+  </p>
+</section>
