@@ -1,0 +1,31 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>Puzzeltocht</title>
+
+<!-- Tailwind via CDN (geen build nodig) -->
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+  :root {
+    --primary: <%= theme.primaryColor %>;
+    --bg: <%= theme.backgroundColor %>;
+    --text: <%= theme.textColor %>;
+    --radius: <%= theme.borderRadius %>;
+    --font: <%= theme.fontFamily %>;
+  }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+  }
+  .btn-primary {
+    background: var(--primary);
+    color: white;
+    border-radius: var(--radius);
+  }
+  .card {
+    background: #ffffffcc;
+    backdrop-filter: blur(6px);
+    border-radius: var(--radius);
+  }
+</style>
