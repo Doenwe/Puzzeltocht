@@ -1,11 +1,15 @@
+// index.js
 import express from "express";
 import mongoose from "mongoose";
 import session from "express-session";
+import MongoStore from "connect-mongo";
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
 import bcrypt from "bcryptjs";
+import expressLayouts from "express-ejs-layouts";
 
+// ---- Modellen ----
 import Admin from "./models/Admin.js";
 import Code from "./models/Code.js";
 import Theme from "./models/Theme.js";
@@ -17,47 +21,75 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// ---------- DB CONNECT ----------
-const connectMongo = async () => {
+// Zorg dat cookies als 'secure' mogen op Railway (achter proxy)
+app.set("trust proxy", 1);
+
+// =========================
+//  MongoDB CONNECT
+// =========================
+async function connectMongo() {
   const uri = process.env.MONGO_URI;
   if (!uri) {
     console.error("❌ MONGO_URI ontbreekt. Zet deze in Railway → Variables.");
     process.exit(1);
   }
+  // Detecteer of de URI al een database-naam bevat (…/dbname?)
   const hasDbInUri = /mongodb(\+srv)?:\/\/[^/]+\/[^?]+/.test(uri);
+
   await mongoose.connect(uri, {
     dbName: hasDbInUri ? undefined : (process.env.MONGO_DBNAME || "puzzeltocht"),
-    serverSelectionTimeoutMS: 15000
+    serverSelectionTimeoutMS: 15000,
   });
-  console.log("MongoDB connected op DB:", mongoose.connection.name);
-};
 
+  console.log("MongoDB connected op DB:", mongoose.connection.name);
+
+  // Basis logging
+  mongoose.connection.on("error", (err) => {
+    console.error("MongoDB connection error:", err);
+  });
+  mongoose.connection.on("disconnected", () => {
+    console.warn("MongoDB disconnected");
+  });
+}
 await connectMongo();
 
-// ---------- APP CONFIG ----------
+// =========================
+//  APP CONFIG
+// =========================
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
+app.use(expressLayouts);                 // -> gebruikt views/layout.ejs als layout
+app.set("layout", "layout");             // standaard layout-bestand
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
 
+// Sessies in MongoDB (geen MemoryStore in productie)
+const sessionSecret = process.env.SESSION_SECRET || "change-me-in-env";
 app.use(session({
-  secret: process.env.SESSION_SECRET || "change-me-in-env",
+  secret: sessionSecret,
   resave: false,
   saveUninitialized: false,
+  store: MongoStore.create({
+    mongoUrl: process.env.MONGO_URI,
+    dbName: process.env.MONGO_DBNAME || "puzzeltocht",
+    collectionName: "sessions",
+    ttl: 60 * 60 * 24 * 7 // 7 dagen
+  }),
   cookie: {
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production"
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 1000 * 60 * 60 * 6 // 6 uur
   }
 }));
 
-// voeg session beschikbaar aan views
+// Maak sessie ook beschikbaar voor views
 app.use((req, res, next) => {
   res.locals.session = req.session;
   next();
 });
 
-// laad theme voor alle pagina's
+// Thema laden voor alle pagina's
 app.use(async (req, res, next) => {
   try {
     const theme = await Theme.findOne();
@@ -66,30 +98,38 @@ app.use(async (req, res, next) => {
       backgroundColor: "#ffffff",
       textColor: "#111827",
       borderRadius: "0.75rem",
-      fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Noto Sans, Apple Color Emoji, Segoe UI Emoji"
+      fontFamily:
+        "Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Noto Sans, Apple Color Emoji, Segoe UI Emoji",
     };
-  } catch {
+  } catch (e) {
+    console.warn("Kon theme niet laden, gebruik defaults:", e?.message);
     res.locals.theme = {
       primaryColor: "#2563eb",
       backgroundColor: "#ffffff",
       textColor: "#111827",
       borderRadius: "0.75rem",
-      fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Noto Sans, Apple Color Emoji, Segoe UI Emoji"
+      fontFamily:
+        "Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Noto Sans, Apple Color Emoji, Segoe UI Emoji",
     };
   }
   next();
 });
 
-// ---------- HELPERS ----------
+// =========================
+//  HELPERS
+// =========================
 function requireAdmin(req, res, next) {
   if (req.session?.isAdmin) return next();
   return res.redirect("/admin-login");
 }
 
-// ---------- ROUTES ----------
+// =========================
+/* ROUTES */
+// =========================
 
-// Home: code invoer
+// Start: code invoer
 app.get("/", (req, res) => {
+  // Render views/index.ejs met layout.ejs
   res.render("index", { error: null });
 });
 
@@ -106,7 +146,7 @@ app.post("/check-code", async (req, res) => {
   return res.redirect("/next");
 });
 
-// Volgende pagina (dummy)
+// Volgende pagina (voorbeeld)
 app.get("/next", (req, res) => {
   res.render("next");
 });
@@ -124,6 +164,7 @@ app.post("/admin-login", async (req, res) => {
   if (!admin) {
     return res.render("admin-login", { error: "Onbekende gebruiker" });
   }
+
   const ok = await bcrypt.compare(password, admin.password);
   if (!ok) {
     return res.render("admin-login", { error: "Wachtwoord klopt niet" });
@@ -134,6 +175,7 @@ app.post("/admin-login", async (req, res) => {
   res.redirect("/admin-dashboard");
 });
 
+// Admin logout
 app.get("/admin-logout", (req, res) => {
   req.session.destroy(() => {
     res.redirect("/admin-login");
@@ -163,12 +205,20 @@ app.post("/admin-theme", requireAdmin, async (req, res) => {
   res.redirect("/admin-theme?saved=1");
 });
 
-// Debug (optioneel): lijst admins
-// app.get("/debug-admins", async (req, res) => {
-//   const list = await Admin.find({}, { username: 1, _id: 0 });
-//   res.type("text").send(`DB: ${mongoose.connection.name}\nAdmins: ${list.map(d => d.username).join(", ")}`);
-// });
+// 404
+app.use((req, res) => {
+  res.status(404).send("Pagina niet gevonden");
+});
 
+// Foutafhandeling
+app.use((err, req, res, next) => {
+  console.error("Onverwachte fout:", err);
+  res.status(500).send("Er ging iets mis.");
+});
+
+// =========================
+//  START SERVER
+// =========================
 const port = process.env.PORT || 8080;
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
