@@ -1,4 +1,4 @@
-// Live theme preview voor admin-theme pagina
+// Live theme preview op /admin-theme
 (function () {
   const form = document.querySelector("#theme-form");
   if (!form) return;
@@ -18,7 +18,6 @@
     root.style.setProperty("--font", fontFamily);
   };
 
-  // live updates bij elke wijziging
   form.addEventListener("input", apply);
-  apply(); // initial
+  apply();
 })();
