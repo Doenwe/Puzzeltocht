@@ -188,9 +188,14 @@ app.get("/admin-dashboard", requireAdmin, (req, res) => {
 });
 
 // Admin theme editor
-app.get("/admin-theme", requireAdmin, async (req, res) => {
-  const theme = await Theme.findOne();
-  res.render("admin-theme", { theme, saved: Boolean(req.query.saved) });
+app.get("/admin-theme", requireAdmin, async (req, res, next) => {
+  try {
+    const theme = await Theme.findOne();
+    res.render("admin-theme", { theme, saved: Boolean(req.query.saved) });
+  } catch (e) {
+    console.error("Renderfout /admin-theme:", e);
+    next(e); // laat de 500 handler de response doen
+  }
 });
 
 app.post("/admin-theme", requireAdmin, async (req, res) => {
