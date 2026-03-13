@@ -287,12 +287,29 @@ app.post("/admin-builder/:id/save-all", requireAdmin, express.json(), async (req
     const puzzle = await Puzzle.findById(req.params.id);
     if(!puzzle) return res.status(404).send("Puzzle niet gevonden");
 
-    puzzle.pages = req.body.pages;
+    // 1) Inspecteer wat er binnenkomt
+    console.log("SAVE-ALL payload pages.length =", Array.isArray(req.body.pages) ? req.body.pages.length : 'N/A');
+    // Optioneel: console.log(JSON.stringify(req.body.pages, null, 2));
+
+    const pages = Array.isArray(req.body.pages) ? req.body.pages : [];
+
+    // 2) Normaliseer basic (zodat data nooit undefined is)
+    const safePages = pages.map(p => ({
+      title: (p?.title ?? "Pagina"),
+      modules: Array.isArray(p?.modules) ? p.modules.map(m => ({
+        type: String(m?.type || ""),
+        data: m?.data || {}   // laat innerHTML/waarden intact
+      })) : []
+    }));
+
+    // 3) Schrijf en forceer mongoose om nested change te zien
+    puzzle.pages = safePages;
+    puzzle.markModified('pages'); // <=== BELANGRIJK bij nested arrays/objects
     await puzzle.save();
 
     res.send("OK");
-  } catch(e){
-    console.error(e);
+  } catch(err){
+    console.error(err);
     res.status(500).send("Server error");
   }
 });
