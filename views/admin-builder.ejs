@@ -1,14 +1,11 @@
-```ejs
 <% layout('layout') %>
 
 <style>
-/* Zorg dat admin pagina full width is */
 main{
   max-width:100% !important;
   padding:0 !important;
 }
 
-/* Builder layout */
 .builder{
   display:flex;
   height:calc(100vh - 80px);
@@ -23,12 +20,6 @@ main{
   padding:20px;
 }
 
-.sidebar h2{
-  font-size:18px;
-  font-weight:600;
-  margin-bottom:15px;
-}
-
 .element-btn{
   display:block;
   width:100%;
@@ -36,15 +27,12 @@ main{
   margin-bottom:10px;
   background:#f3f3f3;
   border-radius:6px;
-  border:none;
   cursor:pointer;
+  border:none;
 }
+.element-btn:hover{ background:#e6e6e6 }
 
-.element-btn:hover{
-  background:#e6e6e6;
-}
-
-/* Canvas area */
+/* Canvas / Phone */
 .canvas{
   flex:1;
   display:flex;
@@ -52,7 +40,6 @@ main{
   align-items:center;
 }
 
-/* Phone preview */
 .phone{
   width:375px;
   height:700px;
@@ -65,10 +52,33 @@ main{
 }
 
 .block{
-  padding:10px;
-  margin-bottom:10px;
-  border-radius:6px;
-  border:1px dashed #ccc;
+  padding:15px;
+  background:#fafafa;
+  border:1px solid #ccc;
+  border-radius:8px;
+  margin-bottom:12px;
+  cursor:grab;
+  position:relative;
+}
+
+/* Remove button */
+.remove-block{
+  position:absolute;
+  right:8px;
+  top:8px;
+  background:red;
+  color:white;
+  width:22px;
+  height:22px;
+  border:none;
+  border-radius:50%;
+  cursor:pointer;
+  font-size:12px;
+}
+
+/* Drag indicator */
+.drag-over{
+  border:2px dashed #5fd0d0 !important;
 }
 </style>
 
@@ -78,72 +88,101 @@ main{
   <div class="sidebar">
     <h2>Elementen</h2>
 
-    <button class="element-btn" onclick="addBlock('text')">
-      Tekst
-    </button>
-
-    <button class="element-btn" onclick="addBlock('image')">
-      Afbeelding
-    </button>
-
-    <button class="element-btn" onclick="addBlock('question')">
-      Vraag
-    </button>
-
-    <button class="element-btn" onclick="addBlock('location')">
-      Locatie
-    </button>
-
+    <button class="element-btn" data-type="text">Tekst</button>
+    <button class="element-btn" data-type="image">Afbeelding</button>
+    <button class="element-btn" data-type="question">Vraag</button>
+    <button class="element-btn" data-type="location">Locatie</button>
   </div>
 
-
-  <!-- Preview Canvas -->
+  <!-- Phone Canvas -->
   <div class="canvas">
-
-    <div class="phone" id="phone">
-
-      <% if(puzzle && puzzle.blocks){ %>
-        <% puzzle.blocks.forEach(block => { %>
-
-          <div class="block">
-            <%= block.type %>
-          </div>
-
-        <% }) %>
-      <% } %>
-
-    </div>
-
+    <div class="phone" id="phone"></div>
   </div>
 
 </div>
 
-
 <script>
+//--------------------------------------
+// Utility: maak HTML structuren per type
+//--------------------------------------
+function blockTemplate(type){
+  switch(type){
+    case "text":     return "<p>Nieuwe tekst</p>";
+    case "image":    return "<p>📷 Afbeelding</p>";
+    case "question": return "<p>❓ Vraag</p>";
+    case "location": return "<p>📍 Locatie</p>";
+  }
+}
+
+//--------------------------------------
+// Block toevoegen
+//--------------------------------------
+document.querySelectorAll(".element-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const type = btn.dataset.type;
+    addBlock(type);
+  });
+});
+
 function addBlock(type){
+  const phone = document.getElementById("phone");
 
-  const phone = document.getElementById("phone")
+  const block = document.createElement("div");
+  block.className = "block";
+  block.draggable = true;
+  block.innerHTML = `
+    <button class="remove-block">×</button>
+    ${blockTemplate(type)}
+  `;
 
-  const block = document.createElement("div")
-  block.className = "block"
+  block.addEventListener("dragstart", dragStart);
+  block.addEventListener("dragover", dragOver);
+  block.addEventListener("drop", drop);
+  block.addEventListener("dragend", dragEnd);
 
-  if(type === "text"){
-    block.innerHTML = "<p>Nieuwe tekst</p>"
+  block.querySelector(".remove-block").addEventListener("click", () => block.remove());
+
+  phone.appendChild(block);
+}
+
+//--------------------------------------
+// Drag & Drop functionaliteit
+//--------------------------------------
+let draggedBlock = null;
+
+function dragStart(e){
+  draggedBlock = this;
+  this.style.opacity = "0.4";
+}
+
+function dragEnd(){
+  draggedBlock = null;
+  this.style.opacity = "1";
+  document.querySelectorAll(".block").forEach(b => b.classList.remove("drag-over"));
+}
+
+function dragOver(e){
+  e.preventDefault();
+  if(this !== draggedBlock){
+    this.classList.add("drag-over");
   }
+}
 
-  if(type === "image"){
-    block.innerHTML = "<p>📷 Afbeelding</p>"
+function drop(e){
+  e.preventDefault();
+  this.classList.remove("drag-over");
+
+  if(this !== draggedBlock){
+    const phone = document.getElementById("phone");
+    const blocks = [...phone.querySelectorAll(".block")];
+    const droppedIndex = blocks.indexOf(this);
+    const draggedIndex = blocks.indexOf(draggedBlock);
+
+    if(droppedIndex > draggedIndex){
+      this.after(draggedBlock);
+    } else {
+      this.before(draggedBlock);
+    }
   }
-
-  if(type === "question"){
-    block.innerHTML = "<p>❓ Vraag</p>"
-  }
-
-  if(type === "location"){
-    block.innerHTML = "<p>📍 Locatie</p>"
-  }
-
-  phone.appendChild(block)
-
 }
 </script>
