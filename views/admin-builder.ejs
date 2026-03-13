@@ -7,28 +7,28 @@ width:100%;
 font-family:sans-serif;
 }
 
-/* LINKERKANT */
+/* LINKS */
 
 .pages{
-width:260px;
+width:250px;
 border-right:1px solid #ddd;
 padding:15px;
 overflow:auto;
 }
 
 .page{
-padding:8px;
+padding:10px;
 border:1px solid #ccc;
-margin-bottom:6px;
-cursor:pointer;
+margin-bottom:8px;
 border-radius:6px;
+cursor:pointer;
 }
 
 .page.active{
 background:#eee;
 }
 
-/* TELEFOON */
+/* MIDDEN */
 
 .preview{
 flex:1;
@@ -48,26 +48,33 @@ background:white;
 }
 
 .block{
-border:1px dashed #bbb;
+border:1px dashed #aaa;
 padding:10px;
 margin-bottom:10px;
-cursor:move;
 background:#fafafa;
+cursor:move;
 position:relative;
+border-radius:6px;
 }
 
 .delete{
 position:absolute;
-right:5px;
-top:5px;
+right:6px;
+top:6px;
 cursor:pointer;
-font-size:12px;
+}
+
+.edit{
+position:absolute;
+right:25px;
+top:6px;
+cursor:pointer;
 }
 
 /* RECHTS */
 
 .modules{
-width:260px;
+width:250px;
 border-left:1px solid #ddd;
 padding:15px;
 overflow:auto;
@@ -78,13 +85,13 @@ padding:10px;
 border:1px solid #ccc;
 margin-bottom:10px;
 cursor:grab;
-background:#fafafa;
 border-radius:6px;
+background:#fafafa;
 }
 
 button{
-padding:8px;
 margin-top:10px;
+padding:8px;
 }
 
 </style>
@@ -94,8 +101,6 @@ margin-top:10px;
 <h2><%= puzzle.name %></h2>
 
 <div class="builder">
-
-<!-- PAGINA'S -->
 
 <div class="pages">
 
@@ -110,8 +115,6 @@ margin-top:10px;
 </div>
 
 
-<!-- TELEFOON -->
-
 <div class="preview">
 
 <div id="phone" class="phone"></div>
@@ -119,15 +122,16 @@ margin-top:10px;
 </div>
 
 
-<!-- MODULES -->
-
 <div class="modules">
 
 <h3>Modules</h3>
 
 <div class="module" draggable="true" data-type="text">Tekst</div>
+
 <div class="module" draggable="true" data-type="image">Afbeelding</div>
+
 <div class="module" draggable="true" data-type="button">Knop</div>
+
 <div class="module" draggable="true" data-type="answer">Antwoord</div>
 
 </div>
@@ -140,10 +144,16 @@ margin-top:10px;
 
 let pages=<%- JSON.stringify(puzzle.pages || []) %>
 
+if(pages.length===0){
+pages=[{blocks:[]}]
+}
+
 let currentPage=0
+let dragIndex=null
 
 const phone=document.getElementById("phone")
 const pageList=document.getElementById("pageList")
+
 
 
 function renderPages(){
@@ -152,57 +162,168 @@ pageList.innerHTML=""
 
 pages.forEach((p,i)=>{
 
-const div=document.createElement("div")
-div.className="page"+(i===currentPage?" active":"")
+const el=document.createElement("div")
 
-div.innerText="Pagina "+(i+1)
+el.className="page"+(i===currentPage?" active":"")
 
-div.onclick=()=>{
+el.innerText="Pagina "+(i+1)
+
+el.onclick=()=>{
+
 currentPage=i
 renderPages()
 renderPhone()
+
 }
 
-pageList.appendChild(div)
+pageList.appendChild(el)
 
 })
 
 }
+
 
 
 function renderPhone(){
 
 phone.innerHTML=""
 
-const blocks=pages[currentPage].blocks || []
+const blocks=pages[currentPage].blocks
 
 blocks.forEach((b,i)=>{
 
-const el=document.createElement("div")
-el.className="block"
-el.draggable=true
+const block=document.createElement("div")
 
-const del=document.createElement("div")
+block.className="block"
+block.draggable=true
+
+block.addEventListener("dragstart",()=>{
+dragIndex=i
+})
+
+block.addEventListener("dragover",e=>{
+e.preventDefault()
+})
+
+block.addEventListener("drop",()=>{
+
+const item=blocks.splice(dragIndex,1)[0]
+blocks.splice(i,0,item)
+
+renderPhone()
+
+})
+
+
+
+const del=document.createElement("span")
 del.className="delete"
 del.innerText="✕"
 
 del.onclick=()=>{
+
 blocks.splice(i,1)
 renderPhone()
+
 }
 
-el.appendChild(del)
+block.appendChild(del)
 
-if(b.type==="text") el.innerHTML+="<p>Tekst</p>"
-if(b.type==="image") el.innerHTML+="<img src='https://placehold.co/300x150'>"
-if(b.type==="button") el.innerHTML+="<button>Knop</button>"
-if(b.type==="answer") el.innerHTML+="<input placeholder='Antwoord'>"
 
-phone.appendChild(el)
+
+const edit=document.createElement("span")
+edit.className="edit"
+edit.innerText="⚙"
+
+edit.onclick=()=>editBlock(b)
+
+block.appendChild(edit)
+
+
+
+const content=document.createElement("div")
+
+if(b.type==="text"){
+
+content.innerHTML=b.text || "Tekst"
+
+}
+
+if(b.type==="image"){
+
+content.innerHTML="<img src='"+(b.src||"https://placehold.co/300x150")+"'>"
+
+}
+
+if(b.type==="button"){
+
+content.innerHTML="<button>"+(b.label||"Knop")+"</button>"
+
+}
+
+if(b.type==="answer"){
+
+content.innerHTML="<input placeholder='Antwoord'>"
+
+}
+
+block.appendChild(content)
+
+phone.appendChild(block)
 
 })
 
 }
+
+
+
+function editBlock(block){
+
+if(block.type==="text"){
+
+const t=prompt("Tekst:",block.text||"")
+
+if(t!==null){
+
+block.text=t
+renderPhone()
+
+}
+
+}
+
+
+
+if(block.type==="button"){
+
+const t=prompt("Knop tekst:",block.label||"")
+
+if(t!==null){
+
+block.label=t
+renderPhone()
+
+}
+
+}
+
+
+
+if(block.type==="image"){
+
+const t=prompt("Image URL:",block.src||"")
+
+if(t!==null){
+
+block.src=t
+renderPhone()
+
+}
+
+}
+
+}
+
 
 
 function addPage(){
@@ -214,18 +335,23 @@ renderPages()
 }
 
 
+
 document.querySelectorAll(".module").forEach(m=>{
 
 m.addEventListener("dragstart",e=>{
+
 e.dataTransfer.setData("type",m.dataset.type)
+
 })
 
 })
+
 
 
 phone.addEventListener("dragover",e=>{
 e.preventDefault()
 })
+
 
 
 phone.addEventListener("drop",e=>{
@@ -234,13 +360,12 @@ e.preventDefault()
 
 const type=e.dataTransfer.getData("type")
 
-if(!pages[currentPage].blocks) pages[currentPage].blocks=[]
-
 pages[currentPage].blocks.push({type})
 
 renderPhone()
 
 })
+
 
 
 async function save(){
@@ -254,8 +379,10 @@ headers:{
 },
 
 body:JSON.stringify({
+
 puzzleId:"<%= puzzle._id %>",
 pages
+
 })
 
 })
@@ -263,6 +390,7 @@ pages
 alert("Opgeslagen!")
 
 }
+
 
 
 renderPages()
