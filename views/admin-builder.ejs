@@ -15,18 +15,19 @@
   main{ max-width:100% !important; padding:0 !important; margin:0 !important; }
   *{ box-sizing:border-box; }
 
-  /* Layout */
+  /* ===== Layout ===== */
   .builder-wrap{
-    display:flex;
-    height:calc(100vh - 56px);
-    background:var(--bg);
-    font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans";
-    color:var(--text);
+    display:grid;
+    grid-template-columns: 280px 1fr 320px; /* links: elementen, midden: phone, rechts: paginalijst + bloksettings */
+    gap: 0;
+    height: calc(100vh - 56px);
+    background: var(--bg);
+    font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans";
+    color: var(--text);
   }
 
-  /* Sidebar */
+  /* ===== Sidebar links (elementen) ===== */
   .sidebar{
-    width:280px;
     background:white;
     border-right:1px solid #e5e7eb;
     padding:22px;
@@ -50,36 +51,25 @@
   .btn{ flex:1; padding:10px; border-radius:10px; border:1px solid #ddd; font-weight:700; cursor:pointer; }
   .btn-primary{ background:var(--primary); color:white; border:none; }
 
-  /* Canvas */
-  .canvas{ flex:1; display:flex; justify-content:center; align-items:flex-start; padding:30px; }
-  .stage{ display:flex; gap:25px; align-items:flex-start; }
-
-  /* Phone preview */
+  /* ===== Midden (phone) ===== */
+  .canvas{
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
+    padding:30px;
+  }
   .phone{
     width:380px; height:740px; background:white;
     border-radius:35px; border:4px solid #111; overflow-y:auto;
     box-shadow:0 20px 50px rgba(0,0,0,0.18); padding:18px 18px 22px;
   }
-
-  /* Tabs */
-  .page-tabs{ display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
-  .page-tab{
-    padding:6px 10px; background:#eee; border:1px solid #ccc; border-radius:8px;
-    cursor:pointer; font-size:13px;
-  }
-  .page-tab.active{ background:var(--primary); border-color:var(--primary); color:white; }
-  .page-tab-add{
-    padding:6px 10px; background:#d1fae5; border:1px solid #34d399; border-radius:8px;
-    cursor:pointer; font-size:13px; font-weight:700;
-  }
-
   .phone-header{
     position:sticky; top:0; background:white; z-index:5;
     padding:8px 0 10px; margin-bottom:10px; border-bottom:1px dashed #ddd;
     display:flex; justify-content:space-between; gap:10px; align-items:center;
   }
 
-  /* Block */
+  /* ===== Blocks ===== */
   .block{
     padding:18px; background:white; border:1px solid #e5e7eb; border-radius:14px;
     margin-bottom:14px; box-shadow:0 4px 10px rgba(0,0,0,0.05);
@@ -95,35 +85,50 @@
   }
   .drag-over{ border:2px dashed var(--primary) !important; background:#eef2ff; }
 
-  /* Contenteditable styling */
+  /* Contenteditable & inputs binnen blok */
   [contenteditable="true"]{ padding:6px; border-radius:8px; transition:.15s; outline:2px dashed transparent; }
   [contenteditable="true"]:focus{ background:#f0f4ff; outline-color:#aab4ff; }
-
-  /* Inputs in blocks */
   .block input, .block textarea{
     width:100%; padding:10px; border-radius:10px; border:1px solid #ddd; margin-bottom:8px; font-size:14px;
   }
   .form-row{ display:flex; gap:10px; }
   .helper{ font-size:12px; color:#6b7280; }
 
-  /* Settings panel */
-  .panel{
-    width:320px; background:white; border-radius:16px; border:1px solid #e5e7eb; padding:18px;
-    box-shadow:0 8px 28px rgba(0,0,0,0.1); position:sticky; top:30px; height:fit-content;
+  /* ===== Rechter paneel (paginalijst + blokinstellingen) ===== */
+  .right-panel{
+    background:white;
+    border-left:1px solid #e5e7eb;
+    padding:18px;
+    overflow-y:auto;
   }
-  .panel h3{ margin:0 0 10px; }
-  .panel .section{ margin-bottom:16px; }
-  .panel label{ font-size:13px; margin-top:10px; display:block; }
-  .panel input, .panel textarea{
+  .right-panel h3{ margin:0 0 10px; font-size:16px; font-weight:800; }
+  .page-list{ display:flex; flex-direction:column; gap:6px; }
+  .page-item{
+    padding:8px 10px;
+    background:#f3f4f6;
+    border:1px solid #e5e7eb;
+    border-radius:8px;
+    cursor:pointer;
+    font-size:14px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+  .page-item.active{ background:var(--primary); border-color:var(--primary); color:white; }
+  .page-item span{ flex:1; }
+  .panel-section{ margin-top:16px; }
+  .right-panel label{ font-size:13px; margin-top:10px; display:block; }
+  .right-panel input, .right-panel textarea{
     width:100%; padding:10px; margin-top:4px; border-radius:8px; border:1px solid #ccc;
   }
-  .panel .danger{ background:#fee2e2; color:#991b1b; border:1px solid #fecaca; border-radius:10px; padding:10px; }
+  .danger-note{ background:#fee2e2; color:#991b1b; border:1px solid #fecaca; border-radius:10px; padding:10px; margin-top:10px; display:none; }
+  hr.sep{ border:none; border-top:1px solid #eee; margin:16px 0; }
 </style>
 
 <div class="builder-wrap">
 
-  <!-- Sidebar -->
-  <div class="sidebar">
+  <!-- ===== Linker sidebar: elementen ===== -->
+  <aside class="sidebar">
     <h2>Builder</h2>
 
     <div>
@@ -137,58 +142,50 @@
       <button class="btn" type="button" id="btn-reset">Reset</button>
       <button class="btn btn-primary" type="button" id="btn-save">Opslaan</button>
     </div>
-  </div>
+  </aside>
 
-  <!-- Canvas -->
-  <div class="canvas">
-    <div class="stage">
-
-      <!-- PHONE PREVIEW -->
-      <div class="phone" id="phone" data-id="<%= puzzle._id %>">
-
-        <!-- PAGE TABS -->
-        <div class="page-tabs" id="page-tabs">
-          <!-- Tabs worden door JS gerenderd -->
-        </div>
-
-        <div class="phone-header">
-          <strong id="app-title"><%= puzzle.name %></strong>
-          <span id="page-title-label"></span>
-        </div>
-
-        <!-- Blocks worden door JS gerenderd -->
+  <!-- ===== Midden: phone preview ===== -->
+  <section class="canvas">
+    <div class="phone" id="phone" data-id="<%= puzzle._id %>">
+      <div class="phone-header">
+        <strong id="app-title"><%= puzzle.name %></strong>
+        <span id="page-title-label"></span>
       </div>
-
-      <!-- SETTINGS PANEL -->
-      <div class="panel" id="panel">
-        <h3>Instellingen</h3>
-
-        <!-- Page section -->
-        <div class="section">
-          <h4 style="margin:0 0 6px;">Pagina‑instellingen</h4>
-          <label>Titel</label>
-          <input id="page-title-input" type="text" placeholder="Paginatitel" />
-          <div style="margin-top:10px; display:flex; gap:8px;">
-            <button id="add-page-btn" type="button" class="btn">+ Nieuwe pagina</button>
-            <button id="delete-page-btn" type="button" class="btn" style="border-color:#fecaca; color:#991b1b;">Verwijder pagina</button>
-          </div>
-          <div class="danger" id="page-warning" style="display:none; margin-top:10px;">Je kunt de laatste pagina niet verwijderen.</div>
-        </div>
-
-        <!-- Block section -->
-        <div class="section">
-          <h4 style="margin:0 0 6px;">Blok‑instellingen</h4>
-          <small id="panel-empty">Selecteer een blok om te bewerken.</small>
-          <div id="panel-fields" style="display:none;">
-            <label>Type</label>
-            <input id="panel-type" disabled />
-            <div id="panel-dynamic" style="margin-top:8px;"></div>
-          </div>
-        </div>
-      </div>
-
+      <!-- Blocks worden door JS gerenderd -->
     </div>
-  </div>
+  </section>
+
+  <!-- ===== Rechts: pagina-lijst + blok-instellingen ===== -->
+  <aside class="right-panel" id="right-panel">
+    <!-- Pagina-lijst -->
+    <div>
+      <h3>Pagina's</h3>
+      <div id="page-list" class="page-list"></div>
+      <button id="add-page-btn" class="btn" type="button" style="margin-top:10px;">+ Nieuwe pagina</button>
+
+      <div class="panel-section">
+        <label>Paginatitel</label>
+        <input id="page-title-input" type="text" placeholder="Paginatitel" />
+        <div style="display:flex; gap:8px; margin-top:10px;">
+          <button id="delete-page-btn" class="btn" type="button" style="background:#fee2e2; color:#991b1b; border-color:#fecaca;">Pagina verwijderen</button>
+        </div>
+        <div id="page-warning" class="danger-note">Je kunt de laatste pagina niet verwijderen.</div>
+      </div>
+    </div>
+
+    <hr class="sep">
+
+    <!-- Blok-instellingen -->
+    <div class="panel-section">
+      <h3>Blok‑instellingen</h3>
+      <small id="panel-empty">Selecteer een blok om te bewerken.</small>
+      <div id="panel-fields" style="display:none;">
+        <label>Type</label>
+        <input id="panel-type" disabled />
+        <div id="panel-dynamic" style="margin-top:8px;"></div>
+      </div>
+    </div>
+  </aside>
 
 </div>
 
@@ -200,63 +197,47 @@
   const qs = (s,p=document)=>p.querySelector(s);
   const qsa = (s,p=document)=>Array.from(p.querySelectorAll(s));
 
-  /* =================== STATE =================== */
+  /* ============ STATE ============ */
   let pages = JSON.parse(`<%- JSON.stringify(pagesSafe) %>`);
-  if(!Array.isArray(pages) || !pages.length){
-    pages = [{ title:"Pagina 1", modules:[] }];
-  }
+  if(!Array.isArray(pages) || !pages.length){ pages = [{ title:"Pagina 1", modules:[] }]; }
   let currentPage = 0;
-  let selected = null;
+  let selected = null; // geselecteerd block (DOM)
 
-  /* =================== UI HELPERS =================== */
-  function setAppTitles(){
-    qs("#page-title-label").textContent = pages[currentPage]?.title || ("Pagina " + (currentPage+1));
-    qs("#page-title-input").value = pages[currentPage]?.title || ("Pagina " + (currentPage+1));
+  /* ============ UI HELPERS ============ */
+  function setPageTitleUI(){
+    const title = pages[currentPage]?.title || ("Pagina " + (currentPage+1));
+    qs("#page-title-label").textContent = title;
+    qs("#page-title-input").value = title;
   }
 
-  function renderTabs(){
-    const tabsWrap = qs("#page-tabs");
-    tabsWrap.innerHTML = "";
-
-    pages.forEach((p, idx)=>{
-      const btn = document.createElement("button");
-      btn.className = "page-tab" + (idx === currentPage ? " active" : "");
-      btn.dataset.page = idx;
-      btn.type = "button";
-      btn.textContent = p.title?.trim() ? p.title : ("Pagina " + (idx+1));
-      btn.addEventListener("click", ()=> switchPage(idx));
-      tabsWrap.appendChild(btn);
+  function renderPageList(){
+    const wrap = qs("#page-list");
+    wrap.innerHTML = "";
+    pages.forEach((p,i)=>{
+      const item = document.createElement("div");
+      item.className = "page-item" + (i===currentPage ? " active":"");
+      item.dataset.page = i;
+      item.innerHTML = `<span>${p.title?.trim() ? p.title : ("Pagina " + (i+1))}</span>`;
+      item.addEventListener("click", ()=> switchPage(i));
+      wrap.appendChild(item);
     });
-
-    const addBtn = document.createElement("button");
-    addBtn.id = "add-page-tab";
-    addBtn.className = "page-tab-add";
-    addBtn.type = "button";
-    addBtn.textContent = "+ Nieuwe pagina";
-    addBtn.addEventListener("click", addPage);
-    tabsWrap.appendChild(addBtn);
   }
 
-  function clearPhone(){
-    // verwijder alle blocks behalve tabs en header
+  function clearBlocks(){
     qsa(".block", phone).forEach(b => b.remove());
   }
 
   function renderPage(idx){
-    clearPhone();
+    clearBlocks();
     const page = pages[idx];
-    if(!page) return;
-
-    // Blocks renderen
     (page.modules || []).forEach(m=>{
       const block = createBlock(m.type);
       phone.appendChild(block);
 
-      // data vullen
-      if(m.type === "text"){
+      if(m.type==="text"){
         qs('[data-field="text"]', block).innerHTML = m.data?.text || "Nieuwe tekst";
       }
-      if(m.type === "image"){
+      if(m.type==="image"){
         const url = m.data?.url || "";
         const inp = qs('input[data-field="url"]', block);
         inp.value = url;
@@ -264,8 +245,8 @@
           const img = document.createElement("img");
           img.className = "preview";
           img.src = url;
-          img.style.width="100%";
-          img.style.borderRadius="10px";
+          img.style.width = "100%";
+          img.style.borderRadius = "10px";
           qs(".content", block).appendChild(img);
         }else{
           const helper = document.createElement("div");
@@ -274,57 +255,55 @@
           qs(".content", block).appendChild(helper);
         }
       }
-      if(m.type === "question"){
+      if(m.type==="question"){
         qs('[data-field="question"]', block).value = m.data?.question || "";
         qs('[data-field="answer"]', block).value = m.data?.answer || "";
       }
-      if(m.type === "location"){
-        qs('[data-field="lat"]', block).value = (m.data?.lat ?? "");
-        qs('[data-field="lng"]', block).value = (m.data?.lng ?? "");
+      if(m.type==="location"){
+        qs('[data-field="lat"]', block).value    = (m.data?.lat ?? "");
+        qs('[data-field="lng"]', block).value    = (m.data?.lng ?? "");
         qs('[data-field="radius"]', block).value = (m.data?.radius ?? 50);
       }
     });
 
-    setAppTitles();
-    // panel resetten
+    setPageTitleUI();
     clearPanel();
   }
 
-  function switchPage(nextIdx){
-    // sla huidige DOM → state op
+  function switchPage(nextIndex){
+    // sla huidige DOM naar state
     pages[currentPage].modules = collect();
-    currentPage = nextIdx;
-    renderTabs();
+    currentPage = nextIndex;
+    renderPageList();
     renderPage(currentPage);
   }
 
   function addPage(){
-    pages.push({ title: "Nieuwe Pagina", modules: [] });
+    pages.push({ title:"Nieuwe pagina", modules:[] });
     currentPage = pages.length - 1;
-    renderTabs();
+    renderPageList();
     renderPage(currentPage);
   }
 
   function deletePage(){
     if(pages.length <= 1){
-      // waarschuwing tonen
       const warn = qs("#page-warning");
       warn.style.display = "block";
-      setTimeout(()=> warn.style.display = "none", 2000);
+      setTimeout(()=> warn.style.display="none", 1800);
       return;
     }
     pages.splice(currentPage, 1);
     currentPage = Math.max(0, currentPage - 1);
-    renderTabs();
+    renderPageList();
     renderPage(currentPage);
   }
 
-  /* =================== BLOCKS =================== */
+  /* ============ BLOCKS ============ */
   function createBlock(type){
     const div = document.createElement("div");
-    div.className="block";
-    div.draggable=true;
-    div.dataset.type=type;
+    div.className = "block";
+    div.draggable = true;
+    div.dataset.type = type;
 
     div.innerHTML = `
       <button class="remove" type="button">×</button>
@@ -374,202 +353,188 @@
     setSelected(block);
   }
 
-  // Sidebar knoppen
-  qsa('.element-btn').forEach(btn=>{
-    btn.setAttribute('type','button');
-    btn.addEventListener('click', ()=> addBlock(btn.dataset.type));
+  // Linker sidebar knoppen
+  qsa(".element-btn").forEach(btn=>{
+    btn.setAttribute("type","button");
+    btn.addEventListener("click", ()=> addBlock(btn.dataset.type));
   });
 
-  /* =================== DRAG & DROP =================== */
-  let dragged=null;
+  /* ============ Drag & Drop (container-based) ============ */
+  let dragged = null;
 
   function getAfterEl(container, y){
-    const blocks=qsa(".block:not(.dragging)",container);
+    const blocks = qsa(".block:not(.dragging)", container);
     return blocks.reduce((closest, child)=>{
-      const box=child.getBoundingClientRect();
-      const offset=y-(box.top+box.height/2);
-      if(offset<0 && offset>closest.offset){
-        return {offset,element:child};
+      const box = child.getBoundingClientRect();
+      const offset = y - (box.top + box.height / 2);
+      if(offset < 0 && offset > closest.offset){
+        return { offset, element: child };
       }
       return closest;
-    }, {offset:-Infinity,element:null}).element;
+    }, { offset: -Infinity, element: null }).element;
   }
 
-  phone.addEventListener("dragover", e=>{
+  phone.addEventListener("dragover", (e)=>{
     if(!dragged) return;
     e.preventDefault();
-    const after=getAfterEl(phone, e.clientY);
-    if(after==null) phone.appendChild(dragged);
+    const after = getAfterEl(phone, e.clientY);
+    if(after == null) phone.appendChild(dragged);
     else phone.insertBefore(dragged, after);
   });
 
   function wireBlock(block){
-    block.addEventListener("dragstart", e=>{
-      dragged=block;
+    block.addEventListener("dragstart", (e)=>{
+      dragged = block;
       block.classList.add("dragging");
       if(e.dataTransfer){
-        e.dataTransfer.setData("text/plain","");
-        e.dataTransfer.effectAllowed="move";
+        e.dataTransfer.setData("text/plain", "");
+        e.dataTransfer.effectAllowed = "move";
       }
     });
     block.addEventListener("dragend", ()=>{
       block.classList.remove("dragging");
-      dragged=null;
+      dragged = null;
     });
 
-    // image preview live
-    block.addEventListener("input", e=>{
+    // Live image preview
+    block.addEventListener("input", (e)=>{
       if(e.target.matches('input[data-field="url"]')){
-        const url=e.target.value.trim();
-        const old=qs("img.preview", block);
-        const helper=qs(".helper",block);
-
+        const url = e.target.value.trim();
+        const old = qs("img.preview", block);
+        const helper = qs(".helper", block);
         if(url){
-          if(old){ old.src=url; }
-          else {
-            const img=document.createElement("img");
-            img.className="preview";
-            img.src=url;
-            img.style.width="100%";
-            img.style.borderRadius="10px";
+          if(old){ old.src = url; }
+          else{
+            const img = document.createElement("img");
+            img.className = "preview";
+            img.src = url;
+            img.style.width = "100%";
+            img.style.borderRadius = "10px";
             if(helper) helper.replaceWith(img);
-            else qs(".content",block).appendChild(img);
+            else qs(".content", block).appendChild(img);
           }
         } else if(old){
-          const h=document.createElement("div");
-          h.className="helper";
-          h.textContent="Voeg een afbeelding URL toe.";
+          const h = document.createElement("div");
+          h.className = "helper";
+          h.textContent = "Voeg een afbeelding URL toe.";
           old.replaceWith(h);
         }
       }
     });
 
-    block.addEventListener("click",()=> setSelected(block));
+    block.addEventListener("click", ()=> setSelected(block));
   }
 
-  // Wire bestaande blocks (als server ooit iets renderde; nu renderen we via JS)
-  qsa("#phone .block").forEach(wireBlock);
-
-  // Delete via delegation (blijft werken na opslaan/reset)
-  phone.addEventListener("click", e=>{
+  // Delete via event delegation
+  phone.addEventListener("click", (e)=>{
     if(e.target.classList.contains("remove")){
-      const bl=e.target.closest(".block");
+      const bl = e.target.closest(".block");
       if(bl){
-        if(selected===bl) clearPanel();
+        if(selected === bl) clearPanel();
         bl.remove();
       }
     }
   });
 
-  /* =================== SETTINGS PANEL =================== */
-  const pEmpty=qs("#panel-empty");
-  const pFields=qs("#panel-fields");
-  const pType=qs("#panel-type");
-  const pDyn=qs("#panel-dynamic");
+  // Disable text select tijdens drag (UX)
+  document.addEventListener("dragstart", ()=> document.body.style.userSelect = "none");
+  document.addEventListener("dragend",   ()=> document.body.style.userSelect = "");
 
-  // Page controls
-  const pageTitleInput = qs("#page-title-input");
-  const addPageBtn = qs("#add-page-btn");
-  const deletePageBtn = qs("#delete-page-btn");
-
-  pageTitleInput.addEventListener("input", ()=>{
-    pages[currentPage].title = pageTitleInput.value.trim();
-    setAppTitles();
-    renderTabs();
-  });
-
-  addPageBtn.addEventListener("click", addPage);
-  deletePageBtn.addEventListener("click", deletePage);
+  /* ============ Blok-instellingen rechts (onder pagina-lijst) ============ */
+  const pEmpty = qs("#panel-empty");
+  const pFields = qs("#panel-fields");
+  const pType = qs("#panel-type");
+  const pDyn = qs("#panel-dynamic");
 
   function setSelected(block){
-    selected=block;
-    pEmpty.style.display="none";
-    pFields.style.display="block";
-    pDyn.innerHTML="";
+    selected = block;
+    pEmpty.style.display = "none";
+    pFields.style.display = "block";
+    pDyn.innerHTML = "";
 
-    const type=block.dataset.type;
-    pType.value=type;
+    const type = block.dataset.type;
+    pType.value = type;
 
     if(type==="text"){
-      const src=qs('[data-field="text"]',block);
-      pDyn.innerHTML=`<label>Tekst</label><textarea id="p-text" rows="4"></textarea>`;
-      const ta=qs("#p-text");
-      ta.value=src?.innerHTML || "";
-      ta.oninput=()=>{ if(src) src.innerHTML=ta.value; };
+      const src = qs('[data-field="text"]', block);
+      pDyn.innerHTML = `<label>Tekst</label><textarea id="p-text" rows="4"></textarea>`;
+      const ta = qs("#p-text");
+      ta.value = src?.innerHTML || "";
+      ta.oninput = ()=> { if(src) src.innerHTML = ta.value; };
     }
 
     if(type==="image"){
-      const src=qs('input[data-field="url"]',block);
-      pDyn.innerHTML=`<label>Afbeeldings-URL</label><input id="p-url" type="url" placeholder="https://...">`;
-      const inp=qs("#p-url");
-      inp.value=src?.value || "";
-      inp.oninput=()=>{
+      const src = qs('input[data-field="url"]', block);
+      pDyn.innerHTML = `<label>Afbeeldings-URL</label><input id="p-url" type="url" placeholder="https://...">`;
+      const inp = qs("#p-url");
+      inp.value = src?.value || "";
+      inp.oninput = ()=>{
         if(src){
-          src.value=inp.value;
-          src.dispatchEvent(new Event('input'));
+          src.value = inp.value;
+          src.dispatchEvent(new Event("input"));
         }
       };
     }
 
     if(type==="question"){
-      const q=qs('input[data-field="question"]',block);
-      const a=qs('input[data-field="answer"]',block);
-      pDyn.innerHTML=`
+      const q = qs('input[data-field="question"]', block);
+      const a = qs('input[data-field="answer"]', block);
+      pDyn.innerHTML = `
         <label>Vraag</label><input id="p-q" type="text">
         <label>Antwoord</label><input id="p-a" type="text">
       `;
-      qs("#p-q").value=q?.value || "";
-      qs("#p-a").value=a?.value || "";
-      qs("#p-q").oninput=()=>{ if(q) q.value=qs("#p-q").value; };
-      qs("#p-a").oninput=()=>{ if(a) a.value=qs("#p-a").value; };
+      qs("#p-q").value = q?.value || "";
+      qs("#p-a").value = a?.value || "";
+      qs("#p-q").oninput = ()=> { if(q) q.value = qs("#p-q").value; };
+      qs("#p-a").oninput = ()=> { if(a) a.value = qs("#p-a").value; };
     }
 
     if(type==="location"){
-      const lat=qs('input[data-field="lat"]',block);
-      const lng=qs('input[data-field="lng"]',block);
-      const r=qs('input[data-field="radius"]',block);
-      pDyn.innerHTML=`
+      const lat = qs('input[data-field="lat"]', block);
+      const lng = qs('input[data-field="lng"]', block);
+      const r = qs('input[data-field="radius"]', block);
+      pDyn.innerHTML = `
         <div class="form-row">
           <div><label>Lat</label><input id="p-lat" type="number" step="0.000001"></div>
           <div><label>Lng</label><input id="p-lng" type="number" step="0.000001"></div>
         </div>
         <label>Radius</label><input id="p-r" type="number" step="1">
       `;
-      qs("#p-lat").value=lat?.value || "";
-      qs("#p-lng").value=lng?.value || "";
-      qs("#p-r").value=r?.value || 50;
-      qs("#p-lat").oninput=()=>{ if(lat) lat.value=qs("#p-lat").value; };
-      qs("#p-lng").oninput=()=>{ if(lng) lng.value=qs("#p-lng").value; };
-      qs("#p-r").oninput=()=>{ if(r) r.value=qs("#p-r").value; };
+      qs("#p-lat").value = lat?.value || "";
+      qs("#p-lng").value = lng?.value || "";
+      qs("#p-r").value = r?.value || 50;
+      qs("#p-lat").oninput = ()=> { if(lat) lat.value = qs("#p-lat").value; };
+      qs("#p-lng").oninput = ()=> { if(lng) lng.value = qs("#p-lng").value; };
+      qs("#p-r").oninput   = ()=> { if(r)   r.value   = qs("#p-r").value;   };
     }
   }
 
   function clearPanel(){
-    selected=null;
-    pEmpty.style.display="block";
-    pFields.style.display="none";
-    pDyn.innerHTML="";
+    selected = null;
+    pEmpty.style.display = "block";
+    pFields.style.display = "none";
+    pDyn.innerHTML = "";
   }
 
-  /* =================== SERIALIZE =================== */
+  /* ============ Serialize (DOM -> state) ============ */
   function collect(){
-    return qsa("#phone .block").map(b=>{
-      const type=b.dataset.type;
-      const data={};
+    return qsa(".block", phone).map(b=>{
+      const type = b.dataset.type;
+      const data = {};
       if(type==="text"){
-        data.text = qs('[data-field="text"]',b)?.innerHTML || "";
+        data.text = qs('[data-field="text"]', b)?.innerHTML || "";
       }
       if(type==="image"){
-        data.url = qs('input[data-field="url"]',b)?.value?.trim() || "";
+        data.url = qs('input[data-field="url"]', b)?.value?.trim() || "";
       }
       if(type==="question"){
-        data.question = qs('input[data-field="question"]',b)?.value || "";
-        data.answer   = qs('input[data-field="answer"]',b)?.value || "";
+        data.question = qs('input[data-field="question"]', b)?.value || "";
+        data.answer   = qs('input[data-field="answer"]', b)?.value || "";
       }
       if(type==="location"){
-        const lat = qs('input[data-field="lat"]',b)?.value;
-        const lng = qs('input[data-field="lng"]',b)?.value;
-        const rad = qs('input[data-field="radius"]',b)?.value;
+        const lat = qs('input[data-field="lat"]', b)?.value;
+        const lng = qs('input[data-field="lng"]', b)?.value;
+        const rad = qs('input[data-field="radius"]', b)?.value;
         data.lat    = lat !== "" ? Number(lat) : null;
         data.lng    = lng !== "" ? Number(lng) : null;
         data.radius = rad !== "" ? Number(rad) : 50;
@@ -578,19 +543,18 @@
     });
   }
 
-  /* =================== SAVE & RESET =================== */
+  /* ============ Save & Reset ============ */
   async function saveAll(){
-    // sla huidige page DOM → state
+    // sla huidige page (DOM) naar state
     pages[currentPage].modules = collect();
 
     const id = phone.dataset.id;
-    const payload = { pages };
 
     try{
-      const res = await fetch(`/admin-builder/${id}/save-all`, {
+      const res = await fetch(`/admin-builder/${id}/save-all`,{
         method:"POST",
         headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ pages })
       });
       if(!res.ok) throw new Error(await res.text());
       toast("Opgeslagen ✅");
@@ -601,10 +565,19 @@
   }
   function resetPage(){ location.reload(); }
 
-  document.getElementById("btn-save").addEventListener("click", saveAll);
-  document.getElementById("btn-reset").addEventListener("click", resetPage);
+  qs("#btn-save").addEventListener("click", saveAll);
+  qs("#btn-reset").addEventListener("click", resetPage);
 
-  /* =================== TOAST =================== */
+  /* ============ Pagina acties ============ */
+  qs("#add-page-btn").addEventListener("click", addPage);
+  qs("#delete-page-btn").addEventListener("click", deletePage);
+  qs("#page-title-input").addEventListener("input", ()=>{
+    pages[currentPage].title = qs("#page-title-input").value;
+    qs("#page-title-label").textContent = pages[currentPage].title;
+    renderPageList();
+  });
+
+  /* ============ Toast ============ */
   function toast(msg, error=false){
     const t=document.createElement('div');
     t.textContent=msg;
@@ -621,9 +594,8 @@
     setTimeout(()=> t.remove(), 2000);
   }
 
-  /* =================== INIT =================== */
-  // Render tabs en eerste pagina
-  renderTabs();
+  /* ============ INIT ============ */
+  renderPageList();
   renderPage(currentPage);
 
 })();
