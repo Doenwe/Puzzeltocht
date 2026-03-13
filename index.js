@@ -218,7 +218,7 @@ app.get("/admin-theme", requireAdmin, async (req, res) => {
     };
   }
 
-  res.render("admin-theme", { theme });
+  res.render("admin-theme", { theme, saved: false });
 
 });
 
