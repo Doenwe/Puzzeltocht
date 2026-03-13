@@ -301,8 +301,20 @@ app.get("/puzzle/:id", async (req, res) => {
   const puzzle = await Puzzle.findById(req.params.id);
   if (!puzzle) return res.status(404).send("Puzzel niet gevonden");
 
-  // Voor nu: toon simpelweg Page 1
-  res.render("puzzle-play", { puzzle });
+  // Meteen naar pagina 1 (index 0)
+  res.redirect(`/puzzle/${puzzle._id}/0`);
+});
+
+app.get("/puzzle/:id/:page", async (req, res) => {
+  const puzzle = await Puzzle.findById(req.params.id);
+  if (!puzzle) return res.status(404).send("Puzzel niet gevonden");
+
+  const pageIndex = Number(req.params.page);
+  const page = puzzle.pages[pageIndex];
+
+  if (!page) return res.status(404).send("Pagina niet gevonden");
+
+  res.render("puzzle-page", { puzzle, page, pageIndex });
 });
 
 app.use((req, res) => res.status(404).send("Pagina niet gevonden"));
