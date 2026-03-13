@@ -1,0 +1,51 @@
+<h1 class="text-2xl font-bold mb-4"><%= puzzle.name %></h1>
+
+<h2 class="text-xl font-semibold mb-2"><%= page.title %></h2>
+
+<div class="space-y-4">
+
+  <% page.modules.forEach(mod => { %>
+
+    <% if (mod.type === "text") { %>
+      <div class="p-4 bg-white border rounded-xl shadow">
+        <%= mod.data.text %>
+      </div>
+    <% } %>
+
+    <% if (mod.type === "image") { %>
+      <div class="p-4 bg-white rounded-xl shadow">
+        <img src="<%= mod.data.url %>" class="rounded-xl w-full"/>
+      </div>
+    <% } %>
+
+    <% if (mod.type === "question") { %>
+      <div class="p-4 bg-white border rounded-xl shadow space-y-2">
+        <p class="font-semibold"><%= mod.data.question %></p>
+        <form>
+          <input type="text" placeholder="Jouw antwoord" class="border p-2 rounded w-full">
+          <button class="mt-2 bg-blue-500 text-white px-4 py-2 rounded-lg">Controleer</button>
+        </form>
+      </div>
+    <% } %>
+
+    <% if (mod.type === "location") { %>
+      <div class="p-4 bg-white border rounded-xl shadow">
+        <p>Ga naar de locatie</p>
+        <p>Lat: <%= mod.data.lat %></p>
+        <p>Lng: <%= mod.data.lng %></p>
+        <p>Straal: <%= mod.data.radius %> meter</p>
+      </div>
+    <% } %>
+
+  <% }) %>
+
+</div>
+
+<!-- NEXT PAGE BUTTON -->
+<% if (puzzle.pages[pageIndex+1]) { %>
+  <a 
+    href="/puzzle/<%= puzzle._id %>/<%= pageIndex+1 %>" 
+    class="block bg-blue-500 text-white text-center mt-6 p-3 rounded-xl">
+    Volgende pagina ➜
+  </a>
+<% } %>
