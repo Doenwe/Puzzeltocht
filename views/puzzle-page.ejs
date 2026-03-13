@@ -8,32 +8,42 @@
 
     <% if (mod.type === "text") { %>
       <div class="p-4 bg-white border rounded-xl shadow">
-        <%= mod.data.text %>
+        <%= mod.data?.text || "" %>
       </div>
     <% } %>
 
     <% if (mod.type === "image") { %>
       <div class="p-4 bg-white rounded-xl shadow">
-        <img src="<%= mod.data.url %>" class="rounded-xl w-full"/>
+        <% if (mod.data?.url) { %>
+          <img src="<%= mod.data.url %>" class="w-full rounded-xl" />
+        <% } else { %>
+          <div class="text-gray-500 text-sm">Geen afbeelding opgegeven.</div>
+        <% } %>
       </div>
     <% } %>
 
     <% if (mod.type === "question") { %>
       <div class="p-4 bg-white border rounded-xl shadow space-y-2">
-        <p class="font-semibold"><%= mod.data.question %></p>
+        <p class="font-semibold"><%= mod.data?.question || "Vraag ontbreekt" %></p>
+
         <form>
-          <input type="text" placeholder="Jouw antwoord" class="border p-2 rounded w-full">
-          <button class="mt-2 bg-blue-500 text-white px-4 py-2 rounded-lg">Controleer</button>
+          <input type="text" placeholder="Jouw antwoord"
+            class="border p-2 rounded w-full">
+
+          <button class="mt-2 bg-blue-500 text-white px-4 py-2 rounded-lg">
+            Controleer
+          </button>
         </form>
       </div>
     <% } %>
 
     <% if (mod.type === "location") { %>
-      <div class="p-4 bg-white border rounded-xl shadow">
-        <p>Ga naar de locatie</p>
-        <p>Lat: <%= mod.data.lat %></p>
-        <p>Lng: <%= mod.data.lng %></p>
-        <p>Straal: <%= mod.data.radius %> meter</p>
+      <div class="p-4 bg-white border rounded-xl shadow space-y-1">
+        <p class="font-semibold">Locatie-check</p>
+
+        <p>Lat: <%= mod.data?.lat ?? "?" %></p>
+        <p>Lng: <%= mod.data?.lng ?? "?" %></p>
+        <p>Straal: <%= mod.data?.radius ?? 50 %> meter</p>
       </div>
     <% } %>
 
@@ -43,9 +53,8 @@
 
 <!-- NEXT PAGE BUTTON -->
 <% if (puzzle.pages[pageIndex+1]) { %>
-  <a 
-    href="/puzzle/<%= puzzle._id %>/<%= pageIndex+1 %>" 
-    class="block bg-blue-500 text-white text-center mt-6 p-3 rounded-xl">
+  <a href="/puzzle/<%= puzzle._id %>/<%= pageIndex+1 %>"
+    class="mt-6 inline-block bg-blue-600 text-white px-4 py-2 rounded-lg">
     Volgende pagina ➜
   </a>
 <% } %>
