@@ -4,18 +4,19 @@
 
 <div class="space-y-4">
 
-  <% page.modules.forEach(mod => { %>
+  <% (page.modules || []).forEach(mod => { %>
 
     <% if (mod.type === "text") { %>
       <div class="p-4 bg-white border rounded-xl shadow">
-        <%= mod.data?.text || "" %>
+        <!-- LET OP: on-escaped, want builder slaat HTML op -->
+        <%- (mod.data && mod.data.text) ? mod.data.text : "" %>
       </div>
     <% } %>
 
     <% if (mod.type === "image") { %>
       <div class="p-4 bg-white rounded-xl shadow">
-        <% if (mod.data?.url) { %>
-          <img src="<%= mod.data.url %>" class="w-full rounded-xl" />
+        <% if (mod.data && mod.data.url) { %>
+          <img src="<%= mod.data.url %>" alt="Afbeelding" class="rounded-lg border max-w-full" />
         <% } else { %>
           <div class="text-gray-500 text-sm">Geen afbeelding opgegeven.</div>
         <% } %>
@@ -23,16 +24,15 @@
     <% } %>
 
     <% if (mod.type === "question") { %>
-      <div class="p-4 bg-white border rounded-xl shadow space-y-2">
-        <p class="font-semibold"><%= mod.data?.question || "Vraag ontbreekt" %></p>
+      <div class="p-4 bg-white border rounded-xl shadow space-y-3">
+        <p class="font-semibold"><%= (mod.data && mod.data.question) ? mod.data.question : "Vraag" %></p>
 
-        <form>
-          <input type="text" placeholder="Jouw antwoord"
-            class="border p-2 rounded w-full">
-
-          <button class="mt-2 bg-blue-500 text-white px-4 py-2 rounded-lg">
-            Controleer
-          </button>
+        <!-- Simpele client-check; je kunt dit ook server-side doen -->
+        <form class="space-y-2" onsubmit="return checkAnswer(this, '<%= (mod.data && mod.data.answer) ? String(mod.data.answer).replace(/"/g, '&quot;') : '' %>')">
+          <input type="text" name="answer" placeholder="Jouw antwoord"
+                 class="border p-2 rounded w-full" autocomplete="off">
+          <button class="mt-1 bg-blue-600 text-white px-4 py-2 rounded-lg">Controleer</button>
+          <div class="text-sm" data-feedback></div>
         </form>
       </div>
     <% } %>
@@ -40,10 +40,10 @@
     <% if (mod.type === "location") { %>
       <div class="p-4 bg-white border rounded-xl shadow space-y-1">
         <p class="font-semibold">Locatie-check</p>
-
-        <p>Lat: <%= mod.data?.lat ?? "?" %></p>
-        <p>Lng: <%= mod.data?.lng ?? "?" %></p>
-        <p>Straal: <%= mod.data?.radius ?? 50 %> meter</p>
+        <p>Lat: <%= (mod.data && (mod.data.lat || mod.data.lat===0)) ? mod.data.lat : "?" %></p>
+        <p>Lng: <%= (mod.data && (mod.data.lng || mod.data.lng===0)) ? mod.data.lng : "?" %></p>
+        <p>Straal: <%= (mod.data && (mod.data.radius || mod.data.radius===0)) ? mod.data.radius : 50 %> meter</p>
+        <!-- Hier kun je later een echte geolocatie-check aan koppelen -->
       </div>
     <% } %>
 
@@ -54,7 +54,29 @@
 <!-- NEXT PAGE BUTTON -->
 <% if (puzzle.pages[pageIndex+1]) { %>
   <a href="/puzzle/<%= puzzle._id %>/<%= pageIndex+1 %>"
-    class="mt-6 inline-block bg-blue-600 text-white px-4 py-2 rounded-lg">
+     class="inline-block mt-6 bg-indigo-600 text-white px-4 py-2 rounded-lg">
     Volgende pagina ➜
   </a>
 <% } %>
+
+<script>
+  function normalize(str){
+    return String(str || '')
+      .trim()
+      .toLowerCase()
+      .normalize('NFKD')                 // diacritics
+      .replace(/[\u0300-\u036f]/g,'')   // strip accents
+      .replace(/\s+/g,' ');             // collapse spaces
+  }
+
+  function checkAnswer(form, correct){
+    const feedback = form.querySelector('[data-feedback]');
+    const user = form.answer.value;
+
+    const ok = normalize(user) === normalize(correct);
+    feedback.textContent = ok ? '✅ Klopt!' : '❌ Niet goed, probeer opnieuw.';
+    feedback.style.color = ok ? '#059669' : '#dc2626';
+
+    return false; // voorkom submit/reload
+  }
+</script>
