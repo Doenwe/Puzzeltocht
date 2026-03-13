@@ -1,14 +1,12 @@
 <h1 class="text-2xl font-bold mb-4"><%= puzzle.name %></h1>
-
 <h2 class="text-xl font-semibold mb-2"><%= page.title %></h2>
 
 <div class="space-y-4">
 
-  <% (page.modules || []).forEach(mod => { %>
+  <% (page.modules || []).forEach((mod, idx) => { %>
 
     <% if (mod.type === "text") { %>
       <div class="p-4 bg-white border rounded-xl shadow">
-        <!-- Builder slaat HTML op: on-escaped renderen -->
         <%- mod.data?.text || "" %>
       </div>
     <% } %>
@@ -16,14 +14,7 @@
     <% if (mod.type === "image") { %>
       <div class="p-4 bg-white rounded-xl shadow">
         <% if (mod.data?.url) { %>
-          <img
-            src="<%= mod.data.url %>"
-            alt="Afbeelding"
-            class="w-full rounded-lg border"
-            loading="lazy"
-            onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
-          />
-          <div class="text-gray-500 text-sm" style="display:none;">Afbeelding kon niet geladen worden.</div>
+          <%= mod.data.url %>
         <% } else { %>
           <div class="text-gray-500 text-sm">Geen afbeelding opgegeven.</div>
         <% } %>
@@ -33,9 +24,17 @@
     <% if (mod.type === "question") { %>
       <div class="p-4 bg-white border rounded-xl shadow space-y-3">
         <p class="font-semibold"><%= mod.data?.question || "Vraag" %></p>
-        <form class="space-y-2" onsubmit="return checkAnswer(this, '<%= (mod.data?.answer ? String(mod.data.answer).replace(/"/g,'&quot;') : '') %>')">
+
+        <form class="space-y-2"
+              onsubmit="return checkAnswerBranch(this,
+                                                '<%= (mod.data?.answer ? String(mod.data.answer).replace(/"/g,'&quot;') : '') %>',
+                                                <%= (Number.isInteger(mod.data?.goodPage) ? mod.data.goodPage : 'null') %>,
+                                                <%= (Number.isInteger(mod.data?.badPage)  ? mod.data.badPage  : 'null') %>,
+                                                '<%= puzzle._id %>')">
           <input type="text" name="answer" placeholder="Jouw antwoord" class="border p-2 rounded w-full" autocomplete="off">
-          <button class="mt-1 bg-blue-600 text-white px-4 py-2 rounded-lg">Controleer</button>
+          <div class="flex gap-2">
+            <button class="bg-blue-600 text-white px-4 py-2 rounded-lg">Controleer</button>
+          </div>
           <div class="text-sm" data-feedback></div>
         </form>
       </div>
@@ -54,10 +53,9 @@
 
 </div>
 
-<!-- NEXT PAGE BUTTON -->
+<!-- NEXT PAGE BUTTON (optioneel, blijft werken als je geen branching gebruikt) -->
 <% if (puzzle.pages[pageIndex+1]) { %>
-  <a href="/puzzle/<%= puzzle._id %>/<%= pageIndex+1 %>"
-     class="inline-block mt-6 bg-blue-600 text-white px-4 py-2 rounded-lg">
+  <a class="inline-block mt-6 bg-gray-800 text-white px-4 py-2 rounded-lg" href="/puzzle/<%= puzzle._id %>/<%= pageIndex+1 %>">
     Volgende pagina ➜
   </a>
 <% } %>
@@ -66,11 +64,31 @@
   function normalize(str){
     return String(str||'').trim().toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ');
   }
-  function checkAnswer(form, correct){
+
+  /**
+   * Als goodPage/badPage is ingesteld:
+   *  - correct  => redirect naar /puzzle/:id/:goodPage
+   *  - incorrect=> redirect naar /puzzle/:id/:badPage
+   * Anders: toon alleen feedback.
+   */
+  function checkAnswerBranch(form, correct, goodPage, badPage, puzzleId){
     const feedback = form.querySelector('[data-feedback]');
-    const ok = normalize(form.answer.value) === normalize(correct);
+    const user = form.answer.value;
+    const ok = normalize(user) === normalize(correct);
+
+    // Wanneer target pagina is ingesteld, redirecten
+    if (ok && Number.isInteger(goodPage)) {
+      window.location.href = `/puzzle/${puzzleId}/${goodPage}`;
+      return false;
+    }
+    if (!ok && Number.isInteger(badPage)) {
+      window.location.href = `/puzzle/${puzzleId}/${badPage}`;
+      return false;
+    }
+
+    // fallback: alleen feedback tonen
     feedback.textContent = ok ? '✅ Klopt!' : '❌ Niet goed, probeer opnieuw.';
     feedback.style.color = ok ? '#059669' : '#dc2626';
-    return false; // voorkom page reload
+    return false;
   }
 </script>
