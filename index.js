@@ -274,7 +274,10 @@ app.get("/admin-builder/:id", requireAdmin, async (req,res)=>{
   
   const puzzle = await Puzzle.findById(req.params.id);
   
-  res.render("admin-builder",{puzzle});
+  res.render("admin-builder", { 
+    puzzle,
+    builderPage: true   // <<< BELANGRIJK
+  });
   
 });
 
