@@ -17,7 +17,7 @@
     display:flex;
     height:calc(100vh - 56px);
     background:var(--bg);
-    font-family:Inter, sans-serif;
+    font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
     color:var(--text);
   }
 
@@ -68,7 +68,7 @@
     border:none;
   }
 
-  /* Builder stage */
+  /* Canvas / stage */
   .canvas{
     flex:1;
     display:flex;
@@ -100,6 +100,7 @@
     z-index:10;
     display:flex;
     justify-content:space-between;
+    gap:10px;
   }
 
   /* Block */
@@ -195,15 +196,15 @@
     <h2>Builder</h2>
 
     <div>
-      <button class="element-btn" data-type="text">📝 Tekst</button>
-      <button class="element-btn" data-type="image">🖼️ Afbeelding</button>
-      <button class="element-btn" data-type="question">❓ Vraag</button>
-      <button class="element-btn" data-type="location">📍 Locatie</button>
+      <button class="element-btn" type="button" data-type="text">📝 Tekst</button>
+      <button class="element-btn" type="button" data-type="image">🖼️ Afbeelding</button>
+      <button class="element-btn" type="button" data-type="question">❓ Vraag</button>
+      <button class="element-btn" type="button" data-type="location">📍 Locatie</button>
     </div>
 
     <div class="sidebar-actions">
-      <button class="btn" id="btn-reset">Reset</button>
-      <button class="btn btn-primary" id="btn-save">Opslaan</button>
+      <button class="btn" type="button" id="btn-reset">Reset</button>
+      <button class="btn btn-primary" type="button" id="btn-save">Opslaan</button>
     </div>
   </div>
 
@@ -219,53 +220,45 @@
           <span><%= page.title %></span>
         </div>
 
-        <% page.modules.forEach(m => { %>
-
+        <% (page.modules || []).forEach(m => { %>
           <div class="block" draggable="true" data-type="<%= m.type %>">
-
-            <button class="remove">×</button>
+            <button class="remove" type="button">×</button>
 
             <h4>
-              <span><%= m.type[0].toUpperCase()+m.type.slice(1) %></span>
+              <span><%= m.type?.[0]?.toUpperCase() + m.type?.slice(1) %></span>
               <span class="kind"><%= m.type %></span>
             </h4>
 
             <div class="content">
               <% if(m.type === "text"){ %>
-
-                <div contenteditable="true" data-field="text">
-                  <%- m.data?.text || "Nieuwe tekst" %>
-                </div>
+                <div contenteditable="true" data-field="text"><%- m.data?.text || "Nieuwe tekst" %></div>
 
               <% } else if(m.type === "image"){ %>
-
                 <input type="url" data-field="url" value="<%= m.data?.url || '' %>">
                 <% if(m.data?.url){ %>
-                  <img src="<%= m.data.url %>" style="width:100%; border-radius:10px;">
+                  <img class="preview" src="<%= m.data.url %>" style="width:100%;border-radius:10px;" alt="preview">
                 <% } else { %>
                   <div class="helper">Voeg een afbeelding URL toe.</div>
                 <% } %>
 
               <% } else if(m.type === "question"){ %>
-
                 <label>Vraag:</label>
                 <input type="text" data-field="question" value="<%= m.data?.question || '' %>">
-
                 <label>Antwoord:</label>
                 <input type="text" data-field="answer" value="<%= m.data?.answer || '' %>">
 
               <% } else if(m.type === "location"){ %>
-
                 <div class="form-row">
                   <input type="number" step="0.000001" placeholder="Lat" data-field="lat" value="<%= m.data?.lat ?? '' %>">
                   <input type="number" step="0.000001" placeholder="Lng" data-field="lng" value="<%= m.data?.lng ?? '' %>">
                 </div>
                 <input type="number" step="1" placeholder="radius" data-field="radius" value="<%= m.data?.radius ?? 50 %>">
 
+              <% } else { %>
+                <div class="helper">Onbekend type: <%= m.type %></div>
               <% } %>
             </div>
           </div>
-
         <% }) %>
 
       </div>
@@ -288,14 +281,13 @@
 
 <script>
 (function(){
-
   const phone = document.getElementById("phone");
-  const qs = (s,p=document)=>p.querySelector(s);
-  const qsa = (s,p=document)=>[...p.querySelectorAll(s)];
+  if (!phone) return;
 
-  /* ----------------------------
-     CREATE BLOCK
-  -----------------------------*/
+  const qs  = (s, p=document)=>p.querySelector(s);
+  const qsa = (s, p=document)=>Array.from(p.querySelectorAll(s));
+
+  /* ---------- Create & Add block ---------- */
   function createBlock(type){
     const div = document.createElement("div");
     div.className="block";
@@ -303,7 +295,7 @@
     div.dataset.type=type;
 
     div.innerHTML = `
-      <button class="remove">×</button>
+      <button class="remove" type="button">×</button>
       <h4>
         <span>${type[0].toUpperCase()+type.slice(1)}</span>
         <span class="kind">${type}</span>
@@ -317,33 +309,49 @@
       content.innerHTML = `<div contenteditable="true" data-field="text">Nieuwe tekst</div>`;
     }
     if(type==="image"){
-      content.innerHTML =
-        `<input type="url" data-field="url" placeholder="Afbeeldings-URL">
-         <div class="helper">Voeg een afbeelding URL toe.</div>`;
+      content.innerHTML = `
+        <input type="url" data-field="url" placeholder="Afbeeldings-URL">
+        <div class="helper">Voeg een afbeelding URL toe.</div>
+      `;
     }
     if(type==="question"){
-      content.innerHTML =
-        `<label>Vraag:</label>
-         <input data-field="question">
-         <label>Antwoord:</label>
-         <input data-field="answer">`;
+      content.innerHTML = `
+        <label>Vraag:</label>
+        <input data-field="question">
+        <label>Antwoord:</label>
+        <input data-field="answer">
+      `;
     }
     if(type==="location"){
-      content.innerHTML =
-        `<div class="form-row">
-           <input type="number" step="0.000001" placeholder="Lat" data-field="lat">
-           <input type="number" step="0.000001" placeholder="Lng" data-field="lng">
-         </div>
-         <input type="number" step="1" placeholder="Radius" data-field="radius" value="50">`;
+      content.innerHTML = `
+        <div class="form-row">
+          <input type="number" step="0.000001" placeholder="Lat" data-field="lat">
+          <input type="number" step="0.000001" placeholder="Lng" data-field="lng">
+        </div>
+        <input type="number" step="1" placeholder="Radius" data-field="radius" value="50">
+      `;
     }
 
     wireBlock(div);
     return div;
   }
 
-  /* ----------------------------
-     DRAG & DROP
-  -----------------------------*/
+  function addBlock(type){
+    const block = createBlock(type);
+    phone.appendChild(block);
+    setSelected(block);
+  }
+
+  // --- Hook de sidebar & header knoppen ---
+  qsa('.element-btn').forEach(btn => {
+    btn.setAttribute('type','button');
+    btn.addEventListener('click', () => addBlock(btn.dataset.type));
+  });
+  // (optioneel) als je headershortcut knoppen toevoegt
+  document.getElementById('btn-add-text')?.addEventListener('click', () => addBlock('text'));
+  document.getElementById('btn-add-image')?.addEventListener('click', () => addBlock('image'));
+
+  /* ---------- Drag & Drop (container-based) ---------- */
   let dragged=null;
 
   function getAfterEl(container, y){
@@ -372,6 +380,7 @@
       block.classList.add("dragging");
       if(e.dataTransfer){
         e.dataTransfer.setData("text/plain","");
+        e.dataTransfer.effectAllowed="move";
       }
     });
     block.addEventListener("dragend", ()=>{
@@ -379,44 +388,40 @@
       dragged=null;
     });
 
-    // handle image preview
+    // live image preview
     block.addEventListener("input", e=>{
       if(e.target.matches('input[data-field="url"]')){
         const url=e.target.value.trim();
-        const old=qs("img", block);
+        const old=qs("img.preview", block);
         const helper=qs(".helper",block);
 
         if(url){
-          if(old){
-            old.src=url;
-          } else {
+          if(old){ old.src=url; }
+          else {
             const img=document.createElement("img");
+            img.className="preview";
             img.src=url;
             img.style.width="100%";
             img.style.borderRadius="10px";
             if(helper) helper.replaceWith(img);
+            else qs(".content",block).appendChild(img);
           }
         } else if(old){
-          old.replaceWith(Object.assign(document.createElement("div"),{
-            className:"helper",
-            innerText:"Voeg een afbeelding URL toe."
-          }));
+          const h=document.createElement("div");
+          h.className="helper";
+          h.textContent="Voeg een afbeelding URL toe.";
+          old.replaceWith(h);
         }
       }
     });
 
-    // selecting
-    block.addEventListener("click",()=>{
-      setSelected(block);
-    });
+    block.addEventListener("click",()=> setSelected(block));
   }
 
-  /* Wire existing blocks */
+  // Wire bestaande blocks
   qsa("#phone .block").forEach(wireBlock);
 
-  /* ----------------------------
-     DELETE VIA EVENT DELEGATION
-  -----------------------------*/
+  /* ---------- Delete via event delegation ---------- */
   phone.addEventListener("click", e=>{
     if(e.target.classList.contains("remove")){
       const bl=e.target.closest(".block");
@@ -427,9 +432,7 @@
     }
   });
 
-  /* ----------------------------
-     SETTINGS PANEL
-  -----------------------------*/
+  /* ---------- Settings panel ---------- */
   let selected=null;
   const pEmpty=qs("#panel-empty");
   const pFields=qs("#panel-fields");
@@ -449,18 +452,20 @@
       const src=qs('[data-field="text"]',block);
       pDyn.innerHTML=`<label>Tekst</label><textarea id="p-text" rows="4"></textarea>`;
       const ta=qs("#p-text");
-      ta.value=src.innerHTML;
-      ta.oninput=()=>src.innerHTML=ta.value;
+      ta.value=src?.innerHTML || "";
+      ta.oninput=()=>{ if(src) src.innerHTML=ta.value; };
     }
 
     if(type==="image"){
       const src=qs('input[data-field="url"]',block);
-      pDyn.innerHTML=`<label>Afbeeldings-URL</label><input id="p-url">`;
+      pDyn.innerHTML=`<label>Afbeeldings-URL</label><input id="p-url" type="url" placeholder="https://...">`;
       const inp=qs("#p-url");
-      inp.value=src.value;
+      inp.value=src?.value || "";
       inp.oninput=()=>{
-        src.value=inp.value;
-        src.dispatchEvent(new Event("input"));
+        if(src){
+          src.value=inp.value;
+          src.dispatchEvent(new Event("input"));
+        }
       };
     }
 
@@ -468,15 +473,13 @@
       const q=qs('input[data-field="question"]',block);
       const a=qs('input[data-field="answer"]',block);
       pDyn.innerHTML=`
-        <label>Vraag:</label>
-        <input id="p-q">
-        <label>Antwoord:</label>
-        <input id="p-a">
+        <label>Vraag</label><input id="p-q" type="text">
+        <label>Antwoord</label><input id="p-a" type="text">
       `;
-      qs("#p-q").value=q.value;
-      qs("#p-a").value=a.value;
-      qs("#p-q").oninput=()=>q.value=qs("#p-q").value;
-      qs("#p-a").oninput=()=>a.value=qs("#p-a").value;
+      qs("#p-q").value=q?.value || "";
+      qs("#p-a").value=a?.value || "";
+      qs("#p-q").oninput=()=>{ if(q) q.value=qs("#p-q").value; };
+      qs("#p-a").oninput=()=>{ if(a) a.value=qs("#p-a").value; };
     }
 
     if(type==="location"){
@@ -485,24 +488,24 @@
       const r=qs('input[data-field="radius"]',block);
       pDyn.innerHTML=`
         <div class="form-row">
-         <div>
-           <label>Lat</label>
-           <input id="p-lat" type="number" step="0.000001">
-         </div>
-         <div>
-           <label>Lng</label>
-           <input id="p-lng" type="number" step="0.000001">
-         </div>
+          <div>
+            <label>Lat</label>
+            <input id="p-lat" type="number" step="0.000001">
+          </div>
+          <div>
+            <label>Lng</label>
+            <input id="p-lng" type="number" step="0.000001">
+          </div>
         </div>
         <label>Radius</label>
         <input id="p-r" type="number" step="1">
       `;
-      qs("#p-lat").value=lat.value;
-      qs("#p-lng").value=lng.value;
-      qs("#p-r").value=r.value;
-      qs("#p-lat").oninput=()=>lat.value=qs("#p-lat").value;
-      qs("#p-lng").oninput=()=>lng.value=qs("#p-lng").value;
-      qs("#p-r").oninput=()=>r.value=qs("#p-r").value;
+      qs("#p-lat").value=lat?.value || "";
+      qs("#p-lng").value=lng?.value || "";
+      qs("#p-r").value=r?.value || 50;
+      qs("#p-lat").oninput=()=>{ if(lat) lat.value=qs("#p-lat").value; };
+      qs("#p-lng").oninput=()=>{ if(lng) lng.value=qs("#p-lng").value; };
+      qs("#p-r").oninput=()=>{ if(r) r.value=qs("#p-r").value; };
     }
   }
 
@@ -513,30 +516,29 @@
     pDyn.innerHTML="";
   }
 
-  /* ----------------------------
-     SAVE
-  -----------------------------*/
+  /* ---------- Collect & Save ---------- */
   function collect(){
     return qsa("#phone .block").map(b=>{
       const type=b.dataset.type;
       const data={};
-
       if(type==="text"){
         data.text = qs('[data-field="text"]',b)?.innerHTML || "";
       }
       if(type==="image"){
-        data.url = qs('input[data-field="url"]',b)?.value || "";
+        data.url = qs('input[data-field="url"]',b)?.value?.trim() || "";
       }
       if(type==="question"){
         data.question = qs('input[data-field="question"]',b)?.value || "";
-        data.answer = qs('input[data-field="answer"]',b)?.value || "";
+        data.answer   = qs('input[data-field="answer"]',b)?.value || "";
       }
       if(type==="location"){
-        data.lat = Number(qs('input[data-field="lat"]',b)?.value) || null;
-        data.lng = Number(qs('input[data-field="lng"]',b)?.value) || null;
-        data.radius = Number(qs('input[data-field="radius"]',b)?.value) || 50;
+        const lat = qs('input[data-field="lat"]',b)?.value;
+        const lng = qs('input[data-field="lng"]',b)?.value;
+        const rad = qs('input[data-field="radius"]',b)?.value;
+        data.lat    = lat !== "" ? Number(lat) : null;
+        data.lng    = lng !== "" ? Number(lng) : null;
+        data.radius = rad !== "" ? Number(rad) : 50;
       }
-
       return { type, data };
     });
   }
@@ -551,12 +553,30 @@
       body:JSON.stringify(payload)
     });
 
-    if(res.ok) alert("Opgeslagen ✓");
-    else alert("Opslaan mislukt");
+    if(res.ok) toast("Opgeslagen ✅");
+    else toast("Opslaan mislukt ❌", true);
   }
 
-  document.getElementById("btn-save").onclick = save;
-  document.getElementById("btn-reset").onclick = () => location.reload();
+  function resetPage(){ location.reload(); }
 
+  document.getElementById("btn-save").addEventListener('click', save);
+  document.getElementById("btn-reset").addEventListener('click', resetPage);
+
+  /* ---------- Tiny toast ---------- */
+  function toast(msg, error=false){
+    const t=document.createElement('div');
+    t.textContent=msg;
+    t.style.position='fixed';
+    t.style.right='20px';
+    t.style.bottom='20px';
+    t.style.background= error ? '#ef4444' : 'var(--primary)';
+    t.style.color='#fff';
+    t.style.padding='10px 14px';
+    t.style.borderRadius='12px';
+    t.style.boxShadow='0 8px 24px rgba(0,0,0,.2)';
+    t.style.zIndex='9999';
+    document.body.appendChild(t);
+    setTimeout(()=> t.remove(), 2000);
+  }
 })();
 </script>
