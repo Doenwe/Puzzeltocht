@@ -1,87 +1,121 @@
-<h1 class="text-2xl font-bold mb-4"><%= puzzle.name %></h1>
-<h2 class="text-xl font-semibold mb-2"><%= page.title %></h2>
+<%
+// puzzle: { _id, name, pages: [...] }
+// page:    current page object
+// pageIndex: number (0-based)
+const hasNext = !!puzzle.pages[pageIndex + 1];
+const showNext = (typeof page?.showNext === 'boolean') ? page.showNext : true;
+%>
 
-<div class="space-y-4">
+<div class="space-y-6">
 
-  <% (page.modules || []).forEach((mod, idx) => { %>
+  <h1 class="text-2xl font-bold"><%= puzzle.name %></h1>
 
-    <% if (mod.type === "text") { %>
-      <div class="p-4 bg-white border rounded-xl shadow">
-        <%- mod.data?.text || "" %>
-      </div>
-    <% } %>
+  <h2 class="text-xl font-semibold"><%= page.title %></h2>
 
-    <% if (mod.type === "image") { %>
-      <div class="p-4 bg-white rounded-xl shadow">
-        <% if (mod.data?.url) { %>
-          <%= mod.data.url %>
-        <% } else { %>
-          <div class="text-gray-500 text-sm">Geen afbeelding opgegeven.</div>
-        <% } %>
-      </div>
-    <% } %>
+  <div class="space-y-4">
 
-    <% if (mod.type === "question") { %>
-      <div class="p-4 bg-white border rounded-xl shadow space-y-3">
-        <p class="font-semibold"><%= mod.data?.question || "Vraag" %></p>
+    <% (page.modules || []).forEach((mod) => { %>
 
-        <form class="space-y-2"
-              onsubmit="return checkAnswerBranch(this,
-                                                '<%= (mod.data?.answer ? String(mod.data.answer).replace(/"/g,'&quot;') : '') %>',
-                                                <%= (Number.isInteger(mod.data?.goodPage) ? mod.data.goodPage : 'null') %>,
-                                                <%= (Number.isInteger(mod.data?.badPage)  ? mod.data.badPage  : 'null') %>,
-                                                '<%= puzzle._id %>')">
-          <input type="text" name="answer" placeholder="Jouw antwoord" class="border p-2 rounded w-full" autocomplete="off">
-          <div class="flex gap-2">
-            <button class="bg-blue-600 text-white px-4 py-2 rounded-lg">Controleer</button>
-          </div>
-          <div class="text-sm" data-feedback></div>
-        </form>
-      </div>
-    <% } %>
+      <% if (mod.type === "text") { %>
+        <div class="p-4 bg-white border rounded-xl shadow">
+          <!-- Builder slaat HTML op -->
+          <%- mod.data?.text || "" %>
+        </div>
+      <% } %>
 
-    <% if (mod.type === "location") { %>
-      <div class="p-4 bg-white border rounded-xl shadow space-y-1">
-        <p class="font-semibold">Locatie‑check</p>
-        <p>Lat: <%= (mod.data?.lat ?? "?") %></p>
-        <p>Lng: <%= (mod.data?.lng ?? "?") %></p>
-        <p>Straal: <%= (mod.data?.radius ?? 50) %> meter</p>
-      </div>
-    <% } %>
+      <% if (mod.type === "image") { %>
+        <div class="p-4 bg-white border rounded-xl shadow">
+          <% if (mod.data?.url) { %>
+            <img
+              src="<%= mod.data.url %>"
+              alt=""
+              loading="lazy"
+              class="w-full h-auto rounded-lg border"
+              referrerpolicy="no-referrer"
+            />
+          <% } else { %>
+            <div class="text-gray-500 text-sm">Geen afbeelding opgegeven.</div>
+          <% } %>
+        </div>
+      <% } %>
 
-  <% }) %>
+      <% if (mod.type === "question") { %>
+        <div class="p-4 bg-white border rounded-xl shadow space-y-3">
+          <p class="font-semibold"><%= mod.data?.question || "Vraag" %></p>
+
+          <form
+            class="space-y-2"
+            onsubmit="return checkAnswerBranch(
+              this,
+              '<%= (mod.data?.answer ? String(mod.data.answer).replace(/"/g,'&quot;') : '') %>',
+              <%= (Number.isInteger(mod.data?.goodPage) ? mod.data.goodPage : 'null') %>,
+              <%= (Number.isInteger(mod.data?.badPage)  ? mod.data.badPage  : 'null') %>,
+              '<%= puzzle._id %>'
+            )"
+          >
+            <input
+              type="text"
+              name="answer"
+              placeholder="Jouw antwoord"
+              class="border p-2 rounded w-full"
+              autocomplete="off"
+            />
+            <div class="flex gap-2">
+              <button class="bg-blue-600 text-white px-4 py-2 rounded-lg">Controleer</button>
+            </div>
+            <div class="text-sm" data-feedback></div>
+          </form>
+        </div>
+      <% } %>
+
+      <% if (mod.type === "location") { %>
+        <div class="p-4 bg-white border rounded-xl shadow space-y-1">
+          <p class="font-semibold">Locatie‑check</p>
+          <p>Lat: <%= (mod.data?.lat ?? "?") %></p>
+          <p>Lng: <%= (mod.data?.lng ?? "?") %></p>
+          <p>Straal: <%= (mod.data?.radius ?? 50) %> meter</p>
+        </div>
+      <% } %>
+
+    <% }) %>
+
+  </div>
+
+  <!-- Volgende pagina knop: alleen tonen als toegestaan -->
+  <% if (hasNext && showNext) { %>
+    <div>
+      <a
+        href="/puzzle/<%= puzzle._id %>/<%= pageIndex + 1 %>"
+        class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow"
+      >
+        Volgende pagina
+        <span aria-hidden="true">➜</span>
+      </a>
+    </div>
+  <% } %>
 
 </div>
 
-<!-- NEXT PAGE BUTTON (optioneel, blijft werken als je geen branching gebruikt) -->
-<!-- NEXT PAGE BUTTON: alleen als builder-toggle aan staat -->
-<% const nextExists = !!puzzle.pages[pageIndex+1];
-   const showNext = (typeof puzzle.pages[pageIndex]?.showNext === "boolean")
-     ? puzzle.pages[pageIndex].showNext : true; %>
-
-<% if (nextExists && showNext) { %>
-  /puzzle/<%= puzzle._id %>/<%= pageIndex+1 %>
-    Volgende pagina ➜
-  </a>
-<% } %>
-
 <script>
   function normalize(str){
-    return String(str||'').trim().toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ');
+    return String(str||'')
+      .trim()
+      .toLowerCase()
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g,'')
+      .replace(/\s+/g,' ');
   }
 
   /**
-   * Als goodPage/badPage is ingesteld:
-   *  - correct  => redirect naar /puzzle/:id/:goodPage
-   *  - incorrect=> redirect naar /puzzle/:id/:badPage
-   * Anders: toon alleen feedback.
+   * Branching logic voor vraagblok.
+   * - goodPage/badPage zijn pagina-indexen (0-based) of null.
    */
   function checkAnswerBranch(form, correct, goodPage, badPage, puzzleId){
     const feedback = form.querySelector('[data-feedback]');
     const user = form.answer.value;
     const ok = normalize(user) === normalize(correct);
 
-    // Wanneer target pagina is ingesteld, redirecten
+    // Redirect als een target is ingesteld
     if (ok && Number.isInteger(goodPage)) {
       window.location.href = `/puzzle/${puzzleId}/${goodPage}`;
       return false;
@@ -91,7 +125,7 @@
       return false;
     }
 
-    // fallback: alleen feedback tonen
+    // Anders: alleen feedback tonen
     feedback.textContent = ok ? '✅ Klopt!' : '❌ Niet goed, probeer opnieuw.';
     feedback.style.color = ok ? '#059669' : '#dc2626';
     return false;
