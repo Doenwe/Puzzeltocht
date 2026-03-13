@@ -1,9 +1,20 @@
 <%
   // Verwachte shape:
   // puzzle = { _id, name, pages: [{ title, modules: [{type, data}, ...] }, ...] }
-  const pagesSafe = Array.isArray(puzzle?.pages) && puzzle.pages.length
-    ? puzzle.pages
-    : [{ title: "Pagina 1", modules: [] }];
+  // Tolerant naar oud 'content' veld:
+  const normalizePages = (puz) => {
+    if (!puz || !Array.isArray(puz.pages) || !puz.pages.length) {
+      return [{ title: "Pagina 1", modules: [] }];
+    }
+    return puz.pages.map(pg => ({
+      title: pg?.title || "Pagina",
+      modules: Array.isArray(pg?.modules) ? pg.modules.map(m => ({
+        type: m?.type || "",
+        data: m?.data || m?.content || {}   // tolerant: data of content
+      })) : []
+    }));
+  };
+  const pagesSafe = normalizePages(puzzle);
 %>
 
 <style>
@@ -94,7 +105,7 @@
   .form-row{ display:flex; gap:10px; }
   .helper{ font-size:12px; color:#6b7280; }
 
-  /* ===== Rechter paneel (paginalijst + blokinstellingen) ===== */
+  /* ===== Rechter paneel ===== */
   .right-panel{
     background:white;
     border-left:1px solid #e5e7eb;
@@ -203,6 +214,21 @@
   let currentPage = 0;
   let selected = null; // geselecteerd block (DOM)
 
+  /* ============ Helpers ============ */
+  function mapGoogleDriveUrl(url){
+    // Ondersteunt: /file/d/<ID>/... of ?id=<ID>
+    try{
+      const u = new URL(url);
+      if (u.hostname.includes("drive.google.com")) {
+        const m = u.pathname.match(/\/file\/d\/([^/]+)/);
+        if (m && m[1]) return `https://drive.google.com/uc?export=view&id=${m[1]}`;
+        const id = u.searchParams.get("id");
+        if (id) return `https://drive.google.com/uc?export=view&id=${id}`;
+      }
+    } catch {}
+    return url;
+  }
+
   /* ============ UI HELPERS ============ */
   function setPageTitleUI(){
     const title = pages[currentPage]?.title || ("Pagina " + (currentPage+1));
@@ -230,15 +256,18 @@
   function renderPage(idx){
     clearBlocks();
     const page = pages[idx];
+
     (page.modules || []).forEach(m=>{
       const block = createBlock(m.type);
       phone.appendChild(block);
 
+      const data = m.data || {}; // tolerant was hierboven al gedaan
+
       if(m.type==="text"){
-        qs('[data-field="text"]', block).innerHTML = m.data?.text || "Nieuwe tekst";
+        qs('[data-field="text"]', block).innerHTML = data?.text || "Nieuwe tekst";
       }
       if(m.type==="image"){
-        const url = m.data?.url || "";
+        const url = data?.url || "";
         const inp = qs('input[data-field="url"]', block);
         inp.value = url;
         if(url){
@@ -251,18 +280,18 @@
         }else{
           const helper = document.createElement("div");
           helper.className = "helper";
-          helper.textContent = "Voeg een afbeelding URL toe.";
+          helper.textContent = "Voeg een afbeelding URL toe of upload.";
           qs(".content", block).appendChild(helper);
         }
       }
       if(m.type==="question"){
-        qs('[data-field="question"]', block).value = m.data?.question || "";
-        qs('[data-field="answer"]', block).value = m.data?.answer || "";
+        qs('[data-field="question"]', block).value = data?.question || "";
+        qs('[data-field="answer"]', block).value = data?.answer || "";
       }
       if(m.type==="location"){
-        qs('[data-field="lat"]', block).value    = (m.data?.lat ?? "");
-        qs('[data-field="lng"]', block).value    = (m.data?.lng ?? "");
-        qs('[data-field="radius"]', block).value = (m.data?.radius ?? 50);
+        qs('[data-field="lat"]', block).value    = (data?.lat ?? "");
+        qs('[data-field="lng"]', block).value    = (data?.lng ?? "");
+        qs('[data-field="radius"]', block).value = (data?.radius ?? 50);
       }
     });
 
@@ -321,8 +350,12 @@
     }
     if(type==="image"){
       content.innerHTML = `
-        <input type="url" data-field="url" placeholder="Afbeeldings-URL">
-        <div class="helper">Voeg een afbeelding URL toe.</div>
+        <div style="display:flex; gap:8px; margin-bottom:8px;">
+          <input type="url" data-field="url" placeholder="Afbeeldings-URL" style="flex:1;">
+          <button type="button" class="btn-upload" style="white-space:nowrap;">Uploaden</button>
+          <input type="file" accept="image/*" class="file-hidden" style="display:none;">
+        </div>
+        <div class="helper">Voeg een URL toe of upload een afbeelding.</div>
       `;
     }
     if(type==="question"){
@@ -396,10 +429,11 @@
       dragged = null;
     });
 
-    // Live image preview
+    // Live image preview + upload + drive-mapping
     block.addEventListener("input", (e)=>{
       if(e.target.matches('input[data-field="url"]')){
-        const url = e.target.value.trim();
+        const urlRaw = e.target.value.trim();
+        const url = urlRaw; // mapping gebeurt op 'change'
         const old = qs("img.preview", block);
         const helper = qs(".helper", block);
         if(url){
@@ -416,11 +450,48 @@
         } else if(old){
           const h = document.createElement("div");
           h.className = "helper";
-          h.textContent = "Voeg een afbeelding URL toe.";
+          h.textContent = "Voeg een afbeelding URL toe of upload.";
           old.replaceWith(h);
         }
       }
     });
+
+    // Upload knop + verborgen file input
+    const uploadBtn = block.querySelector(".btn-upload");
+    const fileInput = block.querySelector(".file-hidden");
+    const urlInput  = block.querySelector('input[data-field="url"]');
+
+    if (uploadBtn && fileInput && urlInput) {
+      uploadBtn.addEventListener("click", () => fileInput.click());
+      fileInput.addEventListener("change", async () => {
+        const file = fileInput.files?.[0];
+        if (!file) return;
+        const fd = new FormData();
+        fd.append("image", file);
+        try {
+          const res = await fetch("/admin-upload-image", { method: "POST", body: fd });
+          if (!res.ok) throw new Error(await res.text());
+          const json = await res.json();
+          urlInput.value = json.url;
+          urlInput.dispatchEvent(new Event("input")); // triggert preview
+        } catch (e) {
+          console.error(e);
+          alert("Uploaden mislukt");
+        } finally {
+          fileInput.value = "";
+        }
+      });
+
+      // Drive link -> directe view link
+      urlInput.addEventListener("change", () => {
+        const raw = urlInput.value.trim();
+        const mapped = mapGoogleDriveUrl(raw);
+        if (mapped !== raw) {
+          urlInput.value = mapped;
+          urlInput.dispatchEvent(new Event("input"));
+        }
+      });
+    }
 
     block.addEventListener("click", ()=> setSelected(block));
   }
@@ -470,8 +541,8 @@
       inp.value = src?.value || "";
       inp.oninput = ()=>{
         if(src){
-          src.value = inp.value;
-          src.dispatchEvent(new Event("input"));
+          src.value = mapGoogleDriveUrl(inp.value);
+          src.dispatchEvent(new Event('input'));
         }
       };
     }
@@ -492,7 +563,7 @@
     if(type==="location"){
       const lat = qs('input[data-field="lat"]', block);
       const lng = qs('input[data-field="lng"]', block);
-      const r = qs('input[data-field="radius"]', block);
+      const r   = qs('input[data-field="radius"]', block);
       pDyn.innerHTML = `
         <div class="form-row">
           <div><label>Lat</label><input id="p-lat" type="number" step="0.000001"></div>
@@ -502,7 +573,7 @@
       `;
       qs("#p-lat").value = lat?.value || "";
       qs("#p-lng").value = lng?.value || "";
-      qs("#p-r").value = r?.value || 50;
+      qs("#p-r").value   = r?.value   || 50;
       qs("#p-lat").oninput = ()=> { if(lat) lat.value = qs("#p-lat").value; };
       qs("#p-lng").oninput = ()=> { if(lng) lng.value = qs("#p-lng").value; };
       qs("#p-r").oninput   = ()=> { if(r)   r.value   = qs("#p-r").value;   };
@@ -545,7 +616,7 @@
 
   /* ============ Save & Reset ============ */
   async function saveAll(){
-    // sla huidige page (DOM) naar state
+    // Sla huidige page (DOM) naar state
     pages[currentPage].modules = collect();
 
     const id = phone.dataset.id;
