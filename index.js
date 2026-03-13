@@ -232,7 +232,7 @@ app.post("/admin-theme", requireAdmin, async (req, res) => {
     { upsert: true }
   );
 
-  res.redirect("/admin-theme");
+  res.render("admin-theme", { theme: req.body, saved: true });
 
 });
 
