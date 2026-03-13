@@ -1,67 +1,223 @@
 <%
+  // puzzle: { _id, name, pages: [...] }
+  // page: huidige page
+  // pageIndex: 0-based
   const hasNext  = !!puzzle.pages[pageIndex + 1];
   const showNext = (typeof page?.showNext === 'boolean') ? page.showNext : true;
   const isMap    = (typeof page?.isMap === 'boolean')    ? page.isMap    : false;
 %>
 
-<!-- Leaflet CSS (voor kaartpagina's kan dit ook in je layout) -->
+<!-- Leaflet CSS -->
 <link
   rel="stylesheet"
   href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
 />
+
+<style>
+  /* Professionele user-dot (zoals Google): blauwe dot, witte rand, subtiele gloei/pulse */
+  .user-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #1a73e8;          /* Google blue-ish */
+    border: 3px solid #ffffff;     /* white ring */
+    box-shadow: 0 0 0 2px rgba(26,115,232,0.25); /* soft glow */
+  }
+  .user-dot.pulse {
+    position: relative;
+  }
+  .user-dot.pulse::after {
+    content: "";
+    position: absolute;
+    left: 50%; top: 50%;
+    width: 14px; height: 14px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: rgba(26,115,232,0.3);
+    animation: userDotPulse 2.2s ease-out infinite;
+  }
+  @keyframes userDotPulse {
+    0%   { transform: translate(-50%, -50%) scale(1);   opacity: 0.6; }
+    70%  { transform: translate(-50%, -50%) scale(2.6); opacity: 0;   }
+    100% { transform: translate(-50%, -50%) scale(2.6); opacity: 0;   }
+  }
+
+  /* Heading “pijl” bovenop de dot (als heading beschikbaar is) */
+  .heading-arrow {
+    width: 0; height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-bottom: 10px solid #1a73e8;
+    filter: drop-shadow(0 0 2px rgba(0,0,0,0.3));
+    transform-origin: 50% 80%;
+    position: absolute;
+    top: -14px; left: 50%;
+    translate: -50% 0;
+  }
+
+  /* Nettere “Volgende” knop */
+  .next-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: #2563eb; color: #fff; padding: 10px 14px;
+    border-radius: 10px; border: none; text-decoration: none;
+    box-shadow: 0 6px 16px rgba(37,99,235,.25);
+  }
+  .next-btn:hover { filter: brightness(1.05); }
+</style>
 
 <div class="space-y-6">
   <h1 class="text-2xl font-bold"><%= puzzle.name %></h1>
   <h2 class="text-xl font-semibold"><%= page.title %></h2>
 
   <% if (isMap) { %>
+    <!-- ====== KAARTPAGINA ====== -->
     <div id="map" class="rounded-xl border shadow" style="height: 65vh;"></div>
 
     <% if (hasNext && showNext) { %>
       <div class="pt-4">
-        <a href="/puzzle/<%= puzzle._id %>/<%= pageIndex + 1 %>"
-           class="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg">
-          Volgende pagina <span aria-hidden="true">➜</span>
+        <a class="next-btn" href="/puzzle/<%= puzzle._id %>/<%= pageIndex + 1 %>">
+          <span>Volgende pagina</span> <span aria-hidden="true">➜</span>
         </a>
       </div>
     <% } %>
 
+    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
       (function(){
-        const map = L.map('map').setView([52.1326, 5.2913], 7);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          maxZoom: 19,
-          attribution: '&copy; OpenStreetMap-bijdragers'
-        }).addTo(map);
+        // 1) Init kaart – center op NL als fallback
+        const map = L.map('map', { zoomControl: true }).setView([52.1326, 5.2913], 7);
+
+        // 2) Tiles – CARTO Voyager (prima, gratis, modern)
+        L.tileLayer(
+          'https://{s}.basemaps.cartocdn.com/rastertiles/voyager{r}/{z}/{x}/{y}{r}.png',
+          {
+            maxZoom: 20,
+            subdomains: 'abcd',
+            attribution:
+              '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OSM</a> ' +
+              'contributors &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>'
+          }
+        ).addTo(map);
+
+        // 3) Lagen voor user-locatie
+        let userMarker = null;       // dot + (optioneel) heading
+        let accuracyCircle = null;   // bladert rondom locatie
+
+        // Een Leaflet DivIcon voor de professionele user-dot
+        function createUserIcon(hasHeading){
+          const container = document.createElement('div');
+          container.style.position = 'relative';
+          // dot:
+          const dot = document.createElement('div');
+          dot.className = 'user-dot pulse';
+          container.appendChild(dot);
+
+          // Arrow (alleen als heading beschikbaar)
+          if (hasHeading) {
+            const arrow = document.createElement('div');
+            arrow.className = 'heading-arrow';
+            container.appendChild(arrow);
+          }
+
+          return L.divIcon({
+            className: '',      // geen extra class, we stylen via innerHTML
+            html: container,
+            iconSize: [20, 20], // visuele box; dot zelf is 14 + border
+            iconAnchor: [10, 10]// center
+          });
+        }
+
+        // Voor het draaien van de heading arrow
+        function setHeadingRotation(marker, heading) {
+          if (!marker || typeof heading !== 'number') return;
+          const el = marker.getElement();
+          if (!el) return;
+          const arrow = el.querySelector('.heading-arrow');
+          if (arrow) {
+            arrow.style.transform = `rotate(${heading}deg)`;
+          }
+        }
 
         function onLocationFound(e) {
-          const radius = e.accuracy;
-          L.marker(e.latlng).addTo(map)
-            .bindPopup('Je bent hier 🎯')
-            .openPopup();
-          L.circle(e.latlng, { radius, color:'#2563eb', fillColor:'#93c5fd', fillOpacity:0.35 }).addTo(map);
-          map.setView(e.latlng, 16);
+          const latlng = e.latlng;
+          const accuracy = e.accuracy || 0; // in meters
+          const heading = (typeof e.heading === 'number') ? e.heading : null;
+
+          // Update of create marker
+          if (!userMarker) {
+            userMarker = L.marker(latlng, {
+              icon: createUserIcon(!!heading),
+              zIndexOffset: 1000
+            }).addTo(map);
+          } else {
+            userMarker.setLatLng(latlng);
+          }
+
+          // Set heading rotation if present
+          if (heading != null) {
+            setHeadingRotation(userMarker, heading);
+          }
+
+          // Update of create accuracy circle
+          if (!accuracyCircle) {
+            accuracyCircle = L.circle(latlng, {
+              radius: accuracy,
+              color: '#1a73e8',
+              weight: 1,
+              fillColor: '#1a73e8',
+              fillOpacity: 0.08
+            }).addTo(map);
+          } else {
+            accuracyCircle.setLatLng(latlng).setRadius(accuracy);
+          }
+
+          // Zoom iets in op de gebruiker (eenmalig of elke update)
+          map.setView(latlng, Math.max(map.getZoom(), 15));
         }
+
         function onLocationError(e) {
           console.warn('Geolocatie mislukt:', e.message);
-          L.popup().setLatLng(map.getCenter()).setContent('Kon je locatie niet ophalen. Sta locatie-toegang toe en gebruik HTTPS.').openOn(map);
+          L.popup()
+            .setLatLng(map.getCenter())
+            .setContent('Kon je locatie niet ophalen. Sta locatie-toegang toe en gebruik HTTPS.')
+            .openOn(map);
         }
+
+        // 4) Vraag om geolocatie en luister naar events
         if (navigator.geolocation) {
-          map.locate({ setView:false, enableHighAccuracy:true, timeout:10000 })
-             .on('locationfound', onLocationFound)
-             .on('locationerror', onLocationError);
+          // Leaflet's locate geeft geen heading; heading komt soms mee in e (zeldzaam).
+          // Wil je heading betrouwbaarder, dan kun je DeviceOrientation API toevoegen.
+          map
+            .locate({ setView: false, enableHighAccuracy: true, timeout: 10000, watch: true })
+            .on('locationfound', onLocationFound)
+            .on('locationerror', onLocationError);
         } else {
-          onLocationError({ message: 'Geolocatie niet ondersteund' });
+          onLocationError({ message: 'Geolocatie wordt niet ondersteund.' });
+        }
+
+        // (Optioneel) DeviceOrientation voor heading (mobiel, toestemming vereist)
+        // Deze code update alleen de pijl-rotatie als een marker bestaat.
+        if (window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission === 'function') {
+          // iOS require user gesture; je zou hiervoor een "Heading inschakelen" knop kunnen toevoegen
+          // en pas bij click: DeviceOrientationEvent.requestPermission() vragen.
+        } else if (window.DeviceOrientationEvent) {
+          window.addEventListener('deviceorientation', (evt) => {
+            if (!userMarker) return;
+            const heading = (typeof evt.alpha === 'number') ? evt.alpha : null; // graden
+            setHeadingRotation(userMarker, heading);
+          });
         }
       })();
     </script>
   <% } else { %>
+    <!-- ====== NORMALE PAGINA (modules renderen) ====== -->
     <div class="space-y-4">
       <% (page.modules || []).forEach((mod) => { %>
 
         <% if (mod.type === "text") { %>
           <div class="p-4 bg-white border rounded-xl shadow">
+            <!-- Builder slaat HTML op -->
             <%- mod.data?.text || "" %>
           </div>
         <% } %>
@@ -69,7 +225,13 @@
         <% if (mod.type === "image") { %>
           <div class="p-4 bg-white rounded-xl shadow">
             <% if (mod.data?.url) { %>
-              <img src="<%= mod.data.url %>" alt="Afbeelding" class="w-full rounded-lg border" loading="lazy" />
+              <img
+                src="<%= mod.data.url %>"
+                alt=""
+                style="max-width:100%; height:auto; border-radius:12px;"
+                loading="lazy"
+                referrerpolicy="no-referrer"
+              />
             <% } else { %>
               <div class="text-gray-500 text-sm">Geen afbeelding opgegeven.</div>
             <% } %>
@@ -79,15 +241,18 @@
         <% if (mod.type === "question") { %>
           <div class="p-4 bg-white border rounded-xl shadow space-y-3">
             <p class="font-semibold"><%= mod.data?.question || "Vraag" %></p>
-            <form class="space-y-2"
-                  onsubmit="return checkAnswerBranch(
-                    this,
-                    '<%= (mod.data?.answer ? String(mod.data.answer).replace(/\"/g,'&quot;') : '') %>',
-                    <%= (Number.isInteger(mod.data?.goodPage) ? mod.data.goodPage : 'null') %>,
-                    <%= (Number.isInteger(mod.data?.badPage)  ? mod.data.badPage  : 'null') %>,
-                    '<%= puzzle._id %>'
-                  )">
-              <input type="text" name="answer" placeholder="Jouw antwoord" class="border p-2 rounded w-full" autocomplete="off">
+
+            <form
+              class="space-y-2"
+              onsubmit="return checkAnswerBranch(
+                this,
+                '<%= (mod.data?.answer ? String(mod.data.answer).replace(/"/g,'&quot;') : '') %>',
+                <%= (Number.isInteger(mod.data?.goodPage) ? mod.data.goodPage : 'null') %>,
+                <%= (Number.isInteger(mod.data?.badPage)  ? mod.data.badPage  : 'null') %>,
+                '<%= puzzle._id %>'
+              )"
+            >
+              <input type="text" name="answer" placeholder="Jouw antwoord" class="border p-2 rounded w-full" autocomplete="off" />
               <div class="flex gap-2">
                 <button class="bg-blue-600 text-white px-4 py-2 rounded-lg">Controleer</button>
               </div>
@@ -110,9 +275,8 @@
 
     <% if (hasNext && showNext) { %>
       <div class="pt-4">
-        <a href="/puzzle/<%= puzzle._id %>/<%= pageIndex + 1 %>"
-           class="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg">
-          Volgende pagina <span aria-hidden="true">➜</span>
+        <a class="next-btn" href="/puzzle/<%= puzzle._id %>/<%= pageIndex + 1 %>">
+          <span>Volgende pagina</span> <span aria-hidden="true">➜</span>
         </a>
       </div>
     <% } %>
@@ -120,14 +284,29 @@
 </div>
 
 <script>
+  // Branching voor vraag‑blokken
   function normalize(str){
-    return String(str||'').trim().toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ');
+    return String(str||'')
+      .trim()
+      .toLowerCase()
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g,'')
+      .replace(/\s+/g,' ');
   }
   function checkAnswerBranch(form, correct, goodPage, badPage, puzzleId){
     const feedback = form.querySelector('[data-feedback]');
-    const ok = normalize(form.answer.value) === normalize(correct);
-    if (ok && Number.isInteger(goodPage)) { window.location.href = `/puzzle/${puzzleId}/${goodPage}`; return false; }
-    if (!ok && Number.isInteger(badPage)) { window.location.href = `/puzzle/${puzzleId}/${badPage}`; return false; }
+    const user = form.answer.value;
+    const ok = normalize(user) === normalize(correct);
+
+    if (ok && Number.isInteger(goodPage)) {
+      window.location.href = `/puzzle/${puzzleId}/${goodPage}`;
+      return false;
+    }
+    if (!ok && Number.isInteger(badPage)) {
+      window.location.href = `/puzzle/${puzzleId}/${badPage}`;
+      return false;
+    }
+
     feedback.textContent = ok ? '✅ Klopt!' : '❌ Niet goed, probeer opnieuw.';
     feedback.style.color = ok ? '#059669' : '#dc2626';
     return false;
