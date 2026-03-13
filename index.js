@@ -237,6 +237,47 @@ app.post("/admin-theme", requireAdmin, async (req, res) => {
 
 });
 
+app.get("/admin-puzzles", requireAdmin, async (req,res)=>{
+  
+  const puzzles = await Puzzle.find().sort({createdAt:-1});
+  
+  res.render("admin-puzzles",{puzzles});
+  
+});
+
+
+app.get("/admin-puzzles/new", requireAdmin, (req,res)=>{
+  
+  res.render("admin-new-puzzle");
+  
+});
+
+
+app.post("/admin-puzzles/new", requireAdmin, async (req,res)=>{
+  
+  const puzzle = await Puzzle.create({
+    name:req.body.name,
+    pages:[
+      {
+        title:"Pagina 1",
+        modules:[]
+      }
+    ]
+  });
+  
+  res.redirect(`/admin-builder/${puzzle._id}`);
+  
+});
+
+
+app.get("/admin-builder/:id", requireAdmin, async (req,res)=>{
+  
+  const puzzle = await Puzzle.findById(req.params.id);
+  
+  res.render("admin-builder",{puzzle});
+  
+});
+
 app.use((req, res) => res.status(404).send("Pagina niet gevonden"));
 
 const port = process.env.PORT || 8080;
