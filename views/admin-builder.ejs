@@ -1,0 +1,158 @@
+<style>
+
+.builder{
+display:flex;
+height:90vh;
+}
+
+.pages{
+width:250px;
+border-right:1px solid #ddd;
+padding:15px;
+overflow:auto;
+}
+
+.phone{
+width:375px;
+height:700px;
+border:2px solid black;
+margin:auto;
+border-radius:30px;
+padding:15px;
+background:white;
+overflow:auto;
+}
+
+.modules{
+width:250px;
+border-left:1px solid #ddd;
+padding:15px;
+}
+
+.module{
+padding:10px;
+border:1px solid #ccc;
+margin-bottom:10px;
+cursor:grab;
+background:#fafafa;
+}
+
+</style>
+
+<h1 class="text-xl font-bold mb-4"><%= puzzle.name %></h1>
+
+<div class="builder">
+
+<div class="pages">
+
+<h3 class="font-bold mb-3">Pagina's</h3>
+
+<ul>
+
+<% puzzle.pages.forEach((p,i)=>{ %>
+
+<li class="mb-2">
+Pagina <%= i+1 %>
+</li>
+
+<% }) %>
+
+</ul>
+
+<button class="mt-3 border p-2 rounded">
+Pagina toevoegen
+</button>
+
+</div>
+
+<div style="flex:1;display:flex;align-items:center;justify-content:center">
+
+<div id="phone" class="phone"></div>
+
+</div>
+
+<div class="modules">
+
+<h3 class="font-bold mb-3">Modules</h3>
+
+<div class="module" draggable="true" data-type="text">
+Tekst
+</div>
+
+<div class="module" draggable="true" data-type="image">
+Afbeelding
+</div>
+
+<div class="module" draggable="true" data-type="video">
+Video
+</div>
+
+<div class="module" draggable="true" data-type="audio">
+Audio
+</div>
+
+<div class="module" draggable="true" data-type="answer">
+Antwoordvak
+</div>
+
+<div class="module" draggable="true" data-type="button">
+Knop
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+const modules=document.querySelectorAll(".module")
+const phone=document.getElementById("phone")
+
+modules.forEach(m=>{
+m.addEventListener("dragstart",e=>{
+e.dataTransfer.setData("type",m.dataset.type)
+})
+})
+
+phone.addEventListener("dragover",e=>{
+e.preventDefault()
+})
+
+phone.addEventListener("drop",e=>{
+e.preventDefault()
+
+const type=e.dataTransfer.getData("type")
+
+let el=document.createElement("div")
+
+if(type==="text"){
+el.innerHTML="<p>Tekstblok</p>"
+}
+
+if(type==="image"){
+el.innerHTML="<img src='https://placehold.co/300x200'>"
+}
+
+if(type==="video"){
+el.innerHTML="<video controls width='100%'></video>"
+}
+
+if(type==="audio"){
+el.innerHTML="<audio controls></audio>"
+}
+
+if(type==="answer"){
+el.innerHTML="<input placeholder='Antwoord'>"
+}
+
+if(type==="button"){
+el.innerHTML="<button>Volgende</button>"
+}
+
+el.style.marginBottom="10px"
+
+phone.appendChild(el)
+
+})
+
+</script>
