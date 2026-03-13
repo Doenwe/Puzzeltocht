@@ -16,7 +16,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title><%= puzzle.name %> — <%= page.title %></title>
 
-  <!-- Leaflet CSS (voor kaartpagina's) -->
+  <!-- ✅ Leaflet CSS (correct tag) -->
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -25,23 +25,23 @@
   />
 
   <style>
-    /* Kaartcontainer met stabiele hoogte (mobiel-proof) */
+    /* ===== Map container: mobile-stable sizing ===== */
     #map {
-      height: 65vh;
-      min-height: 380px; /* fallback voor kleine schermen/iOS */
+      height: 65vh;           /* main height */
+      min-height: 380px;      /* iOS/very small devices fallback */
       border-radius: 14px;
       border: 1px solid #e5e7eb;
       box-shadow: 0 10px 24px rgba(0,0,0,.08);
-      background: #eef2ff; /* nette kleur totdat tiles laden */
+      background: #eef2ff;    /* nice backdrop until tiles load */
     }
     .leaflet-container { background: #eef2ff; }
 
-    /* Professionele user-dot (Google-achtig) */
+    /* ===== Professional user dot (Google-like) ===== */
     .user-dot {
       width: 14px; height: 14px; border-radius: 50%;
-      background: #1a73e8;            /* Google-achtig blauw */
-      border: 3px solid #ffffff;      /* witte ring */
-      box-shadow: 0 0 0 2px rgba(26,115,232,0.25); /* zachte glow */
+      background: #1a73e8;            /* blue */
+      border: 3px solid #fff;          /* white ring */
+      box-shadow: 0 0 0 2px rgba(26,115,232,0.25); /* soft glow */
     }
     .user-dot.pulse { position: relative; }
     .user-dot.pulse::after {
@@ -58,7 +58,7 @@
       100% { transform: translate(-50%,-50%) scale(2.6); opacity: 0; }
     }
 
-    /* Heading-pijl (optioneel; draait met heading) */
+    /* Optional heading arrow above the dot */
     .heading-arrow {
       width: 0; height: 0;
       border-left: 6px solid transparent;
@@ -70,9 +70,11 @@
       translate: -50% 0;
     }
 
-    /* Simpele layout (werkt samen met je layout.ejs + Tailwind) */
+    /* Basic card styles (works with your layout as well) */
     .container { display: grid; gap: 1rem; }
     .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 1rem; box-shadow: 0 4px 12px rgba(0,0,0,.06); }
+    .muted { color: #6b7280; font-size: .9rem; }
+
     .next-btn {
       display: inline-flex; align-items: center; gap: 8px;
       background: #2563eb; color: #fff; padding: 10px 14px;
@@ -80,7 +82,6 @@
       box-shadow: 0 6px 16px rgba(37,99,235,.25);
     }
     .next-btn:hover { filter: brightness(1.05); }
-    .muted { color: #6b7280; font-size: .9rem; }
   </style>
 </head>
 <body>
@@ -97,8 +98,8 @@
     <div id="map"></div>
 
     <% if (hasNext && showNext) { %>
-      <div>
-        /puzzle/<%= puzzle._id %>/<%= pageIndex + 1 %>
+      <div class="pt-4">
+        <a class="next-btn" href="/puzzle/<%= puzzle._id %>/<%= pageIndex + 1 %>">
           <span>Volgende pagina</span> <span aria-hidden="true">➜</span>
         </a>
       </div>
@@ -111,7 +112,6 @@
 
         <% if (mod.type === "text") { %>
           <div class="card">
-            <!-- Builder slaat HTML op -->
             <%- mod.data?.text || "" %>
           </div>
         <% } %>
@@ -119,7 +119,7 @@
         <% if (mod.type === "image") { %>
           <div class="card" style="padding:0;">
             <% if (mod.data?.url) { %>
-              <img src="<%= mod.data.url %>" alt="" style="display:block; width:100%; height:auto; border-radius: 14px;" loading="lazy">
+              <img src="<%= mod.data.url %>" alt="" style="display:block; width:100%; height:auto; border-radius:14px;" />
             <% } else { %>
               <div class="muted" style="padding:1rem;">Geen afbeelding opgegeven.</div>
             <% } %>
@@ -169,8 +169,8 @@
     </div>
 
     <% if (hasNext && showNext) { %>
-      <div>
-        /puzzle/<%= puzzle._id %>/<%= pageIndex + 1 %>
+      <div class="pt-4">
+        <a class="next-btn" href="/puzzle/<%= puzzle._id %>/<%= pageIndex + 1 %>">
           <span>Volgende pagina</span> <span aria-hidden="true">➜</span>
         </a>
       </div>
@@ -179,7 +179,7 @@
 
 </div>
 
-<!-- Leaflet JS (onderaan body; laadt alleen eenmalig in deze view) -->
+<!-- ✅ Leaflet JS (correct tag) -->
 <script
   src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
   integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
@@ -215,7 +215,7 @@
     return false;
   }
 
-  // ===== Kaart initialisatie (alleen als element bestaat) =====
+  // ===== Kaart initialisatie (alleen als #map bestaat) =====
   (function initMapIfPresent(){
     const mapEl = document.getElementById('map');
     if (!mapEl || typeof L === 'undefined') return;
@@ -223,25 +223,27 @@
     // Init map – fallback NL
     const map = L.map('map', { zoomControl: true }).setView([52.1326, 5.2913], 7);
 
-    // CARTO Voyager tiles (strak en gratis)
+    // Tiles (CARTO Voyager – strak en keyless)
     L.tileLayer(
       'https://{s}.basemaps.cartocdn.com/rastertiles/voyager{r}/{z}/{x}/{y}{r}.png',
       {
         maxZoom: 20,
         subdomains: 'abcd',
         attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OSM</a> '
-          + 'contributors &copy; <a href="https://carto.com/attributions" target="_blank" rel="noreferrer">CARTO</a>'
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> '
+          + 'contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
       }
     ).addTo(map);
 
-    // Mobiele rendering-fix: Leaflet moet echte grootte kennen
-    map.invalidateSize();
-    requestAnimationFrame(()=> map.invalidateSize());
-    window.addEventListener('resize', ()=> map.invalidateSize(), { passive:true });
-    document.addEventListener('visibilitychange', ()=> { if(!document.hidden) map.invalidateSize(); });
+    // Mobile rendering fixes — zorg dat Leaflet echte grootte kent
+    function fixSize(){ try { map.invalidateSize(false); } catch(e){} }
+    fixSize();
+    requestAnimationFrame(fixSize);
+    window.addEventListener('resize', fixSize, { passive:true });
+    document.addEventListener('visibilitychange', ()=> { if(!document.hidden) fixSize(); });
+    window.addEventListener('pageshow', (e)=>{ if(e.persisted) fixSize(); }); // iOS bfcache
 
-    // User locatie lagen
+    // ===== User location (blue dot + accuracy + optional heading) =====
     let userMarker = null;
     let accuracyCircle = null;
 
@@ -268,16 +270,15 @@
     }
 
     function onLocationFound(e){
-      const latlng = e.latlng;
+      const latlng   = e.latlng;
       const accuracy = e.accuracy || 0;
-      const heading = (typeof e.heading === 'number') ? e.heading : null;
+      const heading  = (typeof e.heading === 'number') ? e.heading : null;
 
       if (!userMarker) {
         userMarker = L.marker(latlng, { icon: createUserIcon(!!heading), zIndexOffset: 1000 }).addTo(map);
       } else {
         userMarker.setLatLng(latlng);
       }
-
       if (heading != null) setHeadingRotation(userMarker, heading);
 
       if (!accuracyCircle) {
@@ -301,8 +302,8 @@
         .openOn(map);
     }
 
+    // Start geolocatie (HTTPS of localhost)
     if (navigator.geolocation) {
-      // Gebruik watch:true voor live updates
       map
         .locate({ setView:false, enableHighAccuracy:true, timeout:10000, watch:true })
         .on('locationfound', onLocationFound)
@@ -319,6 +320,9 @@
         setHeadingRotation(userMarker, heading);
       });
     }
+
+    // Debug hulp op mobiel (open DevTools remote):
+    // console.log('Leaflet OK:', !!L, 'size=', map.getSize());
   })();
 </script>
 
