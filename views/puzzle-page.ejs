@@ -16,32 +16,31 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title><%= puzzle.name %> — <%= page.title %></title>
 
-  <!-- ✅ Leaflet CSS (correct tag) -->
+  <!-- ✅ Leaflet CSS (correct geladen) -->
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
     crossorigin=""
   />
 
   <style>
-    /* ===== Map container: mobile-stable sizing ===== */
+    /* Kaartcontainer met stabiele hoogte (mobiel-proof) */
     #map {
-      height: 65vh;           /* main height */
-      min-height: 380px;      /* iOS/very small devices fallback */
+      height: 65vh;
+      min-height: 380px; /* fallback voor kleine schermen/iOS */
       border-radius: 14px;
       border: 1px solid #e5e7eb;
       box-shadow: 0 10px 24px rgba(0,0,0,.08);
-      background: #eef2ff;    /* nice backdrop until tiles load */
+      background: #eef2ff; /* nette kleur totdat tiles laden */
     }
     .leaflet-container { background: #eef2ff; }
 
-    /* ===== Professional user dot (Google-like) ===== */
+    /* Professionele user-dot (Google-achtig) */
     .user-dot {
       width: 14px; height: 14px; border-radius: 50%;
-      background: #1a73e8;            /* blue */
-      border: 3px solid #fff;          /* white ring */
-      box-shadow: 0 0 0 2px rgba(26,115,232,0.25); /* soft glow */
+      background: #1a73e8;            /* blauw */
+      border: 3px solid #ffffff;      /* witte ring */
+      box-shadow: 0 0 0 2px rgba(26,115,232,0.25); /* zachte glow */
     }
     .user-dot.pulse { position: relative; }
     .user-dot.pulse::after {
@@ -58,7 +57,7 @@
       100% { transform: translate(-50%,-50%) scale(2.6); opacity: 0; }
     }
 
-    /* Optional heading arrow above the dot */
+    /* Heading-pijl (optioneel; draait met heading) */
     .heading-arrow {
       width: 0; height: 0;
       border-left: 6px solid transparent;
@@ -70,7 +69,7 @@
       translate: -50% 0;
     }
 
-    /* Basic card styles (works with your layout as well) */
+    /* Simpele layout (werkt samen met je layout.ejs + Tailwind) */
     .container { display: grid; gap: 1rem; }
     .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 1rem; box-shadow: 0 4px 12px rgba(0,0,0,.06); }
     .muted { color: #6b7280; font-size: .9rem; }
@@ -112,6 +111,7 @@
 
         <% if (mod.type === "text") { %>
           <div class="card">
+            <!-- Builder slaat HTML op -->
             <%- mod.data?.text || "" %>
           </div>
         <% } %>
@@ -119,7 +119,7 @@
         <% if (mod.type === "image") { %>
           <div class="card" style="padding:0;">
             <% if (mod.data?.url) { %>
-              <img src="<%= mod.data.url %>" alt="" style="display:block; width:100%; height:auto; border-radius:14px;" />
+              <img src="<%= mod.data.url %>" alt="" style="width:100%; display:block; border-radius:12px;" />
             <% } else { %>
               <div class="muted" style="padding:1rem;">Geen afbeelding opgegeven.</div>
             <% } %>
@@ -179,12 +179,8 @@
 
 </div>
 
-<!-- ✅ Leaflet JS (correct tag) -->
-<script
-  src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-  crossorigin=""
-></script>
+<!-- ✅ Leaflet JS (correct geladen, NA de HTML) -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
 <script>
   // ===== Branching voor vraag‑blokken =====
@@ -224,7 +220,7 @@
     const map = L.map('map', { zoomControl: true }).setView([52.1326, 5.2913], 7);
 
     // Tiles (CARTO Voyager – strak en keyless)
-    L.tileLayer(
+    const tiles = L.tileLayer(
       'https://{s}.basemaps.cartocdn.com/rastertiles/voyager{r}/{z}/{x}/{y}{r}.png',
       {
         maxZoom: 20,
@@ -234,6 +230,11 @@
           + 'contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
       }
     ).addTo(map);
+
+    // Log tile errors op mobiel om ad‑block/CSP issues te zien
+    tiles.on('tileerror', (e) => {
+      console.warn('Tile load error:', e);
+    });
 
     // Mobile rendering fixes — zorg dat Leaflet echte grootte kent
     function fixSize(){ try { map.invalidateSize(false); } catch(e){} }
@@ -320,9 +321,6 @@
         setHeadingRotation(userMarker, heading);
       });
     }
-
-    // Debug hulp op mobiel (open DevTools remote):
-    // console.log('Leaflet OK:', !!L, 'size=', map.getSize());
   })();
 </script>
 
