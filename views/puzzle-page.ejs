@@ -54,8 +54,13 @@
 </div>
 
 <!-- NEXT PAGE BUTTON (optioneel, blijft werken als je geen branching gebruikt) -->
-<% if (puzzle.pages[pageIndex+1]) { %>
-  <a class="inline-block mt-6 bg-gray-800 text-white px-4 py-2 rounded-lg" href="/puzzle/<%= puzzle._id %>/<%= pageIndex+1 %>">
+<!-- NEXT PAGE BUTTON: alleen als builder-toggle aan staat -->
+<% const nextExists = !!puzzle.pages[pageIndex+1];
+   const showNext = (typeof puzzle.pages[pageIndex]?.showNext === "boolean")
+     ? puzzle.pages[pageIndex].showNext : true; %>
+
+<% if (nextExists && showNext) { %>
+  /puzzle/<%= puzzle._id %>/<%= pageIndex+1 %>
     Volgende pagina ➜
   </a>
 <% } %>
