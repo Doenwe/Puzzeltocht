@@ -1,22 +1,18 @@
 import mongoose from "mongoose";
 
-const moduleSchema = new mongoose.Schema({
-  type: String,
-  content: mongoose.Schema.Types.Mixed
-});
+const ModuleSchema = new mongoose.Schema({
+  type: { type: String, required: true },
+  data: { type: mongoose.Schema.Types.Mixed, default: {} }   // <-- data i.p.v. content
+}, { _id: false });
 
-const pageSchema = new mongoose.Schema({
-  title: String,
-  modules: [moduleSchema]
-});
+const PageSchema = new mongoose.Schema({
+  title: { type: String, default: "Pagina" },
+  modules: { type: [ModuleSchema], default: [] }
+}, { _id: false });
 
-const puzzleSchema = new mongoose.Schema({
-  name: String,
-  pages: [pageSchema],
-  createdAt: {
-    type: Date,
-    default: Date.now
-  }
-});
+const PuzzleSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  pages: { type: [PageSchema], default: [] }
+}, { timestamps: true });  // createdAt/updatedAt automatisch
 
-export default mongoose.model("Puzzle", puzzleSchema);
+export default mongoose.model("Puzzle", PuzzleSchema);
