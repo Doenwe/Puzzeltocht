@@ -1,20 +1,66 @@
-<section class="space-y-5">
-  <h1 class="text-2xl font-bold">Admin Dashboard</h1>
+<section class="space-y-6">
 
-  <a class="block p-4 border rounded card hover:ring-2 ring-blue-200" href="/admin-theme">
-    <h2 class="font-semibold mb-1">Opmaak (Thema) aanpassen</h2>
-    <p class="text-sm text-gray-600">Kleuren, typografie en hoekradius wijzigen met live preview.</p>
-  </a>
+<h1 class="text-2xl font-bold">Admin Dashboard</h1>
 
-  <div class="card p-4 border">
-    <h2 class="font-semibold mb-1">Snelstart</h2>
-    <ul class="list-disc pl-5 text-sm text-gray-700 space-y-1">
-      <li>Codes in MongoDB:
-        <code>{"code":"TEST123","type":"user"}</code>
-      </li>
-      <li>Admin-code:
-        <code>{"code":"ADMIN123","type":"admin"}</code>
-      </li>
-    </ul>
-  </div>
+<a class="block p-4 border rounded card hover:ring-2 ring-blue-200" href="/admin-theme">
+<h2 class="font-semibold mb-1">Thema aanpassen</h2>
+<p class="text-sm text-gray-600">Pas kleuren en design aan.</p>
+</a>
+
+
+<div class="card p-4 border">
+
+<h2 class="font-semibold mb-3">Code toevoegen</h2>
+
+<form action="/admin-add-code" method="POST" class="space-x-2">
+
+<input
+type="text"
+name="code"
+placeholder="Code"
+required
+class="border p-2 rounded"
+/>
+
+<select name="type" class="border p-2 rounded">
+<option value="user">User</option>
+<option value="admin">Admin</option>
+</select>
+
+<button class="bg-blue-600 text-white px-4 py-2 rounded">
+Toevoegen
+</button>
+
+</form>
+
+</div>
+
+
+<div class="card p-4 border">
+
+<h2 class="font-semibold mb-3">CSV upload (meerdere codes)</h2>
+
+<form action="/admin-upload-csv" method="POST" enctype="multipart/form-data">
+
+<input type="file" name="csvfile" accept=".csv" required>
+
+<button class="bg-green-600 text-white px-4 py-2 rounded ml-2">
+Upload CSV
+</button>
+
+</form>
+
+<p class="text-sm text-gray-600 mt-3">
+CSV formaat:
+</p>
+
+<pre class="bg-gray-100 p-3 rounded text-sm">
+code,type
+TEST123,user
+ADMIN999,admin
+CODE456,user
+</pre>
+
+</div>
+
 </section>
