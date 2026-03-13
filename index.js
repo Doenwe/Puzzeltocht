@@ -289,14 +289,13 @@ app.post("/admin-builder/:id/save-all", requireAdmin, express.json(), async (req
     const pages = Array.isArray(req.body.pages) ? req.body.pages : [];
 
     // Normaliseer licht (data laat je intact)
-    const safePages = pages.map(p => ({
+    const safePages = (Array.isArray(pages) ? pages : []).map(p => ({
       title: (p?.title ?? "Pagina"),
-      modules: Array.isArray(p?.modules)
-        ? p.modules.map(m => ({
-            type: String(m?.type || ""),
-            data: m?.data || {}
-          }))
-        : []
+      showNext: (typeof p?.showNext === "boolean" ? p.showNext : true), // 👈 NIEUW
+      modules: Array.isArray(p?.modules) ? p.modules.map(m => ({
+        type: String(m?.type || ""),
+        data: m?.data || {}
+      })) : []
     }));
 
     puzzle.pages = safePages;
