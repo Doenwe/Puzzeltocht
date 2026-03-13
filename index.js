@@ -282,16 +282,12 @@ app.post("/admin-builder/:id/save-all", requireAdmin, express.json(), async (req
     const puzzle = await Puzzle.findById(req.params.id);
     if (!puzzle) return res.status(404).send("Puzzle niet gevonden");
 
-    console.log(
-      "SAVE-ALL payload pages.length =",
-      Array.isArray(req.body.pages) ? req.body.pages.length : "N/A"
-    );
     const pages = Array.isArray(req.body.pages) ? req.body.pages : [];
 
     const safePages = pages.map(p => ({
       title: (p?.title ?? "Pagina"),
       showNext: (typeof p?.showNext === "boolean" ? p.showNext : true),
-      isMap: (typeof p?.isMap === "boolean" ? p.isMap : false),    // 👈 NIEUW
+      isMap: (typeof p?.isMap === "boolean" ? p.isMap : false),
       modules: Array.isArray(p?.modules)
         ? p.modules.map(m => ({
             type: String(m?.type || ""),
@@ -305,8 +301,8 @@ app.post("/admin-builder/:id/save-all", requireAdmin, express.json(), async (req
     await puzzle.save();
 
     res.send("OK");
-  } catch (err) {
-    console.error(err);
+  } catch (e) {
+    console.error(e);
     res.status(500).send("Server error");
   }
 });
