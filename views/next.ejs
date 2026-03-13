@@ -1,7 +1,21 @@
-<section class="space-y-4">
-  <h1 class="text-2xl font-bold">Volgende opdracht</h1>
-  <div class="card p-4 border">
-    <p>Hier verschijnt de volgende opdracht van de puzzeltocht.</p>
+<div class="space-y-6">
+
+  <h1 class="text-2xl font-bold mb-4">Kies een puzzeltocht</h1>
+
+  <% if (puzzles.length === 0) { %>
+      <p class="text-gray-500">Er zijn nog geen puzzeltochten beschikbaar.</p>
+  <% } %>
+
+  <div class="space-y-4">
+    <% puzzles.forEach(p => { %>
+      <a href="/puzzle/<%= p._id %>" 
+         class="block p-4 border rounded-xl bg-white shadow hover:shadow-lg transition">
+        <div class="font-semibold text-lg"><%= p.name %></div>
+        <div class="text-sm text-gray-500">
+          <%= p.pages.length %> pagina’s
+        </div>
+      </a>
+    <% }) %>
   </div>
-  <a class="link" href="/">Terug naar start</a>
-</section>
+
+</div>
