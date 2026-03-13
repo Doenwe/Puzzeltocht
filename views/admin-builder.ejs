@@ -1,391 +1,313 @@
 <%
-// Verwacht structure:
-// puzzle: {
-//   _id,
-//   name,
-//   pages: [
-//     {
-//       title: "Pagina 1",
-//       modules: [
-//         { type: "text", data: { text: "..." } },
-//         { type: "image", data: { url: "..." } },
-//         { type: "question", data: { question: "...", answer: "..." } },
-//         { type: "location", data: { lat: 53.2, lng: 6.56, radius: 50 } }
-//       ]
-//     }
-//   ]
-// }
-const page = (puzzle && puzzle.pages && puzzle.pages[0]) ? puzzle.pages[0] : { title: "Pagina 1", modules: [] };
+  // Verwachte shape van puzzle (zoals in jouw index.js):
+  // puzzle: {
+  //   _id, name,
+  //   pages: [
+  //     {
+  //       title: "Pagina 1",
+  //       modules: [
+  //         { type: "text", data: { text } },
+  //         { type: "image", data: { url } },
+  //         { type: "question", data: { question, answer } },
+  //         { type: "location", data: { lat, lng, radius } }
+  //       ]
+  //     }
+  //   ]
+  // }
+  var page = (puzzle && puzzle.pages && puzzle.pages.length) ? puzzle.pages[0] : { title: "Pagina 1", modules: [] };
 %>
 
 <style>
-/* ------ PAGE LAYOUT ------ */
-main {
-  max-width: 100% !important;
-  padding: 0 !important;
-}
-:root{
-  --primary:#6366f1; /* Indigo */
-  --bg:#f5f7fa;
-  --text:#111827;
-  --muted:#6b7280;
-  --border:#e5e7eb;
-  --danger:#ef4444;
-}
-* { box-sizing: border-box; }
+  /* ====== Basis & thema (fallbacks) ====== */
+  :root{
+    --primary: #6366f1;      /* indigo */
+    --bg: #f5f7fa;
+    --text: #111827;
+  }
+  main{ max-width:100% !important; padding:0 !important; margin:0 !important; }
+  * { box-sizing: border-box; }
 
-.builder {
-  display: flex;
-  height: calc(100vh - 80px);
-  background: var(--bg);
-  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji";
-  color: var(--text);
-}
+  /* ====== Pagina layout ====== */
+  .builder-root {
+    display: flex;
+    height: calc(100vh - 80px);
+    background: var(--bg);
+    font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans";
+    color: var(--text);
+  }
 
-/* ------ SIDEBAR ------ */
-.sidebar {
-  width: 300px;
-  background: #ffffff;
-  border-right: 1px solid var(--border);
-  padding: 24px;
-  box-shadow: 4px 0 20px rgba(0,0,0,0.05);
-  display:flex;
-  flex-direction:column;
-  gap:18px;
-}
+  /* ====== Sidebar ====== */
+  .builder-sidebar {
+    width: 300px;
+    background: #ffffff;
+    border-right: 1px solid #e5e7eb;
+    padding: 24px;
+    box-shadow: 4px 0 20px rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .sidebar-header{
+    display:flex; align-items:center; gap:10px; justify-content:space-between;
+  }
+  .sidebar-header h2 { margin:0; font-size:18px; font-weight:800; letter-spacing:-.3px; }
+  .badge { font-size: 12px; color: #fff; background: var(--primary); padding: 2px 8px; border-radius: 999px; }
+  .sidebar-group h4{
+    margin: 0 0 8px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+  }
+  .element-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 12px 14px;
+    background: #f9fafb;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+    transition: all 0.2s ease;
+    margin-bottom: 10px;
+  }
+  .element-btn i{ font-size:18px; opacity:.9; }
+  .element-btn:hover { background:#eef2ff; border-color: var(--primary); color:#111827; transform: translateY(-1px); }
+  .sidebar-actions {
+    margin-top: auto;
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .btn {
+    appearance: none;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 10px 12px;
+    font-weight: 700;
+    font-size: 14px;
+    background: #fff;
+    cursor: pointer;
+    transition: .15s ease;
+  }
+  .btn:hover { transform: translateY(-1px); }
+  .btn-primary { background: var(--primary); color:#fff; border-color: transparent; box-shadow: 0 6px 16px rgba(99,102,241,.25); }
+  .btn-ghost { background:#f9fafb; }
 
-.sidebar .title {
-  display:flex;
-  align-items:center;
-  gap:10px;
-}
-.sidebar .title h2 {
-  font-size: 18px;
-  font-weight: 800;
-  margin: 0;
-  letter-spacing: -0.3px;
-}
-.badge {
-  font-size: 12px;
-  color: white;
-  background: var(--primary);
-  padding: 2px 8px;
-  border-radius: 999px;
-}
+  /* ====== Canvas / stage ====== */
+  .builder-canvas {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: stretch;
+    padding: 32px;
+  }
+  .stage {
+    max-width: 1100px;
+    width: 100%;
+    display:flex;
+    gap:24px;
+    align-items:flex-start;
+  }
 
-.hr {
-  height:1px; background:var(--border); margin:4px 0 8px 0;
-}
+  /* ====== Phone preview ====== */
+  .phone {
+    width: 390px;
+    height: 760px;
+    border-radius: 35px;
+    background: white;
+    border: 4px solid #111;
+    overflow-y: auto;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+    padding: 24px;
+    position:relative;
+  }
+  .phone-header{
+    position:sticky; top:0; background:white; z-index:3;
+    padding-bottom:10px; margin-bottom:10px; border-bottom:1px dashed #e5e7eb;
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+  }
+  .page-title{ font-weight:800; letter-spacing:-.2px; }
+  .page-actions .btn { padding:8px 10px; }
 
-.element-btn {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 12px 14px;
-  background: #f9fafb;
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-  color: #374151;
-  transition: all 0.2s ease;
-}
-.element-btn i { font-size: 18px; opacity: 0.9; }
-.element-btn:hover {
-  background: #eef2ff;
-  border-color: var(--primary);
-  color: #111827;
-  transform: translateY(-1px);
-}
+  /* ====== Blocks ====== */
+  .block {
+    padding: 18px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    margin-bottom: 14px;
+    cursor: grab;
+    position: relative;
+    transition: all 0.15s ease;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+  }
+  .block:hover { transform: translateY(-1px); box-shadow: 0 6px 14px rgba(0,0,0,0.08); }
+  .block h4 {
+    margin: 0 0 6px;
+    font-size: 14px;
+    font-weight: 800;
+    color: #111827;
+    display:flex; align-items:center; gap:8px;
+  }
+  .block .kind { font-size:11px; color:#6b7280; background:#f3f4f6; border:1px solid #e5e7eb; padding:2px 6px; border-radius:999px; }
+  .remove-block {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    background: #ef4444;
+    color: white;
+    width: 24px;
+    height: 24px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 22px;
+    text-align: center;
+    transition: 0.15s;
+  }
+  .remove-block:hover { filter: brightness(.95); }
+  .block.dragging { opacity:.5; transform: scale(0.99); }
+  .drag-over { border: 2px dashed var(--primary) !important; background: #eef2ff; }
 
-.sidebar .section h4{
-  margin: 10px 0 8px;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: .08em;
-}
+  /* ====== Content area inside block ====== */
+  .block .form-row{ display:flex; gap:10px; }
+  .block input[type="text"],
+  .block input[type="url"],
+  .block input[type="number"],
+  .block textarea{
+    width:100%;
+    padding:10px 12px;
+    border:1px solid #e5e7eb;
+    border-radius:10px;
+    background:#fbfbfc;
+    font-size:14px;
+  }
+  .block img.preview{
+    width:100%; height:auto; border-radius:10px; border:1px solid #e5e7eb;
+    object-fit:cover; margin-top:6px;
+  }
+  .helper { font-size:12px; color:#6b7280; margin-top:6px; }
 
-.sidebar .actions{
-  margin-top:auto;
-  display:grid;
-  grid-template-columns: 1fr 1fr;
-  gap:10px;
-}
-.btn {
-  appearance: none;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 10px 12px;
-  font-weight: 700;
-  font-size: 14px;
-  background: white;
-  cursor: pointer;
-  transition: .15s ease;
-}
-.btn:hover { transform: translateY(-1px); }
-.btn-primary {
-  background: var(--primary);
-  color: white;
-  border-color: transparent;
-  box-shadow: 0 6px 16px rgba(99,102,241,.25);
-}
-.btn-primary:hover { filter: brightness(.95); }
-.btn-ghost { background:#f9fafb; }
+  /* Contenteditable */
+  [contenteditable="true"]{
+    outline: 2px dashed transparent;
+    transition: outline-color .15s ease, background .15s ease;
+  }
+  [contenteditable="true"]:focus{
+    outline-color: #c7d2fe;
+    background: #fafbff;
+    border-radius: 8px;
+  }
 
-/* ------ CANVAS ------ */
-.canvas {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: stretch;
-  padding: 32px;
-  gap: 24px;
-}
-
-/* ------ PHONE WRAPPER ------ */
-.stage {
-  max-width: 980px;
-  flex: 1;
-  display:flex;
-  gap:24px;
-  align-items:flex-start;
-}
-
-/* ------ PAGE PANEL (rechts van phone) ------ */
-.panel {
-  width: 340px;
-  background:white;
-  border:1px solid var(--border);
-  border-radius:16px;
-  padding:16px;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.06);
-  position:sticky;
-  top:32px;
-  height: fit-content;
-}
-.panel h3 {
-  margin:0 0 8px;
-  font-size:16px;
-  font-weight:800;
-}
-.panel label{
-  display:block; font-size:13px; color:var(--muted); margin:10px 0 6px;
-}
-.panel input, .panel textarea, .panel select {
-  width:100%;
-  padding:10px 12px;
-  border:1px solid var(--border);
-  border-radius:10px;
-  font-size:14px;
-  outline:none;
-  background:#fbfbfc;
-}
-.panel small { color:var(--muted); }
-
-/* ------ PHONE ------ */
-.phone {
-  width: 390px;
-  height: 760px;
-  border-radius: 35px;
-  background: white;
-  border: 4px solid #111;
-  overflow-y: auto;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.2);
-  padding: 24px;
-  position:relative;
-}
-.phone .phone-header{
-  position:sticky; top:0; background:white; z-index:3;
-  padding-bottom:10px; margin-bottom:10px; border-bottom:1px dashed var(--border);
-  display:flex; align-items:center; justify-content:space-between;
-}
-.phone .phone-header .page-title{
-  font-weight:800; letter-spacing:-.2px;
-}
-
-/* ------ BLOCKS ------ */
-.block {
-  padding: 18px;
-  background: #ffffff;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  margin-bottom: 14px;
-  cursor: grab;
-  position: relative;
-  transition: all 0.15s ease;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-}
-.block:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 14px rgba(0,0,0,0.08);
-}
-.block h4 {
-  margin: 0 0 6px;
-  font-size: 14px;
-  font-weight: 800;
-  color: #111827;
-  display:flex; align-items:center; gap:8px;
-}
-.block .kind{
-  font-size:11px;
-  color:#6b7280;
-  background:#f3f4f6;
-  border:1px solid var(--border);
-  padding:2px 6px;
-  border-radius:999px;
-}
-/* Remove */
-.remove-block {
-  position: absolute;
-  right: 10px;
-  top: 10px;
-  background: var(--danger);
-  color: white;
-  width: 24px;
-  height: 24px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 14px;
-  line-height: 22px;
-  text-align: center;
-  transition: 0.15s;
-}
-.remove-block:hover { filter: brightness(.95); }
-
-/* Drag state */
-.drag-over {
-  border: 2px dashed var(--primary) !important;
-  background: #eef2ff;
-}
-
-/* Content editable styling */
-[contenteditable="true"] {
-  outline: 2px dashed transparent;
-  transition: outline-color .15s ease, background .15s ease;
-}
-[contenteditable="true"]:focus {
-  outline-color: #c7d2fe;
-  background: #fafbff;
-  border-radius: 8px;
-}
-
-/* Form helpers inside block */
-.block .form-row{ display:flex; gap:10px; }
-.block input[type="text"], .block input[type="url"], .block input[type="number"], .block textarea {
-  width:100%;
-  padding:10px 12px;
-  border:1px solid var(--border);
-  border-radius:10px;
-  background:#fbfbfc;
-  font-size:14px;
-}
-.block img.preview{
-  width:100%; height:auto; border-radius:10px; border:1px solid var(--border);
-  object-fit:cover; margin-top:6px;
-}
-.helper {
-  font-size:12px; color:var(--muted); margin-top:6px;
-}
+  /* ====== Settings panel ====== */
+  .panel {
+    width: 340px;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.06);
+    position: sticky;
+    top: 32px;
+    height: fit-content;
+  }
+  .panel h3 { margin:0 0 8px; font-size:16px; font-weight:800; }
+  .panel label{ display:block; font-size:13px; color:#6b7280; margin:10px 0 6px; }
+  .panel input, .panel textarea, .panel select {
+    width:100%; padding:10px 12px; border:1px solid #e5e7eb; border-radius:10px; font-size:14px; outline:none; background:#fbfbfc;
+  }
+  .panel small { color:#6b7280; }
 </style>
 
-<div class="builder">
-
+<section class="builder-root">
   <!-- SIDEBAR -->
-  <aside class="sidebar">
-    <div class="title">
+  <aside class="builder-sidebar">
+    <div class="sidebar-header">
       <h2>Builder</h2>
       <span class="badge">v2</span>
     </div>
-    <div class="hr"></div>
 
-    <div class="section">
+    <div class="sidebar-group">
       <h4>Elementen</h4>
-
-      <button class="element-btn" data-type="text">
-        <i>📝</i> Tekstblok
-      </button>
-
-      <button class="element-btn" data-type="image">
-        <i>🖼️</i> Afbeelding
-      </button>
-
-      <button class="element-btn" data-type="question">
-        <i>❓</i> Vraag
-      </button>
-
-      <button class="element-btn" data-type="location">
-        <i>📍</i> Locatie
-      </button>
+      <button class="element-btn" data-type="text"><i>📝</i> Tekstblok</button>
+      <button class="element-btn" data-type="image"><i>🖼️</i> Afbeelding</button>
+      <button class="element-btn" data-type="question"><i>❓</i> Vraag</button>
+      <button class="element-btn" data-type="location"><i>📍</i> Locatie</button>
     </div>
 
-    <div class="section">
+    <div class="sidebar-group">
       <h4>Pagina</h4>
-      <small>Je bewerkt: <strong><%= page.title %></strong> (1/1)</small>
+      <small>Huidig: <strong><%= page.title %></strong></small>
     </div>
 
-    <div class="actions">
+    <div class="sidebar-actions">
       <button id="btn-reset" class="btn btn-ghost" type="button">Reset</button>
       <button id="btn-save" class="btn btn-primary" type="button">Opslaan</button>
     </div>
   </aside>
 
   <!-- CANVAS -->
-  <section class="canvas">
+  <section class="builder-canvas">
     <div class="stage">
       <!-- PHONE -->
       <div class="phone" id="phone" data-puzzle-id="<%= puzzle._id %>">
         <div class="phone-header">
           <div class="page-title"><%= puzzle.name %> — <%= page.title %></div>
-          <div class="page-actions" style="display:flex; gap:8px;">
+          <div class="page-actions">
             <button class="btn" id="btn-add-text" type="button">+ Tekst</button>
             <button class="btn" id="btn-add-image" type="button">+ Afbeelding</button>
           </div>
         </div>
 
-        <!-- Blocks (server render based on puzzle) -->
+        <!-- Server-rendered blocks -->
         <% if (page.modules && page.modules.length) { %>
-          <% page.modules.forEach(function(m, idx){ %>
+          <% page.modules.forEach(function(m){ %>
             <div class="block" draggable="true" data-type="<%= m.type %>">
               <button class="remove-block" title="Verwijderen">×</button>
               <h4>
                 <span class="title"><%= (m.type.charAt(0).toUpperCase() + m.type.slice(1)) %></span>
                 <span class="kind"><%= m.type %></span>
               </h4>
-
               <div class="content">
                 <% if (m.type === 'text') { %>
                   <div contenteditable="true" data-field="text"><%- (m.data && m.data.text) ? m.data.text : 'Nieuwe tekst' %></div>
+
                 <% } else if (m.type === 'image') { %>
                   <input type="url" placeholder="Afbeeldings-URL" data-field="url" value="<%= (m.data && m.data.url) ? m.data.url : '' %>"/>
                   <% if (m.data && m.data.url) { %>
-                    <img class="preview" src="<%= m.data.url %>" alt="preview"/>
+                    <img class="preview" src="<%= m.data.url %>" alt="preview">
                   <% } else { %>
                     <div class="helper">Voeg een URL toe om voorbeeld te zien.</div>
                   <% } %>
+
                 <% } else if (m.type === 'question') { %>
                   <label>Vraag</label>
-                  <input type="text" data-field="question" value="<%= m.data?.question || 'Wat is het antwoord?' %>"/>
+                  <input type="text" data-field="question" value="<%= (m.data && m.data.question) ? m.data.question : 'Wat is het antwoord?' %>"/>
                   <label style="margin-top:8px;">Antwoord</label>
-                  <input type="text" data-field="answer" value="<%= m.data?.answer || '' %>"/>
+                  <input type="text" data-field="answer" value="<%= (m.data && m.data.answer) ? m.data.answer : '' %>"/>
+
                 <% } else if (m.type === 'location') { %>
                   <div class="form-row">
                     <div style="flex:1">
                       <label>Latitude</label>
-                      <input type="number" step="0.000001" data-field="lat" value="<%= m.data?.lat ?? '' %>"/>
+                      <input type="number" step="0.000001" data-field="lat" value="<%= (m.data && (m.data.lat || m.data.lat===0)) ? m.data.lat : '' %>"/>
                     </div>
                     <div style="flex:1">
                       <label>Longitude</label>
-                      <input type="number" step="0.000001" data-field="lng" value="<%= m.data?.lng ?? '' %>"/>
+                      <input type="number" step="0.000001" data-field="lng" value="<%= (m.data && (m.data.lng || m.data.lng===0)) ? m.data.lng : '' %>"/>
                     </div>
                   </div>
                   <label style="margin-top:8px;">Radius (m)</label>
-                  <input type="number" step="1" data-field="radius" value="<%= m.data?.radius ?? 50 %>"/>
+                  <input type="number" step="1" data-field="radius" value="<%= (m.data && (m.data.radius || m.data.radius===0)) ? m.data.radius : 50 %>"/>
                   <div class="helper">Speler moet binnen deze straal zijn.</div>
+
                 <% } else { %>
                   <div class="helper">Onbekend type: <%= m.type %></div>
                 <% } %>
@@ -401,346 +323,388 @@ main {
 
       <!-- SETTINGS PANEL -->
       <aside class="panel">
-        <h3>Blok-instellingen</h3>
+        <h3>Blok‑instellingen</h3>
         <small id="panel-empty">Selecteer een blok om details te bewerken.</small>
         <div id="panel-fields" style="display:none;">
           <label>Type</label>
           <input id="panel-type" type="text" disabled />
-
           <div id="panel-dynamic" style="margin-top:8px;"></div>
         </div>
       </aside>
     </div>
   </section>
-
-</div>
+</section>
 
 <script>
-/** ========= Helper: Create DOM for new block ========= */
-function createBlock(type, data = {}){
-  const block = document.createElement("div");
-  block.className = "block";
-  block.draggable = true;
-  block.dataset.type = type;
+(function(){
+  const phone = document.getElementById('phone');
+  if(!phone) return;
 
-  const title = type.charAt(0).toUpperCase() + type.slice(1);
-  block.innerHTML = `
-    <button class="remove-block" title="Verwijderen">×</button>
-    <h4>
-      <span class="title">${title}</span>
-      <span class="kind">${type}</span>
-    </h4>
-    <div class="content"></div>
-  `;
+  const qs = (sel, root=document) => root.querySelector(sel);
+  const qsa = (sel, root=document) => Array.from(root.querySelectorAll(sel));
 
-  const content = block.querySelector(".content");
+  /* ========== Blok aanmaken ========== */
+  function createBlock(type, data){
+    const block = document.createElement('div');
+    block.className = 'block';
+    block.draggable = true;
+    block.dataset.type = type;
 
-  if(type === "text"){
-    content.innerHTML = \`<div contenteditable="true" data-field="text">\${data.text || "Nieuwe tekst"}</div>\`;
-  }
-  if(type === "image"){
-    content.innerHTML = \`
-      <input type="url" placeholder="Afbeeldings-URL" data-field="url" value="\${data.url || ""}" />
-      \${data.url ? \`<img class="preview" src="\${data.url}" alt="preview"/>\` : '<div class="helper">Voeg een URL toe om voorbeeld te zien.</div>'}
-    \`;
-  }
-  if(type === "question"){
-    content.innerHTML = \`
-      <label>Vraag</label>
-      <input type="text" data-field="question" value="\${data.question || "Wat is het antwoord?"}" />
-      <label style="margin-top:8px;">Antwoord</label>
-      <input type="text" data-field="answer" value="\${data.answer || ""}" />
-    \`;
-  }
-  if(type === "location"){
-    content.innerHTML = \`
-      <div class="form-row">
-        <div style="flex:1">
-          <label>Latitude</label>
-          <input type="number" step="0.000001" data-field="lat" value="\${data.lat ?? ""}" />
-        </div>
-        <div style="flex:1">
-          <label>Longitude</label>
-          <input type="number" step="0.000001" data-field="lng" value="\${data.lng ?? ""}" />
-        </div>
-      </div>
-      <label style="margin-top:8px;">Radius (m)</label>
-      <input type="number" step="1" data-field="radius" value="\${data.radius ?? 50}" />
-      <div class="helper">Speler moet binnen deze straal zijn.</div>
-    \`;
-  }
+    const title = type.charAt(0).toUpperCase() + type.slice(1);
+    block.innerHTML = `
+      <button class="remove-block" title="Verwijderen">×</button>
+      <h4>
+        <span class="title">${title}</span>
+        <span class="kind">${type}</span>
+      </h4>
+      <div class="content"></div>
+    `;
 
-  // attach listeners
-  block.addEventListener("dragstart", onDragStart);
-  block.addEventListener("dragover", onDragOver);
-  block.addEventListener("drop", onDrop);
-  block.addEventListener("dragend", onDragEnd);
+    const content = qs('.content', block);
+    data = data || {};
 
-  block.querySelector(".remove-block").addEventListener("click", () => {
-    if(selectedBlock === block){
-      clearPanel();
+    if(type === 'text'){
+      content.innerHTML = '<div contenteditable="true" data-field="text">'+ (data.text || 'Nieuwe tekst') +'</div>';
     }
-    block.remove();
-  });
 
-  // click to select for settings
-  block.addEventListener("click", () => {
-    setSelected(block);
-  });
+    if(type === 'image'){
+      content.innerHTML = `
+        <input type="url" placeholder="Afbeeldings-URL" data-field="url" value="${data.url || ''}">
+        ${data.url ? '<img class="preview" src="'+data.url+'" alt="preview">' : '<div class="helper">Voeg een URL toe om voorbeeld te zien.</div>'}
+      `;
+    }
 
-  // live update preview image for image url
-  block.addEventListener("input", (e) => {
-    if(e.target.matches('input[data-field="url"]')){
-      const url = e.target.value.trim();
-      const preview = block.querySelector("img.preview");
-      const helper = block.querySelector(".helper");
-      if(url){
-        if(preview){
-          preview.src = url;
-        } else {
-          const img = document.createElement("img");
-          img.className = "preview";
-          img.src = url;
-          if(helper) helper.replaceWith(img);
-          else block.querySelector(".content").appendChild(img);
-        }
-      } else {
-        if(preview){
-          preview.replaceWith(Object.assign(document.createElement("div"), { className:"helper", innerText:"Voeg een URL toe om voorbeeld te zien."}));
+    if(type === 'question'){
+      content.innerHTML = `
+        <label>Vraag</label>
+        <input type="text" data-field="question" value="${data.question || 'Wat is het antwoord?'}">
+        <label style="margin-top:8px;">Antwoord</label>
+        <input type="text" data-field="answer" value="${data.answer || ''}">
+      `;
+    }
+
+    if(type === 'location'){
+      const latVal = (data.lat || data.lat===0) ? data.lat : '';
+      const lngVal = (data.lng || data.lng===0) ? data.lng : '';
+      const radiusVal = (data.radius || data.radius===0) ? data.radius : 50;
+      content.innerHTML = `
+        <div class="form-row">
+          <div style="flex:1">
+            <label>Latitude</label>
+            <input type="number" step="0.000001" data-field="lat" value="${latVal}">
+          </div>
+          <div style="flex:1">
+            <label>Longitude</label>
+            <input type="number" step="0.000001" data-field="lng" value="${lngVal}">
+          </div>
+        </div>
+        <label style="margin-top:8px;">Radius (m)</label>
+        <input type="number" step="1" data-field="radius" value="${radiusVal}">
+        <div class="helper">Speler moet binnen deze straal zijn.</div>
+      `;
+    }
+
+    // Delete
+    qs('.remove-block', block).addEventListener('click', () => {
+      if(selectedBlock === block) clearPanel();
+      block.remove();
+    });
+
+    // Select
+    block.addEventListener('click', () => setSelected(block));
+
+    // Live preview for image URL
+    block.addEventListener('input', (e) => {
+      if (e.target.matches('input[data-field="url"]')) {
+        const url = e.target.value.trim();
+        const prev = qs('img.preview', block);
+        const helper = qs('.helper', block);
+        if (url) {
+          if (prev) prev.src = url;
+          else {
+            const img = document.createElement('img');
+            img.className = 'preview';
+            img.src = url;
+            if (helper) helper.replaceWith(img);
+            else content.appendChild(img);
+          }
+        } else if (prev) {
+          const h = document.createElement('div');
+          h.className = 'helper';
+          h.textContent = 'Voeg een URL toe om voorbeeld te zien.';
+          prev.replaceWith(h);
         }
       }
-    }
-  });
-
-  return block;
-}
-
-/** ========= Drag & Drop ========= */
-let dragged = null;
-
-function onDragStart(e){
-  dragged = this;
-  this.style.opacity = "0.4";
-}
-function onDragOver(e){
-  e.preventDefault();
-  if(this !== dragged){
-    this.classList.add("drag-over");
-  }
-}
-function onDrop(e){
-  e.preventDefault();
-  this.classList.remove("drag-over");
-  if(this !== dragged){
-    const phone = document.getElementById("phone");
-    const blocks = [...phone.querySelectorAll(".block")];
-    const to = blocks.indexOf(this);
-    const from = blocks.indexOf(dragged);
-    if(to > from) this.after(dragged);
-    else this.before(dragged);
-  }
-}
-function onDragEnd(){
-  this.style.opacity = "1";
-  document.querySelectorAll(".block").forEach(b => b.classList.remove("drag-over"));
-  dragged = null;
-}
-
-/** ========= Selection & Settings panel ========= */
-let selectedBlock = null;
-
-function setSelected(block){
-  selectedBlock = block;
-  const panelEmpty = document.getElementById("panel-empty");
-  const panelFields = document.getElementById("panel-fields");
-  const panelType = document.getElementById("panel-type");
-  const panelDynamic = document.getElementById("panel-dynamic");
-
-  panelEmpty.style.display = "none";
-  panelFields.style.display = "block";
-
-  const type = block.dataset.type;
-  panelType.value = type;
-
-  // Build dynamic form reflecting the block
-  panelDynamic.innerHTML = "";
-  if(type === "text"){
-    panelDynamic.innerHTML = `
-      <label>Tekst</label>
-      <textarea id="p-text" rows="4"></textarea>
-    `;
-    const src = block.querySelector('[data-field="text"]');
-    const ta = panelDynamic.querySelector("#p-text");
-    ta.value = src?.innerHTML || "";
-    ta.addEventListener("input", ()=> { src.innerHTML = ta.value; });
-  }
-  if(type === "image"){
-    panelDynamic.innerHTML = `
-      <label>Afbeeldings-URL</label>
-      <input id="p-url" type="url" placeholder="https://..."/>
-    `;
-    const src = block.querySelector('input[data-field="url"]');
-    const inp = panelDynamic.querySelector("#p-url");
-    inp.value = src?.value || "";
-    inp.addEventListener("input", ()=> { src.value = inp.value; src.dispatchEvent(new Event("input")); });
-  }
-  if(type === "question"){
-    panelDynamic.innerHTML = `
-      <label>Vraag</label>
-      <input id="p-q" type="text"/>
-      <label>Antwoord</label>
-      <input id="p-a" type="text"/>
-    `;
-    const q = block.querySelector('input[data-field="question"]');
-    const a = block.querySelector('input[data-field="answer"]');
-    const pq = panelDynamic.querySelector("#p-q");
-    const pa = panelDynamic.querySelector("#p-a");
-    pq.value = q?.value || "";
-    pa.value = a?.value || "";
-    pq.addEventListener("input", ()=> q.value = pq.value);
-    pa.addEventListener("input", ()=> a.value = pa.value);
-  }
-  if(type === "location"){
-    panelDynamic.innerHTML = `
-      <div class="form-row">
-        <div style="flex:1">
-          <label>Latitude</label>
-          <input id="p-lat" type="number" step="0.000001"/>
-        </div>
-        <div style="flex:1">
-          <label>Longitude</label>
-          <input id="p-lng" type="number" step="0.000001"/>
-        </div>
-      </div>
-      <label>Radius (m)</label>
-      <input id="p-r" type="number" step="1"/>
-    `;
-    const lat = block.querySelector('input[data-field="lat"]');
-    const lng = block.querySelector('input[data-field="lng"]');
-    const r = block.querySelector('input[data-field="radius"]');
-    const plat = panelDynamic.querySelector("#p-lat");
-    const plng = panelDynamic.querySelector("#p-lng");
-    const pr = panelDynamic.querySelector("#p-r");
-    plat.value = lat?.value || "";
-    plng.value = lng?.value || "";
-    pr.value = r?.value || 50;
-    plat.addEventListener("input", ()=> lat.value = plat.value);
-    plng.addEventListener("input", ()=> lng.value = plng.value);
-    pr.addEventListener("input", ()=> r.value = pr.value);
-  }
-}
-
-function clearPanel(){
-  selectedBlock = null;
-  document.getElementById("panel-empty").style.display = "block";
-  document.getElementById("panel-fields").style.display = "none";
-  document.getElementById("panel-dynamic").innerHTML = "";
-}
-
-/** ========= Add buttons ========= */
-document.querySelectorAll(".element-btn").forEach(btn => {
-  btn.addEventListener("click", () => addBlock(btn.dataset.type));
-});
-document.getElementById("btn-add-text").addEventListener("click", ()=> addBlock("text"));
-document.getElementById("btn-add-image").addEventListener("click", ()=> addBlock("image"));
-
-function addBlock(type){
-  const phone = document.getElementById("phone");
-  const block = createBlock(type);
-  phone.appendChild(block);
-  setSelected(block);
-}
-
-/** ========= Serialize to JSON (modules) ========= */
-function collectModules(){
-  const blocks = [...document.querySelectorAll("#phone .block")];
-  return blocks.map(b => {
-    const type = b.dataset.type;
-    let data = {};
-    if(type === "text"){
-      data.text = b.querySelector('[data-field="text"]')?.innerHTML || "";
-    }
-    if(type === "image"){
-      data.url = b.querySelector('input[data-field="url"]')?.value?.trim() || "";
-    }
-    if(type === "question"){
-      data.question = b.querySelector('input[data-field="question"]')?.value || "";
-      data.answer = b.querySelector('input[data-field="answer"]')?.value || "";
-    }
-    if(type === "location"){
-      const lat = b.querySelector('input[data-field="lat"]')?.value;
-      const lng = b.querySelector('input[data-field="lng"]')?.value;
-      const radius = b.querySelector('input[data-field="radius"]')?.value;
-      data.lat = lat ? Number(lat) : null;
-      data.lng = lng ? Number(lng) : null;
-      data.radius = radius ? Number(radius) : 50;
-    }
-    return { type, data };
-  });
-}
-
-/** ========= Save / Reset ========= */
-async function save(){
-  const puzzleId = document.getElementById("phone").dataset.puzzleId;
-  const modules = collectModules();
-
-  const payload = {
-    pageIndex: 0,
-    modules
-  };
-
-  const res = await fetch(`/admin-builder/${puzzleId}/save`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
-
-  if(res.ok){
-    toast("Opgeslagen ✅");
-  } else {
-    const txt = await res.text();
-    console.error(txt);
-    toast("Opslaan mislukt ❌", true);
-  }
-}
-
-function resetToServer(){
-  // Eenvoudige herlaad
-  window.location.reload();
-}
-
-document.getElementById("btn-save").addEventListener("click", save);
-document.getElementById("btn-reset").addEventListener("click", resetToServer);
-
-/** ========= Lightweight toast ========= */
-function toast(msg, error=false){
-  const t = document.createElement("div");
-  t.textContent = msg;
-  t.style.position = "fixed";
-  t.style.right = "20px";
-  t.style.bottom = "20px";
-  t.style.background = error ? "var(--danger)" : "var(--primary)";
-  t.style.color = "white";
-  t.style.padding = "10px 14px";
-  t.style.borderRadius = "12px";
-  t.style.boxShadow = "0 8px 24px rgba(0,0,0,.2)";
-  t.style.zIndex = "9999";
-  document.body.appendChild(t);
-  setTimeout(()=> t.remove(), 2200);
-}
-
-/** ========= Wire existing DOM blocks ========= */
-(function initExisting(){
-  document.querySelectorAll("#phone .block").forEach(b => {
-    b.addEventListener("dragstart", onDragStart);
-    b.addEventListener("dragover", onDragOver);
-    b.addEventListener("drop", onDrop);
-    b.addEventListener("dragend", onDragEnd);
-    b.querySelector(".remove-block")?.addEventListener("click", ()=> {
-      if(selectedBlock === b) clearPanel();
-      b.remove();
     });
-    b.addEventListener("click", ()=> setSelected(b));
+
+    // DnD
+    wireBlockDnD(block);
+    return block;
+  }
+
+  function addBlock(type){
+    const block = createBlock(type);
+    phone.appendChild(block);
+    setSelected(block);
+  }
+
+  // Wire buttons
+  qsa('.element-btn').forEach(btn => btn.addEventListener('click', () => addBlock(btn.dataset.type)));
+  const addTextBtn = qs('#btn-add-text'); if(addTextBtn) addTextBtn.addEventListener('click', ()=> addBlock('text'));
+  const addImageBtn = qs('#btn-add-image'); if(addImageBtn) addImageBtn.addEventListener('click', ()=> addBlock('image'));
+
+  /* ========== Drag & Drop (robust, container-based) ========== */
+  let dragged = null;
+
+  function getAfterElement(container, y) {
+    const draggables = qsa('.block:not(.dragging)', container);
+    return draggables.reduce((closest, child) => {
+      const box = child.getBoundingClientRect();
+      const offset = y - (box.top + box.height / 2);
+      if (offset < 0 && offset > closest.offset) {
+        return { offset, element: child };
+      } else {
+        return closest;
+      }
+    }, { offset: Number.NEGATIVE_INFINITY, element: null }).element;
+  }
+
+  function onDragStart(e) {
+    dragged = this;
+    this.classList.add('dragging');
+    this.style.opacity = '0.5';
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = 'move';
+      try { e.dataTransfer.setData('text/plain', ''); } catch {}
+    }
+  }
+
+  function onDragEnd() {
+    this.classList.remove('dragging');
+    this.style.opacity = '1';
+    dragged = null;
+  }
+
+  function onPhoneDragOver(e) {
+    if (!dragged) return;
+    e.preventDefault();
+    const afterElement = getAfterElement(phone, e.clientY);
+    if (afterElement == null) {
+      phone.appendChild(dragged);
+    } else {
+      phone.insertBefore(dragged, afterElement);
+    }
+  }
+
+  function onPhoneDrop(e) { e.preventDefault(); }
+
+  function wireBlockDnD(block){
+    block.addEventListener('dragstart', onDragStart);
+    block.addEventListener('dragend', onDragEnd);
+  }
+
+  phone.addEventListener('dragover', onPhoneDragOver);
+  phone.addEventListener('drop', onPhoneDrop);
+  qsa('#phone .block').forEach(wireBlockDnD);
+
+  // Disable text select during drag (UX)
+  document.addEventListener('dragstart', () => document.body.style.userSelect = 'none');
+  document.addEventListener('dragend', () => document.body.style.userSelect = '');
+
+  /* ========== Settings panel ========== */
+  let selectedBlock = null;
+
+  function setSelected(block){
+    selectedBlock = block;
+    const empty = qs('#panel-empty');
+    const fields = qs('#panel-fields');
+    const typeInput = qs('#panel-type');
+    const dyn = qs('#panel-dynamic');
+
+    empty.style.display = 'none';
+    fields.style.display = 'block';
+
+    const type = block.dataset.type;
+    typeInput.value = type;
+    dyn.innerHTML = '';
+
+    if (type === 'text') {
+      dyn.innerHTML = `
+        <label>Tekst</label>
+        <textarea id="p-text" rows="4"></textarea>
+      `;
+      const src = qs('[data-field="text"]', block);
+      const ta = qs('#p-text', dyn);
+      ta.value = src ? src.innerHTML : '';
+      ta.addEventListener('input', ()=> { if(src) src.innerHTML = ta.value; });
+    }
+
+    if (type === 'image') {
+      dyn.innerHTML = `
+        <label>Afbeeldings-URL</label>
+        <input id="p-url" type="url" placeholder="https://..." />
+      `;
+      const src = qs('input[data-field="url"]', block);
+      const inp = qs('#p-url', dyn);
+      inp.value = src ? src.value : '';
+      inp.addEventListener('input', ()=> {
+        if(src){
+          src.value = inp.value;
+          src.dispatchEvent(new Event('input'));
+        }
+      });
+    }
+
+    if (type === 'question') {
+      dyn.innerHTML = `
+        <label>Vraag</label>
+        <input id="p-q" type="text" />
+        <label>Antwoord</label>
+        <input id="p-a" type="text" />
+      `;
+      const q = qs('input[data-field="question"]', block);
+      const a = qs('input[data-field="answer"]', block);
+      const pq = qs('#p-q', dyn);
+      const pa = qs('#p-a', dyn);
+      pq.value = q ? q.value : '';
+      pa.value = a ? a.value : '';
+      pq.addEventListener('input', ()=> { if(q) q.value = pq.value; });
+      pa.addEventListener('input', ()=> { if(a) a.value = pa.value; });
+    }
+
+    if (type === 'location') {
+      dyn.innerHTML = `
+        <div class="form-row">
+          <div style="flex:1">
+            <label>Latitude</label>
+            <input id="p-lat" type="number" step="0.000001" />
+          </div>
+          <div style="flex:1">
+            <label>Longitude</label>
+            <input id="p-lng" type="number" step="0.000001" />
+          </div>
+        </div>
+        <label>Radius (m)</label>
+        <input id="p-r" type="number" step="1" />
+      `;
+      const lat = qs('input[data-field="lat"]', block);
+      const lng = qs('input[data-field="lng"]', block);
+      const r = qs('input[data-field="radius"]', block);
+      const plat = qs('#p-lat', dyn);
+      const plng = qs('#p-lng', dyn);
+      const pr = qs('#p-r', dyn);
+      plat.value = lat ? lat.value : '';
+      plng.value = lng ? lng.value : '';
+      pr.value = r ? r.value : 50;
+      plat.addEventListener('input', ()=> { if(lat) lat.value = plat.value; });
+      plng.addEventListener('input', ()=> { if(lng) lng.value = plng.value; });
+      pr.addEventListener('input', ()=> { if(r) r.value = pr.value; });
+    }
+  }
+
+  function clearPanel(){
+    selectedBlock = null;
+    qs('#panel-empty').style.display = 'block';
+    qs('#panel-fields').style.display = 'none';
+    qs('#panel-dynamic').innerHTML = '';
+  }
+
+  /* ========== Serialize modules ========== */
+  function collectModules(){
+    return qsa('#phone .block').map(b => {
+      const type = b.dataset.type;
+      const data = {};
+      if (type === 'text') {
+        const el = qs('[data-field="text"]', b);
+        data.text = el ? el.innerHTML : '';
+      }
+      if (type === 'image') {
+        const url = qs('input[data-field="url"]', b);
+        data.url = url && url.value ? url.value.trim() : '';
+      }
+      if (type === 'question') {
+        const q = qs('input[data-field="question"]', b);
+        const a = qs('input[data-field="answer"]', b);
+        data.question = q ? q.value : '';
+        data.answer = a ? a.value : '';
+      }
+      if (type === 'location') {
+        const lat = qs('input[data-field="lat"]', b);
+        const lng = qs('input[data-field="lng"]', b);
+        const rad = qs('input[data-field="radius"]', b);
+        data.lat = lat && lat.value !== '' ? Number(lat.value) : null;
+        data.lng = lng && lng.value !== '' ? Number(lng.value) : null;
+        data.radius = rad && rad.value !== '' ? Number(rad.value) : 50;
+      }
+      return { type, data };
+    });
+  }
+
+  /* ========== Save / Reset ========== */
+  async function save(){
+    const puzzleId = phone.dataset.puzzleId;
+    const modules = collectModules();
+    try{
+      const res = await fetch(`/admin-builder/${puzzleId}/save`, {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify({ pageIndex:0, modules })
+      });
+      if(!res.ok) throw new Error(await res.text());
+      toast('Opgeslagen ✅');
+    }catch(err){
+      console.error(err);
+      toast('Opslaan mislukt ❌', true);
+    }
+  }
+  function resetToServer(){ window.location.reload(); }
+
+  qs('#btn-save')?.addEventListener('click', save);
+  qs('#btn-reset')?.addEventListener('click', resetToServer);
+
+  /* ========== Init bestaande blocks ========== */
+  qsa('#phone .block').forEach(b => {
+    b.addEventListener('click', ()=> setSelected(b));
+    // Image preview live (server-rendered)
+    b.addEventListener('input', (e) => {
+      if (e.target.matches('input[data-field="url"]')) {
+        const url = e.target.value.trim();
+        const prev = b.querySelector('img.preview');
+        const helper = b.querySelector('.helper');
+        if (url) {
+          if (prev) prev.src = url;
+          else {
+            const img = document.createElement('img');
+            img.className = 'preview';
+            img.src = url;
+            if (helper) helper.replaceWith(img);
+            else b.querySelector('.content').appendChild(img);
+          }
+        } else if (prev) {
+          const h = document.createElement('div');
+          h.className = 'helper';
+          h.textContent = 'Voeg een URL toe om voorbeeld te zien.';
+          prev.replaceWith(h);
+        }
+      }
+    });
   });
+
+  /* ========== DnD UX helper: toast ========== */
+  function toast(msg, error){
+    const t = document.createElement('div');
+    t.textContent = msg;
+    t.style.position = 'fixed';
+    t.style.right = '20px';
+    t.style.bottom = '20px';
+    t.style.background = error ? '#ef4444' : 'var(--primary)';
+    t.style.color = 'white';
+    t.style.padding = '10px 14px';
+    t.style.borderRadius = '12px';
+    t.style.boxShadow = '0 8px 24px rgba(0,0,0,.2)';
+    t.style.zIndex = '9999';
+    document.body.appendChild(t);
+    setTimeout(()=> t.remove(), 2200);
+  }
 })();
 </script>
