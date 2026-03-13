@@ -3,30 +3,46 @@
 .builder{
 display:flex;
 height:90vh;
+width:100%;
 }
 
+/* LINKERKANT - PAGINA'S */
+
 .pages{
-width:250px;
+width:260px;
 border-right:1px solid #ddd;
 padding:15px;
 overflow:auto;
+flex-shrink:0;
+}
+
+/* MIDDEN - TELEFOON */
+
+.preview{
+flex:1;
+display:flex;
+justify-content:center;
+align-items:center;
 }
 
 .phone{
 width:375px;
 height:700px;
 border:2px solid black;
-margin:auto;
 border-radius:30px;
 padding:15px;
 background:white;
 overflow:auto;
 }
 
+/* RECHTS - MODULES */
+
 .modules{
-width:250px;
+width:260px;
 border-left:1px solid #ddd;
 padding:15px;
+overflow:auto;
+flex-shrink:0;
 }
 
 .module{
@@ -35,13 +51,17 @@ border:1px solid #ccc;
 margin-bottom:10px;
 cursor:grab;
 background:#fafafa;
+border-radius:6px;
 }
 
 </style>
 
+
 <h1 class="text-xl font-bold mb-4"><%= puzzle.name %></h1>
 
 <div class="builder">
+
+<!-- PAGINA OVERZICHT -->
 
 <div class="pages">
 
@@ -65,11 +85,17 @@ Pagina toevoegen
 
 </div>
 
-<div style="flex:1;display:flex;align-items:center;justify-content:center">
+
+<!-- TELEFOON PREVIEW -->
+
+<div class="preview">
 
 <div id="phone" class="phone"></div>
 
 </div>
+
+
+<!-- MODULES -->
 
 <div class="modules">
 
@@ -103,6 +129,7 @@ Knop
 
 </div>
 
+
 <script>
 
 const modules=document.querySelectorAll(".module")
@@ -134,7 +161,7 @@ el.innerHTML="<img src='https://placehold.co/300x200'>"
 }
 
 if(type==="video"){
-el.innerHTML="<video controls width='100%'></video>"
+el.innerHTML="<video controls width='100%'><source src=''></video>"
 }
 
 if(type==="audio"){
@@ -146,7 +173,7 @@ el.innerHTML="<input placeholder='Antwoord'>"
 }
 
 if(type==="button"){
-el.innerHTML="<button>Volgende</button>"
+el.innerHTML="<button>Knop</button>"
 }
 
 el.style.marginBottom="10px"
