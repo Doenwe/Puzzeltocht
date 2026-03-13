@@ -1,399 +1,150 @@
+```ejs
+<% layout('layout') %>
+
 <style>
+/* Zorg dat admin pagina full width is */
+main{
+  max-width:100% !important;
+  padding:0 !important;
+}
 
+/* Builder layout */
 .builder{
-display:flex;
-height:90vh;
-width:100%;
-font-family:sans-serif;
+  display:flex;
+  height:calc(100vh - 80px);
+  background:#5fd0d0;
 }
 
-/* LINKS */
-
-.pages{
-width:250px;
-border-right:1px solid #ddd;
-padding:15px;
-overflow:auto;
+/* Sidebar */
+.sidebar{
+  width:260px;
+  background:white;
+  border-right:1px solid #ddd;
+  padding:20px;
 }
 
-.page{
-padding:10px;
-border:1px solid #ccc;
-margin-bottom:8px;
-border-radius:6px;
-cursor:pointer;
+.sidebar h2{
+  font-size:18px;
+  font-weight:600;
+  margin-bottom:15px;
 }
 
-.page.active{
-background:#eee;
+.element-btn{
+  display:block;
+  width:100%;
+  padding:10px;
+  margin-bottom:10px;
+  background:#f3f3f3;
+  border-radius:6px;
+  border:none;
+  cursor:pointer;
 }
 
-/* MIDDEN */
-
-.preview{
-flex:1;
-display:flex;
-justify-content:center;
-align-items:center;
+.element-btn:hover{
+  background:#e6e6e6;
 }
 
+/* Canvas area */
+.canvas{
+  flex:1;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+
+/* Phone preview */
 .phone{
-width:375px;
-height:700px;
-border:2px solid black;
-border-radius:30px;
-padding:15px;
-overflow:auto;
-background:white;
+  width:375px;
+  height:700px;
+  background:white;
+  border-radius:30px;
+  border:3px solid #333;
+  overflow-y:auto;
+  box-shadow:0 10px 40px rgba(0,0,0,0.2);
+  padding:20px;
 }
 
 .block{
-border:1px dashed #aaa;
-padding:10px;
-margin-bottom:10px;
-background:#fafafa;
-cursor:move;
-position:relative;
-border-radius:6px;
+  padding:10px;
+  margin-bottom:10px;
+  border-radius:6px;
+  border:1px dashed #ccc;
 }
-
-.delete{
-position:absolute;
-right:6px;
-top:6px;
-cursor:pointer;
-}
-
-.edit{
-position:absolute;
-right:25px;
-top:6px;
-cursor:pointer;
-}
-
-/* RECHTS */
-
-.modules{
-width:250px;
-border-left:1px solid #ddd;
-padding:15px;
-overflow:auto;
-}
-
-.module{
-padding:10px;
-border:1px solid #ccc;
-margin-bottom:10px;
-cursor:grab;
-border-radius:6px;
-background:#fafafa;
-}
-
-button{
-margin-top:10px;
-padding:8px;
-}
-
 </style>
-
-
-
-<h2><%= puzzle.name %></h2>
 
 <div class="builder">
 
-<div class="pages">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <h2>Elementen</h2>
 
-<h3>Pagina's</h3>
+    <button class="element-btn" onclick="addBlock('text')">
+      Tekst
+    </button>
 
-<div id="pageList"></div>
+    <button class="element-btn" onclick="addBlock('image')">
+      Afbeelding
+    </button>
 
-<button onclick="addPage()">+ Pagina</button>
+    <button class="element-btn" onclick="addBlock('question')">
+      Vraag
+    </button>
 
-<button onclick="save()">Opslaan</button>
+    <button class="element-btn" onclick="addBlock('location')">
+      Locatie
+    </button>
+
+  </div>
+
+
+  <!-- Preview Canvas -->
+  <div class="canvas">
+
+    <div class="phone" id="phone">
+
+      <% if(puzzle && puzzle.blocks){ %>
+        <% puzzle.blocks.forEach(block => { %>
+
+          <div class="block">
+            <%= block.type %>
+          </div>
+
+        <% }) %>
+      <% } %>
+
+    </div>
+
+  </div>
 
 </div>
-
-
-<div class="preview">
-
-<div id="phone" class="phone"></div>
-
-</div>
-
-
-<div class="modules">
-
-<h3>Modules</h3>
-
-<div class="module" draggable="true" data-type="text">Tekst</div>
-
-<div class="module" draggable="true" data-type="image">Afbeelding</div>
-
-<div class="module" draggable="true" data-type="button">Knop</div>
-
-<div class="module" draggable="true" data-type="answer">Antwoord</div>
-
-</div>
-
-</div>
-
 
 
 <script>
+function addBlock(type){
 
-let pages=<%- JSON.stringify(puzzle.pages || []) %>
+  const phone = document.getElementById("phone")
 
-if(pages.length===0){
-pages=[{blocks:[]}]
-}
+  const block = document.createElement("div")
+  block.className = "block"
 
-let currentPage=0
-let dragIndex=null
+  if(type === "text"){
+    block.innerHTML = "<p>Nieuwe tekst</p>"
+  }
 
-const phone=document.getElementById("phone")
-const pageList=document.getElementById("pageList")
+  if(type === "image"){
+    block.innerHTML = "<p>📷 Afbeelding</p>"
+  }
 
+  if(type === "question"){
+    block.innerHTML = "<p>❓ Vraag</p>"
+  }
 
+  if(type === "location"){
+    block.innerHTML = "<p>📍 Locatie</p>"
+  }
 
-function renderPages(){
-
-pageList.innerHTML=""
-
-pages.forEach((p,i)=>{
-
-const el=document.createElement("div")
-
-el.className="page"+(i===currentPage?" active":"")
-
-el.innerText="Pagina "+(i+1)
-
-el.onclick=()=>{
-
-currentPage=i
-renderPages()
-renderPhone()
+  phone.appendChild(block)
 
 }
-
-pageList.appendChild(el)
-
-})
-
-}
-
-
-
-function renderPhone(){
-
-phone.innerHTML=""
-
-const blocks=pages[currentPage].blocks
-
-blocks.forEach((b,i)=>{
-
-const block=document.createElement("div")
-
-block.className="block"
-block.draggable=true
-
-block.addEventListener("dragstart",()=>{
-dragIndex=i
-})
-
-block.addEventListener("dragover",e=>{
-e.preventDefault()
-})
-
-block.addEventListener("drop",()=>{
-
-const item=blocks.splice(dragIndex,1)[0]
-blocks.splice(i,0,item)
-
-renderPhone()
-
-})
-
-
-
-const del=document.createElement("span")
-del.className="delete"
-del.innerText="✕"
-
-del.onclick=()=>{
-
-blocks.splice(i,1)
-renderPhone()
-
-}
-
-block.appendChild(del)
-
-
-
-const edit=document.createElement("span")
-edit.className="edit"
-edit.innerText="⚙"
-
-edit.onclick=()=>editBlock(b)
-
-block.appendChild(edit)
-
-
-
-const content=document.createElement("div")
-
-if(b.type==="text"){
-
-content.innerHTML=b.text || "Tekst"
-
-}
-
-if(b.type==="image"){
-
-content.innerHTML="<img src='"+(b.src||"https://placehold.co/300x150")+"'>"
-
-}
-
-if(b.type==="button"){
-
-content.innerHTML="<button>"+(b.label||"Knop")+"</button>"
-
-}
-
-if(b.type==="answer"){
-
-content.innerHTML="<input placeholder='Antwoord'>"
-
-}
-
-block.appendChild(content)
-
-phone.appendChild(block)
-
-})
-
-}
-
-
-
-function editBlock(block){
-
-if(block.type==="text"){
-
-const t=prompt("Tekst:",block.text||"")
-
-if(t!==null){
-
-block.text=t
-renderPhone()
-
-}
-
-}
-
-
-
-if(block.type==="button"){
-
-const t=prompt("Knop tekst:",block.label||"")
-
-if(t!==null){
-
-block.label=t
-renderPhone()
-
-}
-
-}
-
-
-
-if(block.type==="image"){
-
-const t=prompt("Image URL:",block.src||"")
-
-if(t!==null){
-
-block.src=t
-renderPhone()
-
-}
-
-}
-
-}
-
-
-
-function addPage(){
-
-pages.push({blocks:[]})
-
-renderPages()
-
-}
-
-
-
-document.querySelectorAll(".module").forEach(m=>{
-
-m.addEventListener("dragstart",e=>{
-
-e.dataTransfer.setData("type",m.dataset.type)
-
-})
-
-})
-
-
-
-phone.addEventListener("dragover",e=>{
-e.preventDefault()
-})
-
-
-
-phone.addEventListener("drop",e=>{
-
-e.preventDefault()
-
-const type=e.dataTransfer.getData("type")
-
-pages[currentPage].blocks.push({type})
-
-renderPhone()
-
-})
-
-
-
-async function save(){
-
-await fetch("/admin/save-builder",{
-
-method:"POST",
-
-headers:{
-"Content-Type":"application/json"
-},
-
-body:JSON.stringify({
-
-puzzleId:"<%= puzzle._id %>",
-pages
-
-})
-
-})
-
-alert("Opgeslagen!")
-
-}
-
-
-
-renderPages()
-renderPhone()
-
 </script>
+```
