@@ -1,710 +1,562 @@
 <%
-  // Verwachte shape van puzzle (zoals in jouw index.js):
-  // puzzle: {
-  //   _id, name,
-  //   pages: [
-  //     {
-  //       title: "Pagina 1",
-  //       modules: [
-  //         { type: "text", data: { text } },
-  //         { type: "image", data: { url } },
-  //         { type: "question", data: { question, answer } },
-  //         { type: "location", data: { lat, lng, radius } }
-  //       ]
-  //     }
-  //   ]
-  // }
-  var page = (puzzle && puzzle.pages && puzzle.pages.length) ? puzzle.pages[0] : { title: "Pagina 1", modules: [] };
+  const page = (puzzle && puzzle.pages && puzzle.pages.length)
+    ? puzzle.pages[0]
+    : { title: "Pagina 1", modules: [] };
 %>
 
 <style>
-  /* ====== Basis & thema (fallbacks) ====== */
   :root{
-    --primary: #6366f1;      /* indigo */
-    --bg: #f5f7fa;
-    --text: #111827;
+    --primary:#6366f1;
+    --bg:#f5f7fa;
+    --text:#111827;
   }
   main{ max-width:100% !important; padding:0 !important; margin:0 !important; }
-  * { box-sizing: border-box; }
 
-  /* ====== Pagina layout ====== */
-  .builder-root {
-    display: flex;
-    height: calc(100vh - 80px);
-    background: var(--bg);
-    font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans";
-    color: var(--text);
-  }
-
-  /* ====== Sidebar ====== */
-  .builder-sidebar {
-    width: 300px;
-    background: #ffffff;
-    border-right: 1px solid #e5e7eb;
-    padding: 24px;
-    box-shadow: 4px 0 20px rgba(0,0,0,0.05);
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
-  }
-  .sidebar-header{
-    display:flex; align-items:center; gap:10px; justify-content:space-between;
-  }
-  .sidebar-header h2 { margin:0; font-size:18px; font-weight:800; letter-spacing:-.3px; }
-  .badge { font-size: 12px; color: #fff; background: var(--primary); padding: 2px 8px; border-radius: 999px; }
-  .sidebar-group h4{
-    margin: 0 0 8px;
-    font-size: 12px;
-    font-weight: 700;
-    color: #6b7280;
-    text-transform: uppercase;
-    letter-spacing: .08em;
-  }
-  .element-btn {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    width: 100%;
-    padding: 12px 14px;
-    background: #f9fafb;
-    border-radius: 12px;
-    border: 1px solid #e5e7eb;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 600;
-    color: #374151;
-    transition: all 0.2s ease;
-    margin-bottom: 10px;
-  }
-  .element-btn i{ font-size:18px; opacity:.9; }
-  .element-btn:hover { background:#eef2ff; border-color: var(--primary); color:#111827; transform: translateY(-1px); }
-  .sidebar-actions {
-    margin-top: auto;
-    display:grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-  }
-  .btn {
-    appearance: none;
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    padding: 10px 12px;
-    font-weight: 700;
-    font-size: 14px;
-    background: #fff;
-    cursor: pointer;
-    transition: .15s ease;
-  }
-  .btn:hover { transform: translateY(-1px); }
-  .btn-primary { background: var(--primary); color:#fff; border-color: transparent; box-shadow: 0 6px 16px rgba(99,102,241,.25); }
-  .btn-ghost { background:#f9fafb; }
-
-  /* ====== Canvas / stage ====== */
-  .builder-canvas {
-    flex: 1;
-    display: flex;
-    justify-content: center;
-    align-items: stretch;
-    padding: 32px;
-  }
-  .stage {
-    max-width: 1100px;
-    width: 100%;
+  /* Layout */
+  .builder-wrap{
     display:flex;
-    gap:24px;
-    align-items:flex-start;
+    height:calc(100vh - 56px);
+    background:var(--bg);
+    font-family:Inter, sans-serif;
+    color:var(--text);
   }
 
-  /* ====== Phone preview ====== */
-  .phone {
-    width: 390px;
-    height: 760px;
-    border-radius: 35px;
-    background: white;
-    border: 4px solid #111;
-    overflow-y: auto;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.2);
-    padding: 24px;
-    position:relative;
+  /* Sidebar */
+  .sidebar{
+    width:280px;
+    background:white;
+    border-right:1px solid #e5e7eb;
+    padding:22px;
+    display:flex;
+    flex-direction:column;
+    gap:20px;
   }
-  .phone-header{
-    position:sticky; top:0; background:white; z-index:3;
-    padding-bottom:10px; margin-bottom:10px; border-bottom:1px dashed #e5e7eb;
-    display:flex; align-items:center; justify-content:space-between; gap:10px;
-  }
-  .page-title{ font-weight:800; letter-spacing:-.2px; }
-  .page-actions .btn { padding:8px 10px; }
-
-  /* ====== Blocks ====== */
-  .block {
-    padding: 18px;
-    background: #ffffff;
-    border: 1px solid #e5e7eb;
-    border-radius: 14px;
-    margin-bottom: 14px;
-    cursor: grab;
-    position: relative;
-    transition: all 0.15s ease;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-  }
-  .block:hover { transform: translateY(-1px); box-shadow: 0 6px 14px rgba(0,0,0,0.08); }
-  .block h4 {
-    margin: 0 0 6px;
-    font-size: 14px;
-    font-weight: 800;
-    color: #111827;
-    display:flex; align-items:center; gap:8px;
-  }
-  .block .kind { font-size:11px; color:#6b7280; background:#f3f4f6; border:1px solid #e5e7eb; padding:2px 6px; border-radius:999px; }
-  .remove-block {
-    position: absolute;
-    right: 10px;
-    top: 10px;
-    background: #ef4444;
-    color: white;
-    width: 24px;
-    height: 24px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 14px;
-    line-height: 22px;
-    text-align: center;
-    transition: 0.15s;
-  }
-  .remove-block:hover { filter: brightness(.95); }
-  .block.dragging { opacity:.5; transform: scale(0.99); }
-  .drag-over { border: 2px dashed var(--primary) !important; background: #eef2ff; }
-
-  /* ====== Content area inside block ====== */
-  .block .form-row{ display:flex; gap:10px; }
-  .block input[type="text"],
-  .block input[type="url"],
-  .block input[type="number"],
-  .block textarea{
+  .sidebar h2{ font-size:20px; font-weight:800; margin:0; }
+  .element-btn{
     width:100%;
-    padding:10px 12px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:12px;
+    background:#f9fafb;
     border:1px solid #e5e7eb;
     border-radius:10px;
-    background:#fbfbfc;
-    font-size:14px;
+    cursor:pointer;
+    font-weight:600;
+    transition:.15s ease;
   }
-  .block img.preview{
-    width:100%; height:auto; border-radius:10px; border:1px solid #e5e7eb;
-    object-fit:cover; margin-top:6px;
+  .element-btn:hover{
+    background:#eef2ff;
+    border-color:var(--primary);
   }
-  .helper { font-size:12px; color:#6b7280; margin-top:6px; }
+  .sidebar-actions{
+    margin-top:auto;
+    display:flex;
+    gap:12px;
+  }
+  .btn{
+    flex:1;
+    padding:10px;
+    border-radius:10px;
+    border:1px solid #ddd;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .btn-primary{
+    background:var(--primary);
+    color:white;
+    border:none;
+  }
 
-  /* Contenteditable */
+  /* Builder stage */
+  .canvas{
+    flex:1;
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
+    padding:30px;
+  }
+  .stage{
+    display:flex;
+    gap:25px;
+  }
+
+  /* Phone preview */
+  .phone{
+    width:380px;
+    height:740px;
+    background:white;
+    border-radius:35px;
+    border:4px solid #111;
+    overflow-y:auto;
+    box-shadow:0 20px 50px rgba(0,0,0,0.18);
+    padding:22px;
+  }
+  .phone-header{
+    position:sticky; top:0; background:white;
+    padding-bottom:12px;
+    border-bottom:1px dashed #ddd;
+    margin-bottom:12px;
+    z-index:10;
+    display:flex;
+    justify-content:space-between;
+  }
+
+  /* Block */
+  .block{
+    padding:18px;
+    background:white;
+    border:1px solid #e5e7eb;
+    border-radius:14px;
+    margin-bottom:14px;
+    box-shadow:0 4px 10px rgba(0,0,0,0.05);
+    cursor:grab;
+    position:relative;
+  }
+  .block.dragging{ opacity:.4; }
+  .block h4{
+    margin:0 0 8px; font-weight:700; font-size:15px;
+    display:flex; gap:6px; align-items:center;
+  }
+  .kind{
+    background:#f3f4f6;
+    border:1px solid #ddd;
+    padding:2px 6px;
+    border-radius:8px;
+    font-size:11px;
+  }
+  .remove{
+    position:absolute;
+    top:10px;
+    right:10px;
+    background:#ef4444;
+    color:white;
+    width:24px;
+    height:24px;
+    border:none;
+    border-radius:6px;
+    cursor:pointer;
+    font-weight:900;
+  }
+  .drag-over{
+    border:2px dashed var(--primary) !important;
+    background:#eef2ff;
+  }
+
+  /* Contenteditable styling */
   [contenteditable="true"]{
-    outline: 2px dashed transparent;
-    transition: outline-color .15s ease, background .15s ease;
+    padding:6px;
+    border-radius:8px;
+    transition:.15s ease;
+    outline:2px dashed transparent;
   }
   [contenteditable="true"]:focus{
-    outline-color: #c7d2fe;
-    background: #fafbff;
-    border-radius: 8px;
+    background:#f0f4ff;
+    outline-color:#aab4ff;
   }
 
-  /* ====== Settings panel ====== */
-  .panel {
-    width: 340px;
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 16px;
-    padding: 16px;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.06);
-    position: sticky;
-    top: 32px;
-    height: fit-content;
+  /* Form fields inside blocks */
+  .block input, .block textarea{
+    width:100%;
+    padding:10px;
+    border-radius:10px;
+    border:1px solid #ddd;
+    margin-bottom:8px;
+    font-size:14px;
   }
-  .panel h3 { margin:0 0 8px; font-size:16px; font-weight:800; }
-  .panel label{ display:block; font-size:13px; color:#6b7280; margin:10px 0 6px; }
-  .panel input, .panel textarea, .panel select {
-    width:100%; padding:10px 12px; border:1px solid #e5e7eb; border-radius:10px; font-size:14px; outline:none; background:#fbfbfc;
+  .form-row{ display:flex; gap:10px; }
+
+  /* Settings panel */
+  .panel{
+    width:300px;
+    background:white;
+    border-radius:16px;
+    border:1px solid #e5e7eb;
+    padding:20px;
+    box-shadow:0 8px 28px rgba(0,0,0,0.1);
+    position:sticky;
+    top:30px;
+    height:fit-content;
   }
-  .panel small { color:#6b7280; }
+  .panel h3{ margin:0 0 8px; }
+  .panel label{ font-size:13px; margin-top:10px; display:block; }
+  .panel input, .panel textarea{
+    width:100%; padding:10px;
+    margin-top:4px;
+    border-radius:8px;
+    border:1px solid #ccc;
+  }
 </style>
 
-<section class="builder-root">
-  <!-- SIDEBAR -->
-  <aside class="builder-sidebar">
-    <div class="sidebar-header">
-      <h2>Builder</h2>
-      <span class="badge">v2</span>
-    </div>
+<div class="builder-wrap">
 
-    <div class="sidebar-group">
-      <h4>Elementen</h4>
-      <button class="element-btn" data-type="text"><i>📝</i> Tekstblok</button>
-      <button class="element-btn" data-type="image"><i>🖼️</i> Afbeelding</button>
-      <button class="element-btn" data-type="question"><i>❓</i> Vraag</button>
-      <button class="element-btn" data-type="location"><i>📍</i> Locatie</button>
-    </div>
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <h2>Builder</h2>
 
-    <div class="sidebar-group">
-      <h4>Pagina</h4>
-      <small>Huidig: <strong><%= page.title %></strong></small>
+    <div>
+      <button class="element-btn" data-type="text">📝 Tekst</button>
+      <button class="element-btn" data-type="image">🖼️ Afbeelding</button>
+      <button class="element-btn" data-type="question">❓ Vraag</button>
+      <button class="element-btn" data-type="location">📍 Locatie</button>
     </div>
 
     <div class="sidebar-actions">
-      <button id="btn-reset" class="btn btn-ghost" type="button">Reset</button>
-      <button id="btn-save" class="btn btn-primary" type="button">Opslaan</button>
+      <button class="btn" id="btn-reset">Reset</button>
+      <button class="btn btn-primary" id="btn-save">Opslaan</button>
     </div>
-  </aside>
+  </div>
 
-  <!-- CANVAS -->
-  <section class="builder-canvas">
+  <!-- Canvas -->
+  <div class="canvas">
     <div class="stage">
-      <!-- PHONE -->
-      <div class="phone" id="phone" data-puzzle-id="<%= puzzle._id %>">
+
+      <!-- PHONE PREVIEW -->
+      <div class="phone" id="phone" data-id="<%= puzzle._id %>">
+
         <div class="phone-header">
-          <div class="page-title"><%= puzzle.name %> — <%= page.title %></div>
-          <div class="page-actions">
-            <button class="btn" id="btn-add-text" type="button">+ Tekst</button>
-            <button class="btn" id="btn-add-image" type="button">+ Afbeelding</button>
-          </div>
+          <strong><%= puzzle.name %></strong>
+          <span><%= page.title %></span>
         </div>
 
-        <!-- Server-rendered blocks -->
-        <% if (page.modules && page.modules.length) { %>
-          <% page.modules.forEach(function(m){ %>
-            <div class="block" draggable="true" data-type="<%= m.type %>">
-              <button class="remove-block" title="Verwijderen">×</button>
-              <h4>
-                <span class="title"><%= (m.type.charAt(0).toUpperCase() + m.type.slice(1)) %></span>
-                <span class="kind"><%= m.type %></span>
-              </h4>
-              <div class="content">
-                <% if (m.type === 'text') { %>
-                  <div contenteditable="true" data-field="text"><%- (m.data && m.data.text) ? m.data.text : 'Nieuwe tekst' %></div>
+        <% page.modules.forEach(m => { %>
 
-                <% } else if (m.type === 'image') { %>
-                  <input type="url" placeholder="Afbeeldings-URL" data-field="url" value="<%= (m.data && m.data.url) ? m.data.url : '' %>"/>
-                  <% if (m.data && m.data.url) { %>
-                    <img class="preview" src="<%= m.data.url %>" alt="preview">
-                  <% } else { %>
-                    <div class="helper">Voeg een URL toe om voorbeeld te zien.</div>
-                  <% } %>
+          <div class="block" draggable="true" data-type="<%= m.type %>">
 
-                <% } else if (m.type === 'question') { %>
-                  <label>Vraag</label>
-                  <input type="text" data-field="question" value="<%= (m.data && m.data.question) ? m.data.question : 'Wat is het antwoord?' %>"/>
-                  <label style="margin-top:8px;">Antwoord</label>
-                  <input type="text" data-field="answer" value="<%= (m.data && m.data.answer) ? m.data.answer : '' %>"/>
+            <button class="remove">×</button>
 
-                <% } else if (m.type === 'location') { %>
-                  <div class="form-row">
-                    <div style="flex:1">
-                      <label>Latitude</label>
-                      <input type="number" step="0.000001" data-field="lat" value="<%= (m.data && (m.data.lat || m.data.lat===0)) ? m.data.lat : '' %>"/>
-                    </div>
-                    <div style="flex:1">
-                      <label>Longitude</label>
-                      <input type="number" step="0.000001" data-field="lng" value="<%= (m.data && (m.data.lng || m.data.lng===0)) ? m.data.lng : '' %>"/>
-                    </div>
-                  </div>
-                  <label style="margin-top:8px;">Radius (m)</label>
-                  <input type="number" step="1" data-field="radius" value="<%= (m.data && (m.data.radius || m.data.radius===0)) ? m.data.radius : 50 %>"/>
-                  <div class="helper">Speler moet binnen deze straal zijn.</div>
+            <h4>
+              <span><%= m.type[0].toUpperCase()+m.type.slice(1) %></span>
+              <span class="kind"><%= m.type %></span>
+            </h4>
 
+            <div class="content">
+              <% if(m.type === "text"){ %>
+
+                <div contenteditable="true" data-field="text">
+                  <%- m.data?.text || "Nieuwe tekst" %>
+                </div>
+
+              <% } else if(m.type === "image"){ %>
+
+                <input type="url" data-field="url" value="<%= m.data?.url || '' %>">
+                <% if(m.data?.url){ %>
+                  <img src="<%= m.data.url %>" style="width:100%; border-radius:10px;">
                 <% } else { %>
-                  <div class="helper">Onbekend type: <%= m.type %></div>
+                  <div class="helper">Voeg een afbeelding URL toe.</div>
                 <% } %>
-              </div>
+
+              <% } else if(m.type === "question"){ %>
+
+                <label>Vraag:</label>
+                <input type="text" data-field="question" value="<%= m.data?.question || '' %>">
+
+                <label>Antwoord:</label>
+                <input type="text" data-field="answer" value="<%= m.data?.answer || '' %>">
+
+              <% } else if(m.type === "location"){ %>
+
+                <div class="form-row">
+                  <input type="number" step="0.000001" placeholder="Lat" data-field="lat" value="<%= m.data?.lat ?? '' %>">
+                  <input type="number" step="0.000001" placeholder="Lng" data-field="lng" value="<%= m.data?.lng ?? '' %>">
+                </div>
+                <input type="number" step="1" placeholder="radius" data-field="radius" value="<%= m.data?.radius ?? 50 %>">
+
+              <% } %>
             </div>
-          <% }) %>
-        <% } else { %>
-          <div class="block empty-hint" style="text-align:center; color:#6b7280; border-style:dashed;">
-            Nog geen blokken. Voeg ze toe via de sidebar of knoppen hierboven.
           </div>
-        <% } %>
+
+        <% }) %>
+
       </div>
 
       <!-- SETTINGS PANEL -->
-      <aside class="panel">
-        <h3>Blok‑instellingen</h3>
-        <small id="panel-empty">Selecteer een blok om details te bewerken.</small>
+      <div class="panel">
+        <h3>Instellingen</h3>
+        <small id="panel-empty">Klik op een blok om te bewerken.</small>
         <div id="panel-fields" style="display:none;">
           <label>Type</label>
-          <input id="panel-type" type="text" disabled />
-          <div id="panel-dynamic" style="margin-top:8px;"></div>
+          <input id="panel-type" disabled>
+          <div id="panel-dynamic"></div>
         </div>
-      </aside>
+      </div>
+
     </div>
-  </section>
-</section>
+  </div>
+
+</div>
 
 <script>
 (function(){
-  const phone = document.getElementById('phone');
-  if(!phone) return;
 
-  const qs = (sel, root=document) => root.querySelector(sel);
-  const qsa = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+  const phone = document.getElementById("phone");
+  const qs = (s,p=document)=>p.querySelector(s);
+  const qsa = (s,p=document)=>[...p.querySelectorAll(s)];
 
-  /* ========== Blok aanmaken ========== */
-  function createBlock(type, data){
-    const block = document.createElement('div');
-    block.className = 'block';
-    block.draggable = true;
-    block.dataset.type = type;
+  /* ----------------------------
+     CREATE BLOCK
+  -----------------------------*/
+  function createBlock(type){
+    const div = document.createElement("div");
+    div.className="block";
+    div.draggable=true;
+    div.dataset.type=type;
 
-    const title = type.charAt(0).toUpperCase() + type.slice(1);
-    block.innerHTML = `
-      <button class="remove-block" title="Verwijderen">×</button>
+    div.innerHTML = `
+      <button class="remove">×</button>
       <h4>
-        <span class="title">${title}</span>
+        <span>${type[0].toUpperCase()+type.slice(1)}</span>
         <span class="kind">${type}</span>
       </h4>
       <div class="content"></div>
     `;
 
-    const content = qs('.content', block);
-    data = data || {};
+    const content = qs(".content", div);
 
-    if(type === 'text'){
-      content.innerHTML = '<div contenteditable="true" data-field="text">'+ (data.text || 'Nieuwe tekst') +'</div>';
+    if(type==="text"){
+      content.innerHTML = `<div contenteditable="true" data-field="text">Nieuwe tekst</div>`;
+    }
+    if(type==="image"){
+      content.innerHTML =
+        `<input type="url" data-field="url" placeholder="Afbeeldings-URL">
+         <div class="helper">Voeg een afbeelding URL toe.</div>`;
+    }
+    if(type==="question"){
+      content.innerHTML =
+        `<label>Vraag:</label>
+         <input data-field="question">
+         <label>Antwoord:</label>
+         <input data-field="answer">`;
+    }
+    if(type==="location"){
+      content.innerHTML =
+        `<div class="form-row">
+           <input type="number" step="0.000001" placeholder="Lat" data-field="lat">
+           <input type="number" step="0.000001" placeholder="Lng" data-field="lng">
+         </div>
+         <input type="number" step="1" placeholder="Radius" data-field="radius" value="50">`;
     }
 
-    if(type === 'image'){
-      content.innerHTML = `
-        <input type="url" placeholder="Afbeeldings-URL" data-field="url" value="${data.url || ''}">
-        ${data.url ? '<img class="preview" src="'+data.url+'" alt="preview">' : '<div class="helper">Voeg een URL toe om voorbeeld te zien.</div>'}
-      `;
-    }
+    wireBlock(div);
+    return div;
+  }
 
-    if(type === 'question'){
-      content.innerHTML = `
-        <label>Vraag</label>
-        <input type="text" data-field="question" value="${data.question || 'Wat is het antwoord?'}">
-        <label style="margin-top:8px;">Antwoord</label>
-        <input type="text" data-field="answer" value="${data.answer || ''}">
-      `;
-    }
+  /* ----------------------------
+     DRAG & DROP
+  -----------------------------*/
+  let dragged=null;
 
-    if(type === 'location'){
-      const latVal = (data.lat || data.lat===0) ? data.lat : '';
-      const lngVal = (data.lng || data.lng===0) ? data.lng : '';
-      const radiusVal = (data.radius || data.radius===0) ? data.radius : 50;
-      content.innerHTML = `
-        <div class="form-row">
-          <div style="flex:1">
-            <label>Latitude</label>
-            <input type="number" step="0.000001" data-field="lat" value="${latVal}">
-          </div>
-          <div style="flex:1">
-            <label>Longitude</label>
-            <input type="number" step="0.000001" data-field="lng" value="${lngVal}">
-          </div>
-        </div>
-        <label style="margin-top:8px;">Radius (m)</label>
-        <input type="number" step="1" data-field="radius" value="${radiusVal}">
-        <div class="helper">Speler moet binnen deze straal zijn.</div>
-      `;
-    }
+  function getAfterEl(container, y){
+    const blocks=qsa(".block:not(.dragging)",container);
+    return blocks.reduce((closest, child)=>{
+      const box=child.getBoundingClientRect();
+      const offset=y-(box.top+box.height/2);
+      if(offset<0 && offset>closest.offset){
+        return {offset,element:child};
+      }
+      return closest;
+    }, {offset:-Infinity,element:null}).element;
+  }
 
-    // Delete
-    qs('.remove-block', block).addEventListener('click', () => {
-      if(selectedBlock === block) clearPanel();
-      block.remove();
+  phone.addEventListener("dragover", e=>{
+    if(!dragged) return;
+    e.preventDefault();
+    const after=getAfterEl(phone, e.clientY);
+    if(after==null) phone.appendChild(dragged);
+    else phone.insertBefore(dragged, after);
+  });
+
+  function wireBlock(block){
+    block.addEventListener("dragstart", e=>{
+      dragged=block;
+      block.classList.add("dragging");
+      if(e.dataTransfer){
+        e.dataTransfer.setData("text/plain","");
+      }
+    });
+    block.addEventListener("dragend", ()=>{
+      block.classList.remove("dragging");
+      dragged=null;
     });
 
-    // Select
-    block.addEventListener('click', () => setSelected(block));
+    // handle image preview
+    block.addEventListener("input", e=>{
+      if(e.target.matches('input[data-field="url"]')){
+        const url=e.target.value.trim();
+        const old=qs("img", block);
+        const helper=qs(".helper",block);
 
-    // Live preview for image URL
-    block.addEventListener('input', (e) => {
-      if (e.target.matches('input[data-field="url"]')) {
-        const url = e.target.value.trim();
-        const prev = qs('img.preview', block);
-        const helper = qs('.helper', block);
-        if (url) {
-          if (prev) prev.src = url;
-          else {
-            const img = document.createElement('img');
-            img.className = 'preview';
-            img.src = url;
-            if (helper) helper.replaceWith(img);
-            else content.appendChild(img);
+        if(url){
+          if(old){
+            old.src=url;
+          } else {
+            const img=document.createElement("img");
+            img.src=url;
+            img.style.width="100%";
+            img.style.borderRadius="10px";
+            if(helper) helper.replaceWith(img);
           }
-        } else if (prev) {
-          const h = document.createElement('div');
-          h.className = 'helper';
-          h.textContent = 'Voeg een URL toe om voorbeeld te zien.';
-          prev.replaceWith(h);
+        } else if(old){
+          old.replaceWith(Object.assign(document.createElement("div"),{
+            className:"helper",
+            innerText:"Voeg een afbeelding URL toe."
+          }));
         }
       }
     });
 
-    // DnD
-    wireBlockDnD(block);
-    return block;
+    // selecting
+    block.addEventListener("click",()=>{
+      setSelected(block);
+    });
   }
 
-  function addBlock(type){
-    const block = createBlock(type);
-    phone.appendChild(block);
-    setSelected(block);
-  }
+  /* Wire existing blocks */
+  qsa("#phone .block").forEach(wireBlock);
 
-  // Wire buttons
-  qsa('.element-btn').forEach(btn => btn.addEventListener('click', () => addBlock(btn.dataset.type)));
-  const addTextBtn = qs('#btn-add-text'); if(addTextBtn) addTextBtn.addEventListener('click', ()=> addBlock('text'));
-  const addImageBtn = qs('#btn-add-image'); if(addImageBtn) addImageBtn.addEventListener('click', ()=> addBlock('image'));
-
-  /* ========== Drag & Drop (robust, container-based) ========== */
-  let dragged = null;
-
-  function getAfterElement(container, y) {
-    const draggables = qsa('.block:not(.dragging)', container);
-    return draggables.reduce((closest, child) => {
-      const box = child.getBoundingClientRect();
-      const offset = y - (box.top + box.height / 2);
-      if (offset < 0 && offset > closest.offset) {
-        return { offset, element: child };
-      } else {
-        return closest;
+  /* ----------------------------
+     DELETE VIA EVENT DELEGATION
+  -----------------------------*/
+  phone.addEventListener("click", e=>{
+    if(e.target.classList.contains("remove")){
+      const bl=e.target.closest(".block");
+      if(bl){
+        if(selected===bl) clearPanel();
+        bl.remove();
       }
-    }, { offset: Number.NEGATIVE_INFINITY, element: null }).element;
-  }
-
-  function onDragStart(e) {
-    dragged = this;
-    this.classList.add('dragging');
-    this.style.opacity = '0.5';
-    if (e.dataTransfer) {
-      e.dataTransfer.effectAllowed = 'move';
-      try { e.dataTransfer.setData('text/plain', ''); } catch {}
     }
-  }
+  });
 
-  function onDragEnd() {
-    this.classList.remove('dragging');
-    this.style.opacity = '1';
-    dragged = null;
-  }
-
-  function onPhoneDragOver(e) {
-    if (!dragged) return;
-    e.preventDefault();
-    const afterElement = getAfterElement(phone, e.clientY);
-    if (afterElement == null) {
-      phone.appendChild(dragged);
-    } else {
-      phone.insertBefore(dragged, afterElement);
-    }
-  }
-
-  function onPhoneDrop(e) { e.preventDefault(); }
-
-  function wireBlockDnD(block){
-    block.addEventListener('dragstart', onDragStart);
-    block.addEventListener('dragend', onDragEnd);
-  }
-
-  phone.addEventListener('dragover', onPhoneDragOver);
-  phone.addEventListener('drop', onPhoneDrop);
-  qsa('#phone .block').forEach(wireBlockDnD);
-
-  // Disable text select during drag (UX)
-  document.addEventListener('dragstart', () => document.body.style.userSelect = 'none');
-  document.addEventListener('dragend', () => document.body.style.userSelect = '');
-
-  /* ========== Settings panel ========== */
-  let selectedBlock = null;
+  /* ----------------------------
+     SETTINGS PANEL
+  -----------------------------*/
+  let selected=null;
+  const pEmpty=qs("#panel-empty");
+  const pFields=qs("#panel-fields");
+  const pType=qs("#panel-type");
+  const pDyn=qs("#panel-dynamic");
 
   function setSelected(block){
-    selectedBlock = block;
-    const empty = qs('#panel-empty');
-    const fields = qs('#panel-fields');
-    const typeInput = qs('#panel-type');
-    const dyn = qs('#panel-dynamic');
+    selected=block;
+    pEmpty.style.display="none";
+    pFields.style.display="block";
+    pDyn.innerHTML="";
 
-    empty.style.display = 'none';
-    fields.style.display = 'block';
+    const type=block.dataset.type;
+    pType.value=type;
 
-    const type = block.dataset.type;
-    typeInput.value = type;
-    dyn.innerHTML = '';
-
-    if (type === 'text') {
-      dyn.innerHTML = `
-        <label>Tekst</label>
-        <textarea id="p-text" rows="4"></textarea>
-      `;
-      const src = qs('[data-field="text"]', block);
-      const ta = qs('#p-text', dyn);
-      ta.value = src ? src.innerHTML : '';
-      ta.addEventListener('input', ()=> { if(src) src.innerHTML = ta.value; });
+    if(type==="text"){
+      const src=qs('[data-field="text"]',block);
+      pDyn.innerHTML=`<label>Tekst</label><textarea id="p-text" rows="4"></textarea>`;
+      const ta=qs("#p-text");
+      ta.value=src.innerHTML;
+      ta.oninput=()=>src.innerHTML=ta.value;
     }
 
-    if (type === 'image') {
-      dyn.innerHTML = `
-        <label>Afbeeldings-URL</label>
-        <input id="p-url" type="url" placeholder="https://..." />
-      `;
-      const src = qs('input[data-field="url"]', block);
-      const inp = qs('#p-url', dyn);
-      inp.value = src ? src.value : '';
-      inp.addEventListener('input', ()=> {
-        if(src){
-          src.value = inp.value;
-          src.dispatchEvent(new Event('input'));
-        }
-      });
+    if(type==="image"){
+      const src=qs('input[data-field="url"]',block);
+      pDyn.innerHTML=`<label>Afbeeldings-URL</label><input id="p-url">`;
+      const inp=qs("#p-url");
+      inp.value=src.value;
+      inp.oninput=()=>{
+        src.value=inp.value;
+        src.dispatchEvent(new Event("input"));
+      };
     }
 
-    if (type === 'question') {
-      dyn.innerHTML = `
-        <label>Vraag</label>
-        <input id="p-q" type="text" />
-        <label>Antwoord</label>
-        <input id="p-a" type="text" />
+    if(type==="question"){
+      const q=qs('input[data-field="question"]',block);
+      const a=qs('input[data-field="answer"]',block);
+      pDyn.innerHTML=`
+        <label>Vraag:</label>
+        <input id="p-q">
+        <label>Antwoord:</label>
+        <input id="p-a">
       `;
-      const q = qs('input[data-field="question"]', block);
-      const a = qs('input[data-field="answer"]', block);
-      const pq = qs('#p-q', dyn);
-      const pa = qs('#p-a', dyn);
-      pq.value = q ? q.value : '';
-      pa.value = a ? a.value : '';
-      pq.addEventListener('input', ()=> { if(q) q.value = pq.value; });
-      pa.addEventListener('input', ()=> { if(a) a.value = pa.value; });
+      qs("#p-q").value=q.value;
+      qs("#p-a").value=a.value;
+      qs("#p-q").oninput=()=>q.value=qs("#p-q").value;
+      qs("#p-a").oninput=()=>a.value=qs("#p-a").value;
     }
 
-    if (type === 'location') {
-      dyn.innerHTML = `
+    if(type==="location"){
+      const lat=qs('input[data-field="lat"]',block);
+      const lng=qs('input[data-field="lng"]',block);
+      const r=qs('input[data-field="radius"]',block);
+      pDyn.innerHTML=`
         <div class="form-row">
-          <div style="flex:1">
-            <label>Latitude</label>
-            <input id="p-lat" type="number" step="0.000001" />
-          </div>
-          <div style="flex:1">
-            <label>Longitude</label>
-            <input id="p-lng" type="number" step="0.000001" />
-          </div>
+         <div>
+           <label>Lat</label>
+           <input id="p-lat" type="number" step="0.000001">
+         </div>
+         <div>
+           <label>Lng</label>
+           <input id="p-lng" type="number" step="0.000001">
+         </div>
         </div>
-        <label>Radius (m)</label>
-        <input id="p-r" type="number" step="1" />
+        <label>Radius</label>
+        <input id="p-r" type="number" step="1">
       `;
-      const lat = qs('input[data-field="lat"]', block);
-      const lng = qs('input[data-field="lng"]', block);
-      const r = qs('input[data-field="radius"]', block);
-      const plat = qs('#p-lat', dyn);
-      const plng = qs('#p-lng', dyn);
-      const pr = qs('#p-r', dyn);
-      plat.value = lat ? lat.value : '';
-      plng.value = lng ? lng.value : '';
-      pr.value = r ? r.value : 50;
-      plat.addEventListener('input', ()=> { if(lat) lat.value = plat.value; });
-      plng.addEventListener('input', ()=> { if(lng) lng.value = plng.value; });
-      pr.addEventListener('input', ()=> { if(r) r.value = pr.value; });
+      qs("#p-lat").value=lat.value;
+      qs("#p-lng").value=lng.value;
+      qs("#p-r").value=r.value;
+      qs("#p-lat").oninput=()=>lat.value=qs("#p-lat").value;
+      qs("#p-lng").oninput=()=>lng.value=qs("#p-lng").value;
+      qs("#p-r").oninput=()=>r.value=qs("#p-r").value;
     }
   }
 
   function clearPanel(){
-    selectedBlock = null;
-    qs('#panel-empty').style.display = 'block';
-    qs('#panel-fields').style.display = 'none';
-    qs('#panel-dynamic').innerHTML = '';
+    selected=null;
+    pEmpty.style.display="block";
+    pFields.style.display="none";
+    pDyn.innerHTML="";
   }
 
-  /* ========== Serialize modules ========== */
-  function collectModules(){
-    return qsa('#phone .block').map(b => {
-      const type = b.dataset.type;
-      const data = {};
-      if (type === 'text') {
-        const el = qs('[data-field="text"]', b);
-        data.text = el ? el.innerHTML : '';
+  /* ----------------------------
+     SAVE
+  -----------------------------*/
+  function collect(){
+    return qsa("#phone .block").map(b=>{
+      const type=b.dataset.type;
+      const data={};
+
+      if(type==="text"){
+        data.text = qs('[data-field="text"]',b)?.innerHTML || "";
       }
-      if (type === 'image') {
-        const url = qs('input[data-field="url"]', b);
-        data.url = url && url.value ? url.value.trim() : '';
+      if(type==="image"){
+        data.url = qs('input[data-field="url"]',b)?.value || "";
       }
-      if (type === 'question') {
-        const q = qs('input[data-field="question"]', b);
-        const a = qs('input[data-field="answer"]', b);
-        data.question = q ? q.value : '';
-        data.answer = a ? a.value : '';
+      if(type==="question"){
+        data.question = qs('input[data-field="question"]',b)?.value || "";
+        data.answer = qs('input[data-field="answer"]',b)?.value || "";
       }
-      if (type === 'location') {
-        const lat = qs('input[data-field="lat"]', b);
-        const lng = qs('input[data-field="lng"]', b);
-        const rad = qs('input[data-field="radius"]', b);
-        data.lat = lat && lat.value !== '' ? Number(lat.value) : null;
-        data.lng = lng && lng.value !== '' ? Number(lng.value) : null;
-        data.radius = rad && rad.value !== '' ? Number(rad.value) : 50;
+      if(type==="location"){
+        data.lat = Number(qs('input[data-field="lat"]',b)?.value) || null;
+        data.lng = Number(qs('input[data-field="lng"]',b)?.value) || null;
+        data.radius = Number(qs('input[data-field="radius"]',b)?.value) || 50;
       }
+
       return { type, data };
     });
   }
 
-  /* ========== Save / Reset ========== */
   async function save(){
-    const puzzleId = phone.dataset.puzzleId;
-    const modules = collectModules();
-    try{
-      const res = await fetch(`/admin-builder/${puzzleId}/save`, {
-        method:'POST',
-        headers:{ 'Content-Type':'application/json' },
-        body: JSON.stringify({ pageIndex:0, modules })
-      });
-      if(!res.ok) throw new Error(await res.text());
-      toast('Opgeslagen ✅');
-    }catch(err){
-      console.error(err);
-      toast('Opslaan mislukt ❌', true);
-    }
-  }
-  function resetToServer(){ window.location.reload(); }
+    const id = phone.dataset.id;
+    const payload = { pageIndex:0, modules:collect() };
 
-  qs('#btn-save')?.addEventListener('click', save);
-  qs('#btn-reset')?.addEventListener('click', resetToServer);
-
-  /* ========== Init bestaande blocks ========== */
-  qsa('#phone .block').forEach(b => {
-    b.addEventListener('click', ()=> setSelected(b));
-    // Image preview live (server-rendered)
-    b.addEventListener('input', (e) => {
-      if (e.target.matches('input[data-field="url"]')) {
-        const url = e.target.value.trim();
-        const prev = b.querySelector('img.preview');
-        const helper = b.querySelector('.helper');
-        if (url) {
-          if (prev) prev.src = url;
-          else {
-            const img = document.createElement('img');
-            img.className = 'preview';
-            img.src = url;
-            if (helper) helper.replaceWith(img);
-            else b.querySelector('.content').appendChild(img);
-          }
-        } else if (prev) {
-          const h = document.createElement('div');
-          h.className = 'helper';
-          h.textContent = 'Voeg een URL toe om voorbeeld te zien.';
-          prev.replaceWith(h);
-        }
-      }
+    const res = await fetch(`/admin-builder/${id}/save`,{
+      method:"POST",
+      headers:{ "Content-Type":"application/json"},
+      body:JSON.stringify(payload)
     });
-  });
 
-  /* ========== DnD UX helper: toast ========== */
-  function toast(msg, error){
-    const t = document.createElement('div');
-    t.textContent = msg;
-    t.style.position = 'fixed';
-    t.style.right = '20px';
-    t.style.bottom = '20px';
-    t.style.background = error ? '#ef4444' : 'var(--primary)';
-    t.style.color = 'white';
-    t.style.padding = '10px 14px';
-    t.style.borderRadius = '12px';
-    t.style.boxShadow = '0 8px 24px rgba(0,0,0,.2)';
-    t.style.zIndex = '9999';
-    document.body.appendChild(t);
-    setTimeout(()=> t.remove(), 2200);
+    if(res.ok) alert("Opgeslagen ✓");
+    else alert("Opslaan mislukt");
   }
+
+  document.getElementById("btn-save").onclick = save;
+  document.getElementById("btn-reset").onclick = () => location.reload();
+
 })();
 </script>
