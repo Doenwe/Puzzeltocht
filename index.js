@@ -1,4 +1,3 @@
-// index.js
 import express from "express";
 import mongoose from "mongoose";
 import session from "express-session";
@@ -8,8 +7,10 @@ import path from "path";
 import { fileURLToPath } from "url";
 import bcrypt from "bcryptjs";
 import expressLayouts from "express-ejs-layouts";
+import multer from "multer";
+import csv from "csv-parser";
+import fs from "fs";
 
-// Modellen
 import Admin from "./models/Admin.js";
 import Code from "./models/Code.js";
 import Theme from "./models/Theme.js";
@@ -20,34 +21,30 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-app.set("trust proxy", 1); // cookies secure=true op Railway
+app.set("trust proxy", 1);
 
-// =============================
-// MongoDB Connect
-// =============================
+const upload = multer({ dest: "uploads/" });
+
 async function connectMongo() {
   const uri = process.env.MONGO_URI;
+
   if (!uri) {
-    console.error("❌ MONGO_URI ontbreekt. Zet deze in Railway → Variables.");
+    console.error("❌ MONGO_URI ontbreekt");
     process.exit(1);
   }
-  // bevat de URI al een db-naam? (…/dbname?)
+
   const hasDbInUri = /mongodb(\+srv)?:\/\/[^/]+\/[^?]+/.test(uri);
 
   await mongoose.connect(uri, {
     dbName: hasDbInUri ? undefined : (process.env.MONGO_DBNAME || "puzzeltocht"),
     serverSelectionTimeoutMS: 15000
   });
-  console.log("MongoDB connected op DB:", mongoose.connection.name);
 
-  mongoose.connection.on("error", (err) => console.error("Mongo error:", err));
-  mongoose.connection.on("disconnected", () => console.warn("Mongo disconnected"));
+  console.log("MongoDB connected:", mongoose.connection.name);
 }
+
 await connectMongo();
 
-// =============================
-// App Config
-// =============================
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 app.use(expressLayouts);
@@ -56,155 +53,183 @@ app.set("layout", "layout");
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
 
-// Sessies in MongoDB
-const sessionSecret = process.env.SESSION_SECRET || "change-me-in-env";
 app.use(session({
-  secret: sessionSecret,
+  secret: process.env.SESSION_SECRET || "secret",
   resave: false,
   saveUninitialized: false,
   store: MongoStore.create({
     mongoUrl: process.env.MONGO_URI,
-    dbName: process.env.MONGO_DBNAME || "puzzeltocht",
-    collectionName: "sessions",
-    ttl: 60 * 60 * 24 * 7 // 7 dagen
+    dbName: process.env.MONGO_DBNAME || "puzzeltocht"
   }),
   cookie: {
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    maxAge: 1000 * 60 * 60 * 6 // 6 uur
+    secure: process.env.NODE_ENV === "production"
   }
 }));
 
-// Sessies beschikbaar in views
 app.use((req, res, next) => {
   res.locals.session = req.session;
   next();
 });
 
-// Theme (altijd defaults zetten als niets in DB staat)
 app.use(async (req, res, next) => {
+
   try {
-    const t = await Theme.findOne();
-    res.locals.theme = t || {
+
+    const theme = await Theme.findOne();
+
+    res.locals.theme = theme || {
       primaryColor: "#2563eb",
       backgroundColor: "#ffffff",
       textColor: "#111827",
       borderRadius: "0.75rem",
-      fontFamily:
-        "Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Noto Sans, Apple Color Emoji, Segoe UI Emoji"
+      fontFamily: "Inter, sans-serif"
     };
-  } catch (e) {
-    console.warn("Kon theme niet laden, defaults gebruikt:", e?.message);
+
+  } catch {
     res.locals.theme = {
       primaryColor: "#2563eb",
       backgroundColor: "#ffffff",
       textColor: "#111827",
       borderRadius: "0.75rem",
-      fontFamily:
-        "Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Noto Sans, Apple Color Emoji, Segoe UI Emoji"
+      fontFamily: "Inter, sans-serif"
     };
   }
+
   next();
+
 });
 
-// =============================
-// Helpers
-// =============================
 function requireAdmin(req, res, next) {
   if (req.session?.isAdmin) return next();
-  return res.redirect("/admin-login");
+  res.redirect("/admin-login");
 }
 
-// =============================
-// Routes
-// =============================
-
-// Start (code invoer)
 app.get("/", (req, res) => {
   res.render("index", { error: null });
 });
 
 app.post("/check-code", async (req, res) => {
+
   const code = (req.body.code || "").trim();
-  if (!code) return res.render("index", { error: "Voer een code in" });
 
   const found = await Code.findOne({ code });
-  if (!found) return res.render("index", { error: "Code niet gevonden" });
 
-  if (found.type === "admin") return res.redirect("/admin-login");
-  return res.redirect("/next");
+  if (!found) {
+    return res.render("index", { error: "Code niet gevonden" });
+  }
+
+  if (found.type === "admin") {
+    return res.redirect("/admin-login");
+  }
+
+  res.redirect("/next");
+
 });
 
-// Volgende pagina (voorbeeld)
 app.get("/next", (req, res) => {
   res.render("next");
 });
 
-// Admin login
 app.get("/admin-login", (req, res) => {
   res.render("admin-login", { error: null });
 });
 
 app.post("/admin-login", async (req, res) => {
-  let { username, password } = req.body;
-  username = (username || "").trim();
+
+  const { username, password } = req.body;
 
   const admin = await Admin.findOne({ username });
-  if (!admin) return res.render("admin-login", { error: "Onbekende gebruiker" });
+
+  if (!admin) {
+    return res.render("admin-login", { error: "Onbekende gebruiker" });
+  }
 
   const ok = await bcrypt.compare(password, admin.password);
-  if (!ok) return res.render("admin-login", { error: "Wachtwoord klopt niet" });
+
+  if (!ok) {
+    return res.render("admin-login", { error: "Wachtwoord fout" });
+  }
 
   req.session.isAdmin = true;
-  req.session.username = admin.username;
+
   res.redirect("/admin-dashboard");
+
 });
 
-// Admin logout
 app.get("/admin-logout", (req, res) => {
   req.session.destroy(() => res.redirect("/admin-login"));
 });
 
-// Admin dashboard
 app.get("/admin-dashboard", requireAdmin, (req, res) => {
   res.render("admin-dashboard");
 });
 
-// Admin theme editor
-app.get("/admin-theme", requireAdmin, async (req, res, next) => {
-  try {
-    const theme = await Theme.findOne();
-    res.render("admin-theme", { theme, saved: Boolean(req.query.saved) });
-  } catch (e) {
-    console.error("Renderfout /admin-theme:", e);
-    next(e);
-  }
+app.post("/admin-add-code", requireAdmin, async (req, res) => {
+
+  const { code, type } = req.body;
+
+  if (!code) return res.redirect("/admin-dashboard");
+
+  await Code.create({
+    code: code.trim(),
+    type: type || "user"
+  });
+
+  res.redirect("/admin-dashboard");
+
 });
 
-app.post("/admin-theme", requireAdmin, async (req, res, next) => {
-  try {
-    const { primaryColor, backgroundColor, textColor, borderRadius, fontFamily } = req.body;
-    await Theme.findOneAndUpdate(
-      {},
-      { primaryColor, backgroundColor, textColor, borderRadius, fontFamily },
-      { upsert: true }
-    );
-    res.redirect("/admin-theme?saved=1");
-  } catch (e) {
-    console.error("Opslagfout theme:", e);
-    next(e);
-  }
+app.post("/admin-upload-csv", requireAdmin, upload.single("csvfile"), async (req, res) => {
+
+  const results = [];
+
+  fs.createReadStream(req.file.path)
+    .pipe(csv())
+    .on("data", (data) => results.push(data))
+    .on("end", async () => {
+
+      const codes = results.map(r => ({
+        code: r.code.trim(),
+        type: r.type || "user"
+      }));
+
+      await Code.insertMany(codes, { ordered: false });
+
+      fs.unlinkSync(req.file.path);
+
+      res.redirect("/admin-dashboard");
+
+    });
+
 });
 
-// 404
+app.get("/admin-theme", requireAdmin, async (req, res) => {
+
+  const theme = await Theme.findOne();
+
+  res.render("admin-theme", { theme });
+
+});
+
+app.post("/admin-theme", requireAdmin, async (req, res) => {
+
+  const { primaryColor, backgroundColor, textColor, borderRadius, fontFamily } = req.body;
+
+  await Theme.findOneAndUpdate(
+    {},
+    { primaryColor, backgroundColor, textColor, borderRadius, fontFamily },
+    { upsert: true }
+  );
+
+  res.redirect("/admin-theme");
+
+});
+
 app.use((req, res) => res.status(404).send("Pagina niet gevonden"));
 
-// Foutafhandeling
-app.use((err, req, res, next) => {
-  console.error("Onverwachte fout:", err);
-  res.status(500).send("Er ging iets mis.");
-});
-
-// Start
 const port = process.env.PORT || 8080;
-app.listen(port, () => console.log(`Server running on port ${port}`));
+
+app.listen(port, () => {
+  console.log("Server gestart op poort", port);
+});
