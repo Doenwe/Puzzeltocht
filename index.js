@@ -278,6 +278,34 @@ app.get("/admin-builder/:id", requireAdmin, async (req,res)=>{
   
 });
 
+app.post("/admin-builder/:id/save", requireAdmin, express.json(), async (req, res) => {
+  try {
+    const { pageIndex = 0, modules = [] } = req.body;
+
+    const puzzle = await Puzzle.findById(req.params.id);
+    if (!puzzle) return res.status(404).send("Puzzle niet gevonden");
+
+    // Zorg dat de pagina bestaat
+    if (!puzzle.pages || puzzle.pages.length <= pageIndex) {
+      return res.status(400).send("Ongeldige pagina-index");
+    }
+
+    // Validatie (optioneel, basic)
+    const safeModules = (modules || []).map(m => ({
+      type: String(m.type),
+      data: m.data || {}
+    }));
+
+    puzzle.pages[pageIndex].modules = safeModules;
+    await puzzle.save();
+
+    res.status(200).send("OK");
+  } catch (e) {
+    console.error(e);
+    res.status(500).send("Server error");
+  }
+});
+
 app.use((req, res) => res.status(404).send("Pagina niet gevonden"));
 
 const port = process.env.PORT || 8080;
