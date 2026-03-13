@@ -1,43 +1,64 @@
-<% if (isMap) { %>
-  <!-- ====== KAARTPAGINA ====== -->
+<%
+  // Data vanuit de route:
+  // puzzle: { _id, name, pages: [...] }
+  // page:    puzzle.pages[pageIndex]
+  // pageIndex: Number (0-based)
 
-  <!-- 1) Leaflet CSS & JS (CORRECTE tags) -->
+  const hasNext  = !!puzzle.pages[pageIndex + 1];
+  const showNext = (typeof page?.showNext === 'boolean') ? page.showNext : true;
+  const isMap    = (typeof page?.isMap === 'boolean')    ? page.isMap    : false;
+%>
+
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title><%= puzzle.name %> — <%= page.title %></title>
+
+  <!-- Leaflet CSS (voor kaartpagina's) -->
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-p4RINsHSkP7vS9qSWwWxDPWZ0pniS3pS3G06G6pQnY8="
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
     crossorigin=""
   />
+
   <style>
-    /* Stabiele, mobiele-proof hoogtes */
+    /* Kaartcontainer met stabiele hoogte (mobiel-proof) */
     #map {
-      height: 65vh;      /* hoofdhoogte */
-      min-height: 380px; /* fallback voor kleine schermen / iOS vh bug */
+      height: 65vh;
+      min-height: 380px; /* fallback voor kleine schermen/iOS */
       border-radius: 14px;
       border: 1px solid #e5e7eb;
       box-shadow: 0 10px 24px rgba(0,0,0,.08);
-      background: #eef2ff; /* nette achtergrond tot tiles laden */
+      background: #eef2ff; /* nette kleur totdat tiles laden */
     }
     .leaflet-container { background: #eef2ff; }
 
-    /* Professionele user-dot */
+    /* Professionele user-dot (Google-achtig) */
     .user-dot {
       width: 14px; height: 14px; border-radius: 50%;
-      background: #1a73e8; border: 3px solid #fff;
-      box-shadow: 0 0 0 2px rgba(26,115,232,0.25);
+      background: #1a73e8;            /* Google-achtig blauw */
+      border: 3px solid #ffffff;      /* witte ring */
+      box-shadow: 0 0 0 2px rgba(26,115,232,0.25); /* zachte glow */
     }
     .user-dot.pulse { position: relative; }
     .user-dot.pulse::after {
-      content: ""; position: absolute; left: 50%; top: 50%;
+      content: "";
+      position: absolute; left: 50%; top: 50%;
       width: 14px; height: 14px; transform: translate(-50%,-50%);
-      border-radius: 50%; background: rgba(26,115,232,0.3);
+      border-radius: 50%;
+      background: rgba(26,115,232,0.3);
       animation: userDotPulse 2.2s ease-out infinite;
     }
     @keyframes userDotPulse {
-      0% { transform: translate(-50%,-50%) scale(1); opacity: .6; }
-      70% { transform: translate(-50%,-50%) scale(2.6); opacity: 0; }
+      0%   { transform: translate(-50%,-50%) scale(1);   opacity: .6; }
+      70%  { transform: translate(-50%,-50%) scale(2.6); opacity: 0; }
       100% { transform: translate(-50%,-50%) scale(2.6); opacity: 0; }
     }
+
+    /* Heading-pijl (optioneel; draait met heading) */
     .heading-arrow {
       width: 0; height: 0;
       border-left: 6px solid transparent;
@@ -48,143 +69,258 @@
       position: absolute; top: -14px; left: 50%;
       translate: -50% 0;
     }
+
+    /* Simpele layout (werkt samen met je layout.ejs + Tailwind) */
+    .container { display: grid; gap: 1rem; }
+    .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 1rem; box-shadow: 0 4px 12px rgba(0,0,0,.06); }
+    .next-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: #2563eb; color: #fff; padding: 10px 14px;
+      border-radius: 10px; border: none; text-decoration: none;
+      box-shadow: 0 6px 16px rgba(37,99,235,.25);
+    }
+    .next-btn:hover { filter: brightness(1.05); }
+    .muted { color: #6b7280; font-size: .9rem; }
   </style>
+</head>
+<body>
 
-  <div id="map"></div>
+<div class="container">
 
-  <% if (hasNext && showNext) { %>
-    <div class="pt-4">
-      <a class="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:brightness-105"
-         href="/puzzle/<%= puzzle._id %>/<%= pageIndex + 1 %>">
-        Volgende pagina <span aria-hidden="true">➜</span>
-      </a>
+  <div>
+    <h1 class="text-2xl font-bold"><%= puzzle.name %></h1>
+    <h2 class="text-xl font-semibold"><%= page.title %></h2>
+  </div>
+
+  <% if (isMap) { %>
+    <!-- ============ KAARTPAGINA ============ -->
+    <div id="map"></div>
+
+    <% if (hasNext && showNext) { %>
+      <div>
+        /puzzle/<%= puzzle._id %>/<%= pageIndex + 1 %>
+          <span>Volgende pagina</span> <span aria-hidden="true">➜</span>
+        </a>
+      </div>
+    <% } %>
+
+  <% } else { %>
+    <!-- ============ NORMALE PAGINA (modules) ============ -->
+    <div class="grid" style="display:grid; gap: 1rem;">
+      <% (page.modules || []).forEach((mod) => { %>
+
+        <% if (mod.type === "text") { %>
+          <div class="card">
+            <!-- Builder slaat HTML op -->
+            <%- mod.data?.text || "" %>
+          </div>
+        <% } %>
+
+        <% if (mod.type === "image") { %>
+          <div class="card" style="padding:0;">
+            <% if (mod.data?.url) { %>
+              <img src="<%= mod.data.url %>" alt="" style="display:block; width:100%; height:auto; border-radius: 14px;" loading="lazy">
+            <% } else { %>
+              <div class="muted" style="padding:1rem;">Geen afbeelding opgegeven.</div>
+            <% } %>
+          </div>
+        <% } %>
+
+        <% if (mod.type === "question") { %>
+          <div class="card" style="display:grid; gap:.5rem;">
+            <p class="font-semibold"><%= mod.data?.question || "Vraag" %></p>
+
+            <form
+              onsubmit="return checkAnswerBranch(
+                this,
+                '<%= (mod.data?.answer ? String(mod.data.answer).replace(/"/g,'&quot;') : '') %>',
+                <%= (Number.isInteger(mod.data?.goodPage) ? mod.data.goodPage : 'null') %>,
+                <%= (Number.isInteger(mod.data?.badPage)  ? mod.data.badPage  : 'null') %>,
+                '<%= puzzle._id %>'
+              )"
+              style="display:grid; gap:.5rem;"
+            >
+              <input
+                type="text"
+                name="answer"
+                placeholder="Jouw antwoord"
+                class="border p-2 rounded w-full"
+                autocomplete="off"
+                style="border:1px solid #e5e7eb; border-radius:10px; padding:10px;"
+              />
+              <div class="flex gap-2">
+                <button class="next-btn" type="submit">Controleer</button>
+              </div>
+              <div class="text-sm" data-feedback></div>
+            </form>
+          </div>
+        <% } %>
+
+        <% if (mod.type === "location") { %>
+          <div class="card" style="display:grid; gap:.25rem;">
+            <p class="font-semibold">Locatie‑check</p>
+            <p class="muted">Lat: <%= (mod.data?.lat ?? "?") %></p>
+            <p class="muted">Lng: <%= (mod.data?.lng ?? "?") %></p>
+            <p class="muted">Straal: <%= (mod.data?.radius ?? 50) %> meter</p>
+          </div>
+        <% } %>
+
+      <% }) %>
     </div>
+
+    <% if (hasNext && showNext) { %>
+      <div>
+        /puzzle/<%= puzzle._id %>/<%= pageIndex + 1 %>
+          <span>Volgende pagina</span> <span aria-hidden="true">➜</span>
+        </a>
+      </div>
+    <% } %>
   <% } %>
 
-  <script
-    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-    crossorigin=""
-    defer
-    onload="window.__leafletLoaded = true"
-  ></script>
+</div>
 
-  <script>
-    (function(){
-      // Wacht tot Leaflet script geladen is
-      function ready(fn){ if(window.__leafletLoaded) fn(); else setTimeout(()=>ready(fn),30); }
+<!-- Leaflet JS (onderaan body; laadt alleen eenmalig in deze view) -->
+<script
+  src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+  crossorigin=""
+></script>
 
-      ready(function initMap(){
-        const mapEl = document.getElementById('map');
-        if(!mapEl) return;
+<script>
+  // ===== Branching voor vraag‑blokken =====
+  function normalize(str){
+    return String(str||'')
+      .trim()
+      .toLowerCase()
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g,'')
+      .replace(/\s+/g,' ');
+  }
+  function checkAnswerBranch(form, correct, goodPage, badPage, puzzleId){
+    const feedback = form.querySelector('[data-feedback]');
+    const user = form.answer.value;
+    const ok = normalize(user) === normalize(correct);
 
-        // 2) Init map met veilig fallback‑center (NL)
-        const map = L.map('map', { zoomControl: true }).setView([52.1326, 5.2913], 7);
+    if (ok && Number.isInteger(goodPage)) {
+      window.location.href = `/puzzle/${puzzleId}/${goodPage}`;
+      return false;
+    }
+    if (!ok && Number.isInteger(badPage)) {
+      window.location.href = `/puzzle/${puzzleId}/${badPage}`;
+      return false;
+    }
 
-        // 3) Tiles (professioneel ogend, zonder API key): CARTO Voyager
-        L.tileLayer(
-          'https://{s}.basemaps.cartocdn.com/rastertiles/voyager{r}/{z}/{x}/{y}{r}.png',
-          {
-            maxZoom: 20,
-            subdomains: 'abcd',
-            attribution:
-              '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> ' +
-              'contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          }
-        ).addTo(map);
+    feedback.textContent = ok ? '✅ Klopt!' : '❌ Niet goed, probeer opnieuw.';
+    feedback.style.color = ok ? '#059669' : '#dc2626';
+    return false;
+  }
 
-        // 4) Zorg dat Leaflet de echte grootte meet (mobiel fix)
-        //   - direct na init
-        //   - na een frame
-        //   - op resize/visibilitychange
-        map.invalidateSize();
-        requestAnimationFrame(()=> map.invalidateSize());
-        window.addEventListener('resize', ()=> map.invalidateSize(), { passive:true });
-        document.addEventListener('visibilitychange', ()=> { if(!document.hidden) map.invalidateSize(); });
+  // ===== Kaart initialisatie (alleen als element bestaat) =====
+  (function initMapIfPresent(){
+    const mapEl = document.getElementById('map');
+    if (!mapEl || typeof L === 'undefined') return;
 
-        // 5) Professionele user‑locatie
-        let userMarker = null;
-        let accuracyCircle = null;
+    // Init map – fallback NL
+    const map = L.map('map', { zoomControl: true }).setView([52.1326, 5.2913], 7);
 
-        function createUserIcon(hasHeading){
-          const container = document.createElement('div');
-          container.style.position = 'relative';
-          const dot = document.createElement('div');
-          dot.className = 'user-dot pulse';
-          container.appendChild(dot);
-          if (hasHeading) {
-            const arrow = document.createElement('div');
-            arrow.className = 'heading-arrow';
-            container.appendChild(arrow);
-          }
-          return L.divIcon({
-            className: '',
-            html: container,
-            iconSize: [20,20],
-            iconAnchor: [10,10]
-          });
-        }
-        function setHeadingRotation(marker, heading){
-          if (!marker || typeof heading !== 'number') return;
-          const el = marker.getElement();
-          if (!el) return;
-          const arrow = el.querySelector('.heading-arrow');
-          if (arrow) arrow.style.transform = `rotate(${heading}deg)`;
-        }
+    // CARTO Voyager tiles (strak en gratis)
+    L.tileLayer(
+      'https://{s}.basemaps.cartocdn.com/rastertiles/voyager{r}/{z}/{x}/{y}{r}.png',
+      {
+        maxZoom: 20,
+        subdomains: 'abcd',
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OSM</a> '
+          + 'contributors &copy; <a href="https://carto.com/attributions" target="_blank" rel="noreferrer">CARTO</a>'
+      }
+    ).addTo(map);
 
-        function onLocationFound(e){
-          const latlng = e.latlng;
-          const accuracy = e.accuracy || 0;
-          const heading = (typeof e.heading === 'number') ? e.heading : null;
+    // Mobiele rendering-fix: Leaflet moet echte grootte kennen
+    map.invalidateSize();
+    requestAnimationFrame(()=> map.invalidateSize());
+    window.addEventListener('resize', ()=> map.invalidateSize(), { passive:true });
+    document.addEventListener('visibilitychange', ()=> { if(!document.hidden) map.invalidateSize(); });
 
-          if (!userMarker) {
-            userMarker = L.marker(latlng, { icon: createUserIcon(!!heading), zIndexOffset: 1000 }).addTo(map);
-          } else {
-            userMarker.setLatLng(latlng);
-          }
-          if (heading != null) setHeadingRotation(userMarker, heading);
+    // User locatie lagen
+    let userMarker = null;
+    let accuracyCircle = null;
 
-          if (!accuracyCircle) {
-            accuracyCircle = L.circle(latlng, {
-              radius: accuracy,
-              color:'#1a73e8', weight: 1,
-              fillColor:'#1a73e8', fillOpacity: 0.08
-            }).addTo(map);
-          } else {
-            accuracyCircle.setLatLng(latlng).setRadius(accuracy);
-          }
+    function createUserIcon(hasHeading){
+      const container = document.createElement('div');
+      container.style.position = 'relative';
+      const dot = document.createElement('div');
+      dot.className = 'user-dot pulse';
+      container.appendChild(dot);
+      if (hasHeading) {
+        const arrow = document.createElement('div');
+        arrow.className = 'heading-arrow';
+        container.appendChild(arrow);
+      }
+      return L.divIcon({ className: '', html: container, iconSize: [20,20], iconAnchor: [10,10] });
+    }
 
-          // Zoom in op gebruiker (maar niet te agressief bij elke update)
-          if (map.getZoom() < 15) map.setView(latlng, 15);
-        }
+    function setHeadingRotation(marker, heading){
+      if (!marker || typeof heading !== 'number') return;
+      const el = marker.getElement();
+      if (!el) return;
+      const arrow = el.querySelector('.heading-arrow');
+      if (arrow) arrow.style.transform = `rotate(${heading}deg)`;
+    }
 
-        function onLocationError(e){
-          console.warn('Geolocatie mislukte:', e.message);
-          L.popup()
-            .setLatLng(map.getCenter())
-            .setContent('Kon je locatie niet ophalen. Sta locatie-toegang toe (HTTPS vereist) of probeer opnieuw.')
-            .openOn(map);
-        }
+    function onLocationFound(e){
+      const latlng = e.latlng;
+      const accuracy = e.accuracy || 0;
+      const heading = (typeof e.heading === 'number') ? e.heading : null;
 
-        // 6) Start geolocatie (HTTPS of localhost)
-        if (navigator.geolocation) {
-          map
-            .locate({ setView:false, enableHighAccuracy:true, timeout:10000, watch:true })
-            .on('locationfound', onLocationFound)
-            .on('locationerror', onLocationError);
-        } else {
-          onLocationError({ message: 'Geolocatie wordt niet ondersteund.' });
-        }
+      if (!userMarker) {
+        userMarker = L.marker(latlng, { icon: createUserIcon(!!heading), zIndexOffset: 1000 }).addTo(map);
+      } else {
+        userMarker.setLatLng(latlng);
+      }
 
-        // (Optioneel) DeviceOrientation voor heading (mobiel, toestemming nodig op iOS)
-        if (window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission !== 'function') {
-          window.addEventListener('deviceorientation', (evt) => {
-            if (!userMarker) return;
-            const heading = (typeof evt.alpha === 'number') ? evt.alpha : null;
-            setHeadingRotation(userMarker, heading);
-          });
-        }
+      if (heading != null) setHeadingRotation(userMarker, heading);
+
+      if (!accuracyCircle) {
+        accuracyCircle = L.circle(latlng, {
+          radius: accuracy,
+          color:'#1a73e8', weight: 1,
+          fillColor:'#1a73e8', fillOpacity: 0.08
+        }).addTo(map);
+      } else {
+        accuracyCircle.setLatLng(latlng).setRadius(accuracy);
+      }
+
+      if (map.getZoom() < 15) map.setView(latlng, 15);
+    }
+
+    function onLocationError(e){
+      console.warn('Geolocatie mislukte:', e.message);
+      L.popup()
+        .setLatLng(map.getCenter())
+        .setContent('Kon je locatie niet ophalen. Sta locatie-toegang toe (HTTPS vereist) of probeer opnieuw.')
+        .openOn(map);
+    }
+
+    if (navigator.geolocation) {
+      // Gebruik watch:true voor live updates
+      map
+        .locate({ setView:false, enableHighAccuracy:true, timeout:10000, watch:true })
+        .on('locationfound', onLocationFound)
+        .on('locationerror', onLocationError);
+    } else {
+      onLocationError({ message: 'Geolocatie wordt niet ondersteund.' });
+    }
+
+    // (Optioneel) DeviceOrientation voor heading (Android werkt direct; iOS vereist permissie via user gesture)
+    if (window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission !== 'function') {
+      window.addEventListener('deviceorientation', (evt) => {
+        if (!userMarker) return;
+        const heading = (typeof evt.alpha === 'number') ? evt.alpha : null;
+        setHeadingRotation(userMarker, heading);
       });
-    })();
-  </script>
-<% } %>
+    }
+  })();
+</script>
+
+</body>
+</html>
