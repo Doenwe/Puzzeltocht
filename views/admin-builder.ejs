@@ -1,7 +1,5 @@
 <%
-  // Verwachte shape:
-  // puzzle = { _id, name, pages: [{ title, modules: [{type, data}, ...] }, ...] }
-  // Tolerant naar oud 'content' veld:
+  // Normalize "puzzle.pages" to a consistent structure with .data (not .content)
   const normalizePages = (puz) => {
     if (!puz || !Array.isArray(puz.pages) || !puz.pages.length) {
       return [{ title: "Pagina 1", modules: [] }];
@@ -10,7 +8,7 @@
       title: pg?.title || "Pagina",
       modules: Array.isArray(pg?.modules) ? pg.modules.map(m => ({
         type: m?.type || "",
-        data: m?.data || m?.content || {}   // tolerant: data of content
+        data: m?.data || m?.content || {}   // tolerate old "content"
       })) : []
     }));
   };
@@ -18,127 +16,55 @@
 %>
 
 <style>
-  :root{
-    --primary:#6366f1;
-    --bg:#f5f7fa;
-    --text:#111827;
-  }
+  :root{ --primary:#6366f1; --bg:#f5f7fa; --text:#111827; }
   main{ max-width:100% !important; padding:0 !important; margin:0 !important; }
   *{ box-sizing:border-box; }
+  .builder-wrap{ display:grid; grid-template-columns: 280px 1fr 320px; gap:0; height:calc(100vh - 56px); background:var(--bg); font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans"; color:var(--text); }
 
-  /* ===== Layout ===== */
-  .builder-wrap{
-    display:grid;
-    grid-template-columns: 280px 1fr 320px; /* links: elementen, midden: phone, rechts: paginalijst + bloksettings */
-    gap: 0;
-    height: calc(100vh - 56px);
-    background: var(--bg);
-    font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans";
-    color: var(--text);
-  }
-
-  /* ===== Sidebar links (elementen) ===== */
-  .sidebar{
-    background:white;
-    border-right:1px solid #e5e7eb;
-    padding:22px;
-    display:flex;
-    flex-direction:column;
-    gap:20px;
-  }
+  /* Linker sidebar */
+  .sidebar{ background:white; border-right:1px solid #e5e7eb; padding:22px; display:flex; flex-direction:column; gap:20px; }
   .sidebar h2{ font-size:20px; font-weight:800; margin:0; letter-spacing:-.2px; }
-  .element-btn{
-    width:100%;
-    display:flex; align-items:center; gap:10px;
-    padding:12px;
-    background:#f9fafb;
-    border:1px solid #e5e7eb;
-    border-radius:10px;
-    cursor:pointer; font-weight:600;
-    transition:.15s ease;
-  }
+  .element-btn{ width:100%; display:flex; align-items:center; gap:10px; padding:12px; background:#f9fafb; border:1px solid #e5e7eb; border-radius:10px; cursor:pointer; font-weight:600; transition:.15s ease; }
   .element-btn:hover{ background:#eef2ff; border-color:var(--primary); }
   .sidebar-actions{ margin-top:auto; display:flex; gap:12px; }
   .btn{ flex:1; padding:10px; border-radius:10px; border:1px solid #ddd; font-weight:700; cursor:pointer; }
-  .btn-primary{ background:var(--primary); color:white; border:none; }
+  .btn-primary{ background:var(--primary); color:#fff; border:none; }
 
-  /* ===== Midden (phone) ===== */
-  .canvas{
-    display:flex;
-    justify-content:center;
-    align-items:flex-start;
-    padding:30px;
-  }
-  .phone{
-    width:380px; height:740px; background:white;
-    border-radius:35px; border:4px solid #111; overflow-y:auto;
-    box-shadow:0 20px 50px rgba(0,0,0,0.18); padding:18px 18px 22px;
-  }
-  .phone-header{
-    position:sticky; top:0; background:white; z-index:5;
-    padding:8px 0 10px; margin-bottom:10px; border-bottom:1px dashed #ddd;
-    display:flex; justify-content:space-between; gap:10px; align-items:center;
-  }
+  /* Midden (phone) */
+  .canvas{ display:flex; justify-content:center; align-items:flex-start; padding:30px; }
+  .phone{ width:380px; height:740px; background:white; border-radius:35px; border:4px solid #111; overflow-y:auto; box-shadow:0 20px 50px rgba(0,0,0,0.18); padding:18px 18px 22px; }
+  .phone-header{ position:sticky; top:0; background:white; z-index:5; padding:8px 0 10px; margin-bottom:10px; border-bottom:1px dashed #ddd; display:flex; justify-content:space-between; gap:10px; align-items:center; }
 
-  /* ===== Blocks ===== */
-  .block{
-    padding:18px; background:white; border:1px solid #e5e7eb; border-radius:14px;
-    margin-bottom:14px; box-shadow:0 4px 10px rgba(0,0,0,0.05);
-    cursor:grab; position:relative;
-  }
+  /* Blocks */
+  .block{ padding:18px; background:white; border:1px solid #e5e7eb; border-radius:14px; margin-bottom:14px; box-shadow:0 4px 10px rgba(0,0,0,0.05); cursor:grab; position:relative; }
   .block.dragging{ opacity:.45; }
   .block h4{ margin:0 0 8px; font-weight:700; font-size:15px; display:flex; gap:6px; align-items:center; }
   .kind{ background:#f3f4f6; border:1px solid #ddd; padding:2px 6px; border-radius:8px; font-size:11px; }
-  .remove{
-    position:absolute; top:10px; right:10px;
-    background:#ef4444; color:white; width:24px; height:24px;
-    border:none; border-radius:6px; cursor:pointer; font-weight:900;
-  }
+  .remove{ position:absolute; top:10px; right:10px; background:#ef4444; color:white; width:24px; height:24px; border:none; border-radius:6px; cursor:pointer; font-weight:900; }
   .drag-over{ border:2px dashed var(--primary) !important; background:#eef2ff; }
-
-  /* Contenteditable & inputs binnen blok */
   [contenteditable="true"]{ padding:6px; border-radius:8px; transition:.15s; outline:2px dashed transparent; }
   [contenteditable="true"]:focus{ background:#f0f4ff; outline-color:#aab4ff; }
-  .block input, .block textarea{
-    width:100%; padding:10px; border-radius:10px; border:1px solid #ddd; margin-bottom:8px; font-size:14px;
-  }
+  .block input, .block textarea{ width:100%; padding:10px; border-radius:10px; border:1px solid #ddd; margin-bottom:8px; font-size:14px; }
   .form-row{ display:flex; gap:10px; }
   .helper{ font-size:12px; color:#6b7280; }
 
-  /* ===== Rechter paneel ===== */
-  .right-panel{
-    background:white;
-    border-left:1px solid #e5e7eb;
-    padding:18px;
-    overflow-y:auto;
-  }
+  /* Rechter paneel */
+  .right-panel{ background:white; border-left:1px solid #e5e7eb; padding:18px; overflow-y:auto; }
   .right-panel h3{ margin:0 0 10px; font-size:16px; font-weight:800; }
   .page-list{ display:flex; flex-direction:column; gap:6px; }
-  .page-item{
-    padding:8px 10px;
-    background:#f3f4f6;
-    border:1px solid #e5e7eb;
-    border-radius:8px;
-    cursor:pointer;
-    font-size:14px;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-  }
+  .page-item{ padding:8px 10px; background:#f3f4f6; border:1px solid #e5e7eb; border-radius:8px; cursor:pointer; font-size:14px; display:flex; justify-content:space-between; align-items:center; }
   .page-item.active{ background:var(--primary); border-color:var(--primary); color:white; }
   .page-item span{ flex:1; }
   .panel-section{ margin-top:16px; }
   .right-panel label{ font-size:13px; margin-top:10px; display:block; }
-  .right-panel input, .right-panel textarea{
-    width:100%; padding:10px; margin-top:4px; border-radius:8px; border:1px solid #ccc;
-  }
+  .right-panel input, .right-panel textarea, .right-panel select{ width:100%; padding:10px; margin-top:4px; border-radius:8px; border:1px solid #ccc; background:#fff; }
   .danger-note{ background:#fee2e2; color:#991b1b; border:1px solid #fecaca; border-radius:10px; padding:10px; margin-top:10px; display:none; }
   hr.sep{ border:none; border-top:1px solid #eee; margin:16px 0; }
 </style>
 
 <div class="builder-wrap">
 
-  <!-- ===== Linker sidebar: elementen ===== -->
+  <!-- Linker sidebar -->
   <aside class="sidebar">
     <h2>Builder</h2>
 
@@ -155,20 +81,19 @@
     </div>
   </aside>
 
-  <!-- ===== Midden: phone preview ===== -->
+  <!-- Midden: phone preview -->
   <section class="canvas">
     <div class="phone" id="phone" data-id="<%= puzzle._id %>">
       <div class="phone-header">
         <strong id="app-title"><%= puzzle.name %></strong>
         <span id="page-title-label"></span>
       </div>
-      <!-- Blocks worden door JS gerenderd -->
+      <!-- Blocks by JS -->
     </div>
   </section>
 
-  <!-- ===== Rechts: pagina-lijst + blok-instellingen ===== -->
+  <!-- Rechts: pagina-lijst + blok-instellingen -->
   <aside class="right-panel" id="right-panel">
-    <!-- Pagina-lijst -->
     <div>
       <h3>Pagina's</h3>
       <div id="page-list" class="page-list"></div>
@@ -186,7 +111,6 @@
 
     <hr class="sep">
 
-    <!-- Blok-instellingen -->
     <div class="panel-section">
       <h3>Blok‑instellingen</h3>
       <small id="panel-empty">Selecteer een blok om te bewerken.</small>
@@ -212,11 +136,10 @@
   let pages = JSON.parse(`<%- JSON.stringify(pagesSafe) %>`);
   if(!Array.isArray(pages) || !pages.length){ pages = [{ title:"Pagina 1", modules:[] }]; }
   let currentPage = 0;
-  let selected = null; // geselecteerd block (DOM)
+  let selected = null;
 
   /* ============ Helpers ============ */
   function mapGoogleDriveUrl(url){
-    // Ondersteunt: /file/d/<ID>/... of ?id=<ID>
     try{
       const u = new URL(url);
       if (u.hostname.includes("drive.google.com")) {
@@ -229,7 +152,6 @@
     return url;
   }
 
-  /* ============ UI HELPERS ============ */
   function setPageTitleUI(){
     const title = pages[currentPage]?.title || ("Pagina " + (currentPage+1));
     qs("#page-title-label").textContent = title;
@@ -249,9 +171,7 @@
     });
   }
 
-  function clearBlocks(){
-    qsa(".block", phone).forEach(b => b.remove());
-  }
+  function clearBlocks(){ qsa(".block", phone).forEach(b => b.remove()); }
 
   function renderPage(idx){
     clearBlocks();
@@ -261,21 +181,19 @@
       const block = createBlock(m.type);
       phone.appendChild(block);
 
-      const data = m.data || {}; // tolerant was hierboven al gedaan
+      const data = m.data || {};
 
       if(m.type==="text"){
         qs('[data-field="text"]', block).innerHTML = data?.text || "Nieuwe tekst";
       }
+
       if(m.type==="image"){
         const url = data?.url || "";
         const inp = qs('input[data-field="url"]', block);
         inp.value = url;
         if(url){
           const img = document.createElement("img");
-          img.className = "preview";
-          img.src = url;
-          img.style.width = "100%";
-          img.style.borderRadius = "10px";
+          img.className = "preview"; img.src = url; img.style.width="100%"; img.style.borderRadius="10px";
           qs(".content", block).appendChild(img);
         }else{
           const helper = document.createElement("div");
@@ -284,13 +202,18 @@
           qs(".content", block).appendChild(helper);
         }
       }
+
       if(m.type==="question"){
         qs('[data-field="question"]', block).value = data?.question || "";
-        qs('[data-field="answer"]', block).value = data?.answer || "";
+        qs('[data-field="answer"]',  block).value = data?.answer || "";
+        // Branching targets (hidden in block)
+        qs('[data-field="goodPage"]', block).value = (Number.isInteger(data?.goodPage) ? data.goodPage : "");
+        qs('[data-field="badPage"]',  block).value = (Number.isInteger(data?.badPage)  ? data.badPage  : "");
       }
+
       if(m.type==="location"){
-        qs('[data-field="lat"]', block).value    = (data?.lat ?? "");
-        qs('[data-field="lng"]', block).value    = (data?.lng ?? "");
+        qs('[data-field="lat"]',    block).value = (data?.lat ?? "");
+        qs('[data-field="lng"]',    block).value = (data?.lng ?? "");
         qs('[data-field="radius"]', block).value = (data?.radius ?? 50);
       }
     });
@@ -300,7 +223,6 @@
   }
 
   function switchPage(nextIndex){
-    // sla huidige DOM naar state
     pages[currentPage].modules = collect();
     currentPage = nextIndex;
     renderPageList();
@@ -317,8 +239,7 @@
   function deletePage(){
     if(pages.length <= 1){
       const warn = qs("#page-warning");
-      warn.style.display = "block";
-      setTimeout(()=> warn.style.display="none", 1800);
+      warn.style.display = "block"; setTimeout(()=> warn.style.display="none", 1800);
       return;
     }
     pages.splice(currentPage, 1);
@@ -330,24 +251,18 @@
   /* ============ BLOCKS ============ */
   function createBlock(type){
     const div = document.createElement("div");
-    div.className = "block";
-    div.draggable = true;
-    div.dataset.type = type;
-
+    div.className = "block"; div.draggable = true; div.dataset.type = type;
     div.innerHTML = `
       <button class="remove" type="button">×</button>
-      <h4>
-        <span>${type[0].toUpperCase()+type.slice(1)}</span>
-        <span class="kind">${type}</span>
-      </h4>
+      <h4><span>${type[0].toUpperCase()+type.slice(1)}</span><span class="kind">${type}</span></h4>
       <div class="content"></div>
     `;
-
     const content = qs(".content", div);
 
     if(type==="text"){
       content.innerHTML = `<div contenteditable="true" data-field="text">Nieuwe tekst</div>`;
     }
+
     if(type==="image"){
       content.innerHTML = `
         <div style="display:flex; gap:8px; margin-bottom:8px;">
@@ -358,14 +273,19 @@
         <div class="helper">Voeg een URL toe of upload een afbeelding.</div>
       `;
     }
+
     if(type==="question"){
       content.innerHTML = `
         <label>Vraag:</label>
         <input data-field="question">
         <label>Antwoord:</label>
         <input data-field="answer">
+        <!-- branching targets (hidden fields, worden in panel ingesteld) -->
+        <input type="hidden" data-field="goodPage">
+        <input type="hidden" data-field="badPage">
       `;
     }
+
     if(type==="location"){
       content.innerHTML = `
         <div class="form-row">
@@ -386,13 +306,13 @@
     setSelected(block);
   }
 
-  // Linker sidebar knoppen
+  // Sidebar knoppen
   qsa(".element-btn").forEach(btn=>{
     btn.setAttribute("type","button");
     btn.addEventListener("click", ()=> addBlock(btn.dataset.type));
   });
 
-  /* ============ Drag & Drop (container-based) ============ */
+  /* ============ Drag & Drop ============ */
   let dragged = null;
 
   function getAfterEl(container, y){
@@ -417,79 +337,56 @@
 
   function wireBlock(block){
     block.addEventListener("dragstart", (e)=>{
-      dragged = block;
-      block.classList.add("dragging");
-      if(e.dataTransfer){
-        e.dataTransfer.setData("text/plain", "");
-        e.dataTransfer.effectAllowed = "move";
-      }
+      dragged = block; block.classList.add("dragging");
+      if(e.dataTransfer){ e.dataTransfer.setData("text/plain", ""); e.dataTransfer.effectAllowed = "move"; }
     });
-    block.addEventListener("dragend", ()=>{
-      block.classList.remove("dragging");
-      dragged = null;
-    });
+    block.addEventListener("dragend", ()=>{ block.classList.remove("dragging"); dragged = null; });
 
     // Live image preview + upload + drive-mapping
     block.addEventListener("input", (e)=>{
       if(e.target.matches('input[data-field="url"]')){
         const urlRaw = e.target.value.trim();
-        const url = urlRaw; // mapping gebeurt op 'change'
+        const url = urlRaw; // mapping op 'change'
         const old = qs("img.preview", block);
         const helper = qs(".helper", block);
         if(url){
           if(old){ old.src = url; }
           else{
             const img = document.createElement("img");
-            img.className = "preview";
-            img.src = url;
-            img.style.width = "100%";
-            img.style.borderRadius = "10px";
-            if(helper) helper.replaceWith(img);
-            else qs(".content", block).appendChild(img);
+            img.className = "preview"; img.src = url; img.style.width = "100%"; img.style.borderRadius = "10px";
+            if(helper) helper.replaceWith(img); else qs(".content", block).appendChild(img);
           }
         } else if(old){
           const h = document.createElement("div");
-          h.className = "helper";
-          h.textContent = "Voeg een afbeelding URL toe of upload.";
+          h.className = "helper"; h.textContent = "Voeg een afbeelding URL toe of upload.";
           old.replaceWith(h);
         }
       }
     });
 
-    // Upload knop + verborgen file input
     const uploadBtn = block.querySelector(".btn-upload");
     const fileInput = block.querySelector(".file-hidden");
     const urlInput  = block.querySelector('input[data-field="url"]');
-
     if (uploadBtn && fileInput && urlInput) {
       uploadBtn.addEventListener("click", () => fileInput.click());
       fileInput.addEventListener("change", async () => {
         const file = fileInput.files?.[0];
         if (!file) return;
-        const fd = new FormData();
-        fd.append("image", file);
+        const fd = new FormData(); fd.append("image", file);
         try {
           const res = await fetch("/admin-upload-image", { method: "POST", body: fd });
           if (!res.ok) throw new Error(await res.text());
           const json = await res.json();
           urlInput.value = json.url;
-          urlInput.dispatchEvent(new Event("input")); // triggert preview
+          urlInput.dispatchEvent(new Event("input"));
         } catch (e) {
-          console.error(e);
-          alert("Uploaden mislukt");
-        } finally {
-          fileInput.value = "";
-        }
+          console.error(e); alert("Uploaden mislukt");
+        } finally { fileInput.value = ""; }
       });
-
-      // Drive link -> directe view link
       urlInput.addEventListener("change", () => {
         const raw = urlInput.value.trim();
         const mapped = mapGoogleDriveUrl(raw);
-        if (mapped !== raw) {
-          urlInput.value = mapped;
-          urlInput.dispatchEvent(new Event("input"));
-        }
+        if (mapped !== raw) { urlInput.value = mapped; urlInput.dispatchEvent(new Event("input")); }
       });
     }
 
@@ -500,22 +397,34 @@
   phone.addEventListener("click", (e)=>{
     if(e.target.classList.contains("remove")){
       const bl = e.target.closest(".block");
-      if(bl){
-        if(selected === bl) clearPanel();
-        bl.remove();
-      }
+      if(bl){ if(selected === bl) clearPanel(); bl.remove(); }
     }
   });
 
-  // Disable text select tijdens drag (UX)
   document.addEventListener("dragstart", ()=> document.body.style.userSelect = "none");
   document.addEventListener("dragend",   ()=> document.body.style.userSelect = "");
 
-  /* ============ Blok-instellingen rechts (onder pagina-lijst) ============ */
+  /* ============ Rechterpaneel (blok-instellingen) ============ */
   const pEmpty = qs("#panel-empty");
   const pFields = qs("#panel-fields");
   const pType = qs("#panel-type");
   const pDyn = qs("#panel-dynamic");
+
+  function buildPageSelect(id){
+    const sel = document.createElement("select");
+    sel.id = id;
+    // lege optie
+    const opt0 = document.createElement("option"); opt0.value = ""; opt0.textContent = "— kies pagina —";
+    sel.appendChild(opt0);
+    // alle pagina's
+    pages.forEach((p,idx)=>{
+      const opt = document.createElement("option");
+      opt.value = String(idx);
+      opt.textContent = `${idx+1}. ${p.title?.trim() ? p.title : "Pagina " + (idx+1)}`;
+      sel.appendChild(opt);
+    });
+    return sel;
+  }
 
   function setSelected(block){
     selected = block;
@@ -549,15 +458,36 @@
 
     if(type==="question"){
       const q = qs('input[data-field="question"]', block);
-      const a = qs('input[data-field="answer"]', block);
-      pDyn.innerHTML = `
-        <label>Vraag</label><input id="p-q" type="text">
-        <label>Antwoord</label><input id="p-a" type="text">
-      `;
-      qs("#p-q").value = q?.value || "";
-      qs("#p-a").value = a?.value || "";
-      qs("#p-q").oninput = ()=> { if(q) q.value = qs("#p-q").value; };
-      qs("#p-a").oninput = ()=> { if(a) a.value = qs("#p-a").value; };
+      const a = qs('input[data-field="answer"]',  block);
+      const goodHidden = qs('input[data-field="goodPage"]', block);
+      const badHidden  = qs('input[data-field="badPage"]',  block);
+
+      // Bouw UI
+      const frag = document.createDocumentFragment();
+
+      const lblQ = document.createElement("label"); lblQ.textContent = "Vraag";
+      const inQ = document.createElement("input"); inQ.id="p-q"; inQ.type="text"; inQ.value = q?.value || "";
+      inQ.oninput = ()=> { if(q) q.value = inQ.value; };
+      frag.append(lblQ, inQ);
+
+      const lblA = document.createElement("label"); lblA.textContent = "Antwoord";
+      const inA = document.createElement("input"); inA.id="p-a"; inA.type="text"; inA.value = a?.value || "";
+      inA.oninput = ()=> { if(a) a.value = inA.value; };
+      frag.append(lblA, inA);
+
+      const lblGood = document.createElement("label"); lblGood.textContent = "Bij goed antwoord → ga naar pagina";
+      const selGood = buildPageSelect("p-good");
+      selGood.value = (goodHidden?.value ?? "");
+      selGood.onchange = ()=> { if(goodHidden) goodHidden.value = selGood.value; };
+      frag.append(lblGood, selGood);
+
+      const lblBad = document.createElement("label"); lblBad.textContent = "Bij fout antwoord → ga naar pagina";
+      const selBad = buildPageSelect("p-bad");
+      selBad.value = (badHidden?.value ?? "");
+      selBad.onchange = ()=> { if(badHidden) badHidden.value = selBad.value; };
+      frag.append(lblBad, selBad);
+
+      pDyn.appendChild(frag);
     }
 
     if(type==="location"){
@@ -600,7 +530,11 @@
       }
       if(type==="question"){
         data.question = qs('input[data-field="question"]', b)?.value || "";
-        data.answer   = qs('input[data-field="answer"]', b)?.value || "";
+        data.answer   = qs('input[data-field="answer"]',  b)?.value || "";
+        const gp = qs('input[data-field="goodPage"]', b)?.value;
+        const bp = qs('input[data-field="badPage"]',  b)?.value;
+        data.goodPage = (gp !== "" && !Number.isNaN(+gp)) ? Number(gp) : null;
+        data.badPage  = (bp !== "" && !Number.isNaN(+bp)) ? Number(bp) : null;
       }
       if(type==="location"){
         const lat = qs('input[data-field="lat"]', b)?.value;
@@ -616,26 +550,17 @@
 
   /* ============ Save & Reset ============ */
   async function saveAll(){
-    // Sla huidige page (DOM) naar state
     pages[currentPage].modules = collect();
-
     const id = phone.dataset.id;
-
     try{
       const res = await fetch(`/admin-builder/${id}/save-all`,{
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ pages })
+        method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ pages })
       });
       if(!res.ok) throw new Error(await res.text());
       toast("Opgeslagen ✅");
-    }catch(err){
-      console.error(err);
-      toast("Opslaan mislukt ❌", true);
-    }
+    }catch(err){ console.error(err); toast("Opslaan mislukt ❌", true); }
   }
   function resetPage(){ location.reload(); }
-
   qs("#btn-save").addEventListener("click", saveAll);
   qs("#btn-reset").addEventListener("click", resetPage);
 
@@ -650,24 +575,13 @@
 
   /* ============ Toast ============ */
   function toast(msg, error=false){
-    const t=document.createElement('div');
-    t.textContent=msg;
-    t.style.position='fixed';
-    t.style.right='20px';
-    t.style.bottom='20px';
-    t.style.background= error ? '#ef4444' : 'var(--primary)';
-    t.style.color='#fff';
-    t.style.padding='10px 14px';
-    t.style.borderRadius='12px';
-    t.style.boxShadow='0 8px 24px rgba(0,0,0,.2)';
-    t.style.zIndex='9999';
-    document.body.appendChild(t);
+    const t=document.createElement('div'); t.textContent=msg;
+    Object.assign(t.style,{position:'fixed',right:'20px',bottom:'20px',background: error ? '#ef4444' : 'var(--primary)',color:'#fff',padding:'10px 14px',borderRadius:'12px',boxShadow:'0 8px 24px rgba(0,0,0,.2)',zIndex:'9999'}); document.body.appendChild(t);
     setTimeout(()=> t.remove(), 2000);
   }
 
   /* ============ INIT ============ */
-  renderPageList();
-  renderPage(currentPage);
+  renderPageList(); renderPage(currentPage);
 
 })();
 </script>
