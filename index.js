@@ -206,7 +206,17 @@ app.post("/admin-upload-csv", requireAdmin, upload.single("csvfile"), async (req
 
 app.get("/admin-theme", requireAdmin, async (req, res) => {
 
-  const theme = await Theme.findOne();
+  let theme = await Theme.findOne();
+
+  if (!theme) {
+    theme = {
+      primaryColor: "#2563eb",
+      backgroundColor: "#ffffff",
+      textColor: "#111827",
+      borderRadius: "0.75rem",
+      fontFamily: "Inter, sans-serif"
+    };
+  }
 
   res.render("admin-theme", { theme });
 
