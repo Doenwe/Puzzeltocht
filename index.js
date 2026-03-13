@@ -128,8 +128,9 @@ app.post("/check-code", async (req, res) => {
 
 });
 
-app.get("/next", (req, res) => {
-  res.render("next");
+app.get("/next", async (req, res) => {
+  const puzzles = await Puzzle.find().sort({ createdAt: -1 });
+  res.render("next", { puzzles });
 });
 
 app.get("/admin-login", (req, res) => {
@@ -296,6 +297,13 @@ app.post("/admin-builder/:id/save-all", requireAdmin, express.json(), async (req
   }
 });
 
+app.get("/puzzle/:id", async (req, res) => {
+  const puzzle = await Puzzle.findById(req.params.id);
+  if (!puzzle) return res.status(404).send("Puzzel niet gevonden");
+
+  // Voor nu: toon simpelweg Page 1
+  res.render("puzzle-play", { puzzle });
+});
 
 app.use((req, res) => res.status(404).send("Pagina niet gevonden"));
 
