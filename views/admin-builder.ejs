@@ -1,15 +1,18 @@
 <%
-  // Normalize "puzzle.pages" to a consistent structure with .data (not .content)
+  // Normaliseer puzzle.pages naar een consistente structuur met .data (i.p.v. oud .content)
   const normalizePages = (puz) => {
     if (!puz || !Array.isArray(puz.pages) || !puz.pages.length) {
-      return [{ title: "Pagina 1", modules: [] }];
+      return [{ title: "Pagina 1", showNext: true, modules: [] }];
     }
     return puz.pages.map(pg => ({
       title: pg?.title || "Pagina",
-      modules: Array.isArray(pg?.modules) ? pg.modules.map(m => ({
-        type: m?.type || "",
-        data: m?.data || m?.content || {}   // tolerate old "content"
-      })) : []
+      showNext: (typeof pg?.showNext === "boolean" ? pg.showNext : true),
+      modules: Array.isArray(pg?.modules)
+        ? pg.modules.map(m => ({
+            type: m?.type || "",
+            data: m?.data || m?.content || {}   // tolerant voor oude data
+          }))
+        : []
     }));
   };
   const pagesSafe = normalizePages(puzzle);
@@ -19,45 +22,82 @@
   :root{ --primary:#6366f1; --bg:#f5f7fa; --text:#111827; }
   main{ max-width:100% !important; padding:0 !important; margin:0 !important; }
   *{ box-sizing:border-box; }
-  .builder-wrap{ display:grid; grid-template-columns: 280px 1fr 320px; gap:0; height:calc(100vh - 56px); background:var(--bg); font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans"; color:var(--text); }
 
-  /* Linker sidebar */
-  .sidebar{ background:white; border-right:1px solid #e5e7eb; padding:22px; display:flex; flex-direction:column; gap:20px; }
+  /* ===== Layout ===== */
+  .builder-wrap{
+    display:grid;
+    grid-template-columns: 280px 1fr 320px; /* links: elementen, midden: phone, rechts: paginalijst + bloksettings */
+    gap:0;
+    height:calc(100vh - 56px);
+    background:var(--bg);
+    font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans";
+    color:var(--text);
+  }
+
+  /* ===== Linker sidebar ===== */
+  .sidebar{
+    background:white; border-right:1px solid #e5e7eb; padding:22px;
+    display:flex; flex-direction:column; gap:20px;
+  }
   .sidebar h2{ font-size:20px; font-weight:800; margin:0; letter-spacing:-.2px; }
-  .element-btn{ width:100%; display:flex; align-items:center; gap:10px; padding:12px; background:#f9fafb; border:1px solid #e5e7eb; border-radius:10px; cursor:pointer; font-weight:600; transition:.15s ease; }
+  .element-btn{
+    width:100%; display:flex; align-items:center; gap:10px;
+    padding:12px; background:#f9fafb; border:1px solid #e5e7eb; border-radius:10px;
+    cursor:pointer; font-weight:600; transition:.15s ease;
+  }
   .element-btn:hover{ background:#eef2ff; border-color:var(--primary); }
   .sidebar-actions{ margin-top:auto; display:flex; gap:12px; }
   .btn{ flex:1; padding:10px; border-radius:10px; border:1px solid #ddd; font-weight:700; cursor:pointer; }
-  .btn-primary{ background:var(--primary); color:#fff; border:none; }
+  .btn-primary{ background:var(--primary); color:white; border:none; }
 
-  /* Midden (phone) */
+  /* ===== Midden (phone) ===== */
   .canvas{ display:flex; justify-content:center; align-items:flex-start; padding:30px; }
-  .phone{ width:380px; height:740px; background:white; border-radius:35px; border:4px solid #111; overflow-y:auto; box-shadow:0 20px 50px rgba(0,0,0,0.18); padding:18px 18px 22px; }
-  .phone-header{ position:sticky; top:0; background:white; z-index:5; padding:8px 0 10px; margin-bottom:10px; border-bottom:1px dashed #ddd; display:flex; justify-content:space-between; gap:10px; align-items:center; }
+  .phone{
+    width:380px; height:740px; background:white; border-radius:35px; border:4px solid #111;
+    overflow-y:auto; box-shadow:0 20px 50px rgba(0,0,0,0.18); padding:18px 18px 22px;
+  }
+  .phone-header{
+    position:sticky; top:0; background:white; z-index:5;
+    padding:8px 0 10px; margin-bottom:10px; border-bottom:1px dashed #ddd;
+    display:flex; justify-content:space-between; gap:10px; align-items:center;
+  }
 
-  /* Blocks */
-  .block{ padding:18px; background:white; border:1px solid #e5e7eb; border-radius:14px; margin-bottom:14px; box-shadow:0 4px 10px rgba(0,0,0,0.05); cursor:grab; position:relative; }
+  /* ===== Blocks ===== */
+  .block{
+    padding:18px; background:white; border:1px solid #e5e7eb; border-radius:14px;
+    margin-bottom:14px; box-shadow:0 4px 10px rgba(0,0,0,0.05); cursor:grab; position:relative;
+  }
   .block.dragging{ opacity:.45; }
   .block h4{ margin:0 0 8px; font-weight:700; font-size:15px; display:flex; gap:6px; align-items:center; }
   .kind{ background:#f3f4f6; border:1px solid #ddd; padding:2px 6px; border-radius:8px; font-size:11px; }
   .remove{ position:absolute; top:10px; right:10px; background:#ef4444; color:white; width:24px; height:24px; border:none; border-radius:6px; cursor:pointer; font-weight:900; }
   .drag-over{ border:2px dashed var(--primary) !important; background:#eef2ff; }
+
   [contenteditable="true"]{ padding:6px; border-radius:8px; transition:.15s; outline:2px dashed transparent; }
   [contenteditable="true"]:focus{ background:#f0f4ff; outline-color:#aab4ff; }
-  .block input, .block textarea{ width:100%; padding:10px; border-radius:10px; border:1px solid #ddd; margin-bottom:8px; font-size:14px; }
+  .block input, .block textarea{
+    width:100%; padding:10px; border-radius:10px; border:1px solid #ddd; margin-bottom:8px; font-size:14px;
+  }
   .form-row{ display:flex; gap:10px; }
   .helper{ font-size:12px; color:#6b7280; }
 
-  /* Rechter paneel */
-  .right-panel{ background:white; border-left:1px solid #e5e7eb; padding:18px; overflow-y:auto; }
+  /* ===== Rechter paneel ===== */
+  .right-panel{
+    background:white; border-left:1px solid #e5e7eb; padding:18px; overflow-y:auto;
+  }
   .right-panel h3{ margin:0 0 10px; font-size:16px; font-weight:800; }
   .page-list{ display:flex; flex-direction:column; gap:6px; }
-  .page-item{ padding:8px 10px; background:#f3f4f6; border:1px solid #e5e7eb; border-radius:8px; cursor:pointer; font-size:14px; display:flex; justify-content:space-between; align-items:center; }
+  .page-item{
+    padding:8px 10px; background:#f3f4f6; border:1px solid #e5e7eb; border-radius:8px;
+    cursor:pointer; font-size:14px; display:flex; justify-content:space-between; align-items:center;
+  }
   .page-item.active{ background:var(--primary); border-color:var(--primary); color:white; }
   .page-item span{ flex:1; }
   .panel-section{ margin-top:16px; }
   .right-panel label{ font-size:13px; margin-top:10px; display:block; }
-  .right-panel input, .right-panel textarea, .right-panel select{ width:100%; padding:10px; margin-top:4px; border-radius:8px; border:1px solid #ccc; background:#fff; }
+  .right-panel input, .right-panel textarea, .right-panel select{
+    width:100%; padding:10px; margin-top:4px; border-radius:8px; border:1px solid #ccc; background:#fff;
+  }
   .danger-note{ background:#fee2e2; color:#991b1b; border:1px solid #fecaca; border-radius:10px; padding:10px; margin-top:10px; display:none; }
   hr.sep{ border:none; border-top:1px solid #eee; margin:16px 0; }
 </style>
@@ -67,14 +107,12 @@
   <!-- Linker sidebar -->
   <aside class="sidebar">
     <h2>Builder</h2>
-
     <div>
       <button class="element-btn" type="button" data-type="text">📝 Tekst</button>
       <button class="element-btn" type="button" data-type="image">🖼️ Afbeelding</button>
       <button class="element-btn" type="button" data-type="question">❓ Vraag</button>
       <button class="element-btn" type="button" data-type="location">📍 Locatie</button>
     </div>
-
     <div class="sidebar-actions">
       <button class="btn" type="button" id="btn-reset">Reset</button>
       <button class="btn btn-primary" type="button" id="btn-save">Opslaan</button>
@@ -88,7 +126,7 @@
         <strong id="app-title"><%= puzzle.name %></strong>
         <span id="page-title-label"></span>
       </div>
-      <!-- Blocks by JS -->
+      <!-- Blocks via JS -->
     </div>
   </section>
 
@@ -102,8 +140,18 @@
       <div class="panel-section">
         <label>Paginatitel</label>
         <input id="page-title-input" type="text" placeholder="Paginatitel" />
+
+        <!-- Toggle Volgende pagina -->
+        <label style="display:flex; align-items:center; gap:8px; margin-top:10px;">
+          <input id="page-shownext" type="checkbox" />
+          Toon “Volgende pagina”‑knop
+        </label>
+
         <div style="display:flex; gap:8px; margin-top:10px;">
-          <button id="delete-page-btn" class="btn" type="button" style="background:#fee2e2; color:#991b1b; border-color:#fecaca;">Pagina verwijderen</button>
+          <button id="delete-page-btn" class="btn" type="button"
+                  style="background:#fee2e2; color:#991b1b; border-color:#fecaca;">
+            Pagina verwijderen
+          </button>
         </div>
         <div id="page-warning" class="danger-note">Je kunt de laatste pagina niet verwijderen.</div>
       </div>
@@ -129,12 +177,12 @@
   const phone = document.getElementById("phone");
   if(!phone) return;
 
-  const qs = (s,p=document)=>p.querySelector(s);
+  const qs  = (s,p=document)=>p.querySelector(s);
   const qsa = (s,p=document)=>Array.from(p.querySelectorAll(s));
 
   /* ============ STATE ============ */
   let pages = JSON.parse(`<%- JSON.stringify(pagesSafe) %>`);
-  if(!Array.isArray(pages) || !pages.length){ pages = [{ title:"Pagina 1", modules:[] }]; }
+  if(!Array.isArray(pages) || !pages.length){ pages = [{ title:"Pagina 1", showNext:true, modules:[] }]; }
   let currentPage = 0;
   let selected = null;
 
@@ -152,18 +200,23 @@
     return url;
   }
 
+  /* ============ UI helpers ============ */
   function setPageTitleUI(){
     const title = pages[currentPage]?.title || ("Pagina " + (currentPage+1));
     qs("#page-title-label").textContent = title;
     qs("#page-title-input").value = title;
+
+    const showNext = (typeof pages[currentPage]?.showNext === "boolean")
+      ? pages[currentPage].showNext : true;
+    const chk = qs("#page-shownext");
+    if (chk) chk.checked = showNext;
   }
 
   function renderPageList(){
-    const wrap = qs("#page-list");
-    wrap.innerHTML = "";
+    const wrap = qs("#page-list"); wrap.innerHTML = "";
     pages.forEach((p,i)=>{
       const item = document.createElement("div");
-      item.className = "page-item" + (i===currentPage ? " active":"");
+      item.className = "page-item" + (i===currentPage ? " active" : "");
       item.dataset.page = i;
       item.innerHTML = `<span>${p.title?.trim() ? p.title : ("Pagina " + (i+1))}</span>`;
       item.addEventListener("click", ()=> switchPage(i));
@@ -175,12 +228,11 @@
 
   function renderPage(idx){
     clearBlocks();
-    const page = pages[idx];
+    const pg = pages[idx];
 
-    (page.modules || []).forEach(m=>{
+    (pg.modules || []).forEach(m=>{
       const block = createBlock(m.type);
       phone.appendChild(block);
-
       const data = m.data || {};
 
       if(m.type==="text"){
@@ -197,8 +249,7 @@
           qs(".content", block).appendChild(img);
         }else{
           const helper = document.createElement("div");
-          helper.className = "helper";
-          helper.textContent = "Voeg een afbeelding URL toe of upload.";
+          helper.className = "helper"; helper.textContent = "Voeg een afbeelding URL toe of upload.";
           qs(".content", block).appendChild(helper);
         }
       }
@@ -206,7 +257,6 @@
       if(m.type==="question"){
         qs('[data-field="question"]', block).value = data?.question || "";
         qs('[data-field="answer"]',  block).value = data?.answer || "";
-        // Branching targets (hidden in block)
         qs('[data-field="goodPage"]', block).value = (Number.isInteger(data?.goodPage) ? data.goodPage : "");
         qs('[data-field="badPage"]',  block).value = (Number.isInteger(data?.badPage)  ? data.badPage  : "");
       }
@@ -230,7 +280,7 @@
   }
 
   function addPage(){
-    pages.push({ title:"Nieuwe pagina", modules:[] });
+    pages.push({ title:"Nieuwe pagina", showNext:true, modules:[] });
     currentPage = pages.length - 1;
     renderPageList();
     renderPage(currentPage);
@@ -239,7 +289,8 @@
   function deletePage(){
     if(pages.length <= 1){
       const warn = qs("#page-warning");
-      warn.style.display = "block"; setTimeout(()=> warn.style.display="none", 1800);
+      warn.style.display = "block";
+      setTimeout(()=> warn.style.display="none", 1800);
       return;
     }
     pages.splice(currentPage, 1);
@@ -248,7 +299,7 @@
     renderPage(currentPage);
   }
 
-  /* ============ BLOCKS ============ */
+  /* ============ Blocks ============ */
   function createBlock(type){
     const div = document.createElement("div");
     div.className = "block"; div.draggable = true; div.dataset.type = type;
@@ -280,7 +331,7 @@
         <input data-field="question">
         <label>Antwoord:</label>
         <input data-field="answer">
-        <!-- branching targets (hidden fields, worden in panel ingesteld) -->
+        <!-- branching doelpagina's -->
         <input type="hidden" data-field="goodPage">
         <input type="hidden" data-field="badPage">
       `;
@@ -306,7 +357,7 @@
     setSelected(block);
   }
 
-  // Sidebar knoppen
+  // Elementknoppen
   qsa(".element-btn").forEach(btn=>{
     btn.setAttribute("type","button");
     btn.addEventListener("click", ()=> addBlock(btn.dataset.type));
@@ -338,7 +389,7 @@
   function wireBlock(block){
     block.addEventListener("dragstart", (e)=>{
       dragged = block; block.classList.add("dragging");
-      if(e.dataTransfer){ e.dataTransfer.setData("text/plain", ""); e.dataTransfer.effectAllowed = "move"; }
+      if(e.dataTransfer){ e.dataTransfer.setData("text/plain",""); e.dataTransfer.effectAllowed = "move"; }
     });
     block.addEventListener("dragend", ()=>{ block.classList.remove("dragging"); dragged = null; });
 
@@ -346,14 +397,14 @@
     block.addEventListener("input", (e)=>{
       if(e.target.matches('input[data-field="url"]')){
         const urlRaw = e.target.value.trim();
-        const url = urlRaw; // mapping op 'change'
+        const url = urlRaw; // mapping gebeurt op change
         const old = qs("img.preview", block);
         const helper = qs(".helper", block);
         if(url){
           if(old){ old.src = url; }
           else{
             const img = document.createElement("img");
-            img.className = "preview"; img.src = url; img.style.width = "100%"; img.style.borderRadius = "10px";
+            img.className = "preview"; img.src = url; img.style.width="100%"; img.style.borderRadius="10px";
             if(helper) helper.replaceWith(img); else qs(".content", block).appendChild(img);
           }
         } else if(old){
@@ -379,9 +430,8 @@
           const json = await res.json();
           urlInput.value = json.url;
           urlInput.dispatchEvent(new Event("input"));
-        } catch (e) {
-          console.error(e); alert("Uploaden mislukt");
-        } finally { fileInput.value = ""; }
+        } catch (e) { console.error(e); alert("Uploaden mislukt"); }
+        finally { fileInput.value = ""; }
       });
       urlInput.addEventListener("change", () => {
         const raw = urlInput.value.trim();
@@ -411,12 +461,9 @@
   const pDyn = qs("#panel-dynamic");
 
   function buildPageSelect(id){
-    const sel = document.createElement("select");
-    sel.id = id;
-    // lege optie
+    const sel = document.createElement("select"); sel.id = id;
     const opt0 = document.createElement("option"); opt0.value = ""; opt0.textContent = "— kies pagina —";
     sel.appendChild(opt0);
-    // alle pagina's
     pages.forEach((p,idx)=>{
       const opt = document.createElement("option");
       opt.value = String(idx);
@@ -428,9 +475,7 @@
 
   function setSelected(block){
     selected = block;
-    pEmpty.style.display = "none";
-    pFields.style.display = "block";
-    pDyn.innerHTML = "";
+    pEmpty.style.display = "none"; pFields.style.display = "block"; pDyn.innerHTML = "";
 
     const type = block.dataset.type;
     pType.value = type;
@@ -438,21 +483,16 @@
     if(type==="text"){
       const src = qs('[data-field="text"]', block);
       pDyn.innerHTML = `<label>Tekst</label><textarea id="p-text" rows="4"></textarea>`;
-      const ta = qs("#p-text");
-      ta.value = src?.innerHTML || "";
+      const ta = qs("#p-text"); ta.value = src?.innerHTML || "";
       ta.oninput = ()=> { if(src) src.innerHTML = ta.value; };
     }
 
     if(type==="image"){
       const src = qs('input[data-field="url"]', block);
       pDyn.innerHTML = `<label>Afbeeldings-URL</label><input id="p-url" type="url" placeholder="https://...">`;
-      const inp = qs("#p-url");
-      inp.value = src?.value || "";
+      const inp = qs("#p-url"); inp.value = src?.value || "";
       inp.oninput = ()=>{
-        if(src){
-          src.value = mapGoogleDriveUrl(inp.value);
-          src.dispatchEvent(new Event('input'));
-        }
+        if(src){ src.value = mapGoogleDriveUrl(inp.value); src.dispatchEvent(new Event('input')); }
       };
     }
 
@@ -462,16 +502,15 @@
       const goodHidden = qs('input[data-field="goodPage"]', block);
       const badHidden  = qs('input[data-field="badPage"]',  block);
 
-      // Bouw UI
       const frag = document.createDocumentFragment();
 
       const lblQ = document.createElement("label"); lblQ.textContent = "Vraag";
-      const inQ = document.createElement("input"); inQ.id="p-q"; inQ.type="text"; inQ.value = q?.value || "";
+      const inQ  = document.createElement("input"); inQ.id="p-q"; inQ.type="text"; inQ.value = q?.value || "";
       inQ.oninput = ()=> { if(q) q.value = inQ.value; };
       frag.append(lblQ, inQ);
 
       const lblA = document.createElement("label"); lblA.textContent = "Antwoord";
-      const inA = document.createElement("input"); inA.id="p-a"; inA.type="text"; inA.value = a?.value || "";
+      const inA  = document.createElement("input"); inA.id="p-a"; inA.type="text"; inA.value = a?.value || "";
       inA.oninput = ()=> { if(a) a.value = inA.value; };
       frag.append(lblA, inA);
 
@@ -512,9 +551,7 @@
 
   function clearPanel(){
     selected = null;
-    pEmpty.style.display = "block";
-    pFields.style.display = "none";
-    pDyn.innerHTML = "";
+    pEmpty.style.display = "block"; pFields.style.display = "none"; pDyn.innerHTML = "";
   }
 
   /* ============ Serialize (DOM -> state) ============ */
@@ -550,11 +587,14 @@
 
   /* ============ Save & Reset ============ */
   async function saveAll(){
+    // bewaar huidige pagina DOM -> state
     pages[currentPage].modules = collect();
     const id = phone.dataset.id;
     try{
       const res = await fetch(`/admin-builder/${id}/save-all`,{
-        method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ pages })
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ pages })
       });
       if(!res.ok) throw new Error(await res.text());
       toast("Opgeslagen ✅");
@@ -567,10 +607,15 @@
   /* ============ Pagina acties ============ */
   qs("#add-page-btn").addEventListener("click", addPage);
   qs("#delete-page-btn").addEventListener("click", deletePage);
+
   qs("#page-title-input").addEventListener("input", ()=>{
     pages[currentPage].title = qs("#page-title-input").value;
     qs("#page-title-label").textContent = pages[currentPage].title;
     renderPageList();
+  });
+
+  qs("#page-shownext").addEventListener("change", ()=>{
+    pages[currentPage].showNext = !!qs("#page-shownext").checked;
   });
 
   /* ============ Toast ============ */
@@ -582,6 +627,5 @@
 
   /* ============ INIT ============ */
   renderPageList(); renderPage(currentPage);
-
 })();
 </script>
