@@ -1,12 +1,13 @@
 <%
-  // Normaliseer puzzle.pages naar een consistente structuur met .data (i.p.v. oud .content)
+  // Normaliseer puzzle.pages naar .data (i.p.v. oud .content) en voeg defaults toe
   const normalizePages = (puz) => {
     if (!puz || !Array.isArray(puz.pages) || !puz.pages.length) {
-      return [{ title: "Pagina 1", showNext: true, modules: [] }];
+      return [{ title: "Pagina 1", showNext: true, isMap: false, modules: [] }];
     }
     return puz.pages.map(pg => ({
       title: pg?.title || "Pagina",
       showNext: (typeof pg?.showNext === "boolean" ? pg.showNext : true),
+      isMap: (typeof pg?.isMap === "boolean" ? pg.isMap : false),
       modules: Array.isArray(pg?.modules)
         ? pg.modules.map(m => ({
             type: m?.type || "",
@@ -26,7 +27,7 @@
   /* ===== Layout ===== */
   .builder-wrap{
     display:grid;
-    grid-template-columns: 280px 1fr 320px; /* links: elementen, midden: phone, rechts: paginalijst + bloksettings */
+    grid-template-columns: 280px 1fr 320px;
     gap:0;
     height:calc(100vh - 56px);
     background:var(--bg);
@@ -36,7 +37,7 @@
 
   /* ===== Linker sidebar ===== */
   .sidebar{
-    background:white; border-right:1px solid #e5e7eb; padding:22px;
+    background:#fff; border-right:1px solid #e5e7eb; padding:22px;
     display:flex; flex-direction:column; gap:20px;
   }
   .sidebar h2{ font-size:20px; font-weight:800; margin:0; letter-spacing:-.2px; }
@@ -48,29 +49,29 @@
   .element-btn:hover{ background:#eef2ff; border-color:var(--primary); }
   .sidebar-actions{ margin-top:auto; display:flex; gap:12px; }
   .btn{ flex:1; padding:10px; border-radius:10px; border:1px solid #ddd; font-weight:700; cursor:pointer; }
-  .btn-primary{ background:var(--primary); color:white; border:none; }
+  .btn-primary{ background:var(--primary); color:#fff; border:none; }
 
   /* ===== Midden (phone) ===== */
   .canvas{ display:flex; justify-content:center; align-items:flex-start; padding:30px; }
   .phone{
-    width:380px; height:740px; background:white; border-radius:35px; border:4px solid #111;
+    width:380px; height:740px; background:#fff; border-radius:35px; border:4px solid #111;
     overflow-y:auto; box-shadow:0 20px 50px rgba(0,0,0,0.18); padding:18px 18px 22px;
   }
   .phone-header{
-    position:sticky; top:0; background:white; z-index:5;
+    position:sticky; top:0; background:#fff; z-index:5;
     padding:8px 0 10px; margin-bottom:10px; border-bottom:1px dashed #ddd;
     display:flex; justify-content:space-between; gap:10px; align-items:center;
   }
 
   /* ===== Blocks ===== */
   .block{
-    padding:18px; background:white; border:1px solid #e5e7eb; border-radius:14px;
+    padding:18px; background:#fff; border:1px solid #e5e7eb; border-radius:14px;
     margin-bottom:14px; box-shadow:0 4px 10px rgba(0,0,0,0.05); cursor:grab; position:relative;
   }
   .block.dragging{ opacity:.45; }
   .block h4{ margin:0 0 8px; font-weight:700; font-size:15px; display:flex; gap:6px; align-items:center; }
   .kind{ background:#f3f4f6; border:1px solid #ddd; padding:2px 6px; border-radius:8px; font-size:11px; }
-  .remove{ position:absolute; top:10px; right:10px; background:#ef4444; color:white; width:24px; height:24px; border:none; border-radius:6px; cursor:pointer; font-weight:900; }
+  .remove{ position:absolute; top:10px; right:10px; background:#ef4444; color:#fff; width:24px; height:24px; border:none; border-radius:6px; cursor:pointer; font-weight:900; }
   .drag-over{ border:2px dashed var(--primary) !important; background:#eef2ff; }
 
   [contenteditable="true"]{ padding:6px; border-radius:8px; transition:.15s; outline:2px dashed transparent; }
@@ -83,7 +84,7 @@
 
   /* ===== Rechter paneel ===== */
   .right-panel{
-    background:white; border-left:1px solid #e5e7eb; padding:18px; overflow-y:auto;
+    background:#fff; border-left:1px solid #e5e7eb; padding:18px; overflow-y:auto;
   }
   .right-panel h3{ margin:0 0 10px; font-size:16px; font-weight:800; }
   .page-list{ display:flex; flex-direction:column; gap:6px; }
@@ -91,7 +92,7 @@
     padding:8px 10px; background:#f3f4f6; border:1px solid #e5e7eb; border-radius:8px;
     cursor:pointer; font-size:14px; display:flex; justify-content:space-between; align-items:center;
   }
-  .page-item.active{ background:var(--primary); border-color:var(--primary); color:white; }
+  .page-item.active{ background:var(--primary); border-color:var(--primary); color:#fff; }
   .page-item span{ flex:1; }
   .panel-section{ margin-top:16px; }
   .right-panel label{ font-size:13px; margin-top:10px; display:block; }
@@ -126,7 +127,7 @@
         <strong id="app-title"><%= puzzle.name %></strong>
         <span id="page-title-label"></span>
       </div>
-      <!-- Blocks via JS -->
+      <!-- Blocks worden door JS gerenderd -->
     </div>
   </section>
 
@@ -145,6 +146,12 @@
         <label style="display:flex; align-items:center; gap:8px; margin-top:10px;">
           <input id="page-shownext" type="checkbox" />
           Toon “Volgende pagina”‑knop
+        </label>
+
+        <!-- Kaartpagina toggle -->
+        <label style="display:flex; align-items:center; gap:8px; margin-top:10px;">
+          <input id="page-ismap" type="checkbox" />
+          Kaartpagina (toon alleen kaart met je locatie)
         </label>
 
         <div style="display:flex; gap:8px; margin-top:10px;">
@@ -182,7 +189,7 @@
 
   /* ============ STATE ============ */
   let pages = JSON.parse(`<%- JSON.stringify(pagesSafe) %>`);
-  if(!Array.isArray(pages) || !pages.length){ pages = [{ title:"Pagina 1", showNext:true, modules:[] }]; }
+  if(!Array.isArray(pages) || !pages.length){ pages = [{ title:"Pagina 1", showNext:true, isMap:false, modules:[] }]; }
   let currentPage = 0;
   let selected = null;
 
@@ -208,8 +215,11 @@
 
     const showNext = (typeof pages[currentPage]?.showNext === "boolean")
       ? pages[currentPage].showNext : true;
-    const chk = qs("#page-shownext");
-    if (chk) chk.checked = showNext;
+    qs("#page-shownext").checked = !!showNext;
+
+    const isMap = (typeof pages[currentPage]?.isMap === "boolean")
+      ? pages[currentPage].isMap : false;
+    qs("#page-ismap").checked = !!isMap;
   }
 
   function renderPageList(){
@@ -230,6 +240,22 @@
     clearBlocks();
     const pg = pages[idx];
 
+    // Kaartpagina preview: modules negeren, toon informatief blok
+    if (pg.isMap === true) {
+      const info = document.createElement("div");
+      info.className = "block";
+      info.style.borderStyle = "dashed";
+      info.innerHTML = `
+        <h4><span>Kaartpagina</span><span class="kind">map</span></h4>
+        <div class="helper">In de speler zie je hier een live kaart met je huidige locatie. Modules op deze pagina worden genegeerd.</div>
+      `;
+      phone.appendChild(info);
+      setPageTitleUI();
+      clearPanel();
+      return;
+    }
+
+    // Anders: render modules
     (pg.modules || []).forEach(m=>{
       const block = createBlock(m.type);
       phone.appendChild(block);
@@ -280,7 +306,7 @@
   }
 
   function addPage(){
-    pages.push({ title:"Nieuwe pagina", showNext:true, modules:[] });
+    pages.push({ title:"Nieuwe pagina", showNext:true, isMap:false, modules:[] });
     currentPage = pages.length - 1;
     renderPageList();
     renderPage(currentPage);
@@ -397,7 +423,7 @@
     block.addEventListener("input", (e)=>{
       if(e.target.matches('input[data-field="url"]')){
         const urlRaw = e.target.value.trim();
-        const url = urlRaw; // mapping gebeurt op change
+        const url = urlRaw;
         const old = qs("img.preview", block);
         const helper = qs(".helper", block);
         if(url){
@@ -616,6 +642,11 @@
 
   qs("#page-shownext").addEventListener("change", ()=>{
     pages[currentPage].showNext = !!qs("#page-shownext").checked;
+  });
+
+  qs("#page-ismap").addEventListener("change", ()=>{
+    pages[currentPage].isMap = !!qs("#page-ismap").checked;
+    renderPage(currentPage); // preview updaten
   });
 
   /* ============ Toast ============ */
