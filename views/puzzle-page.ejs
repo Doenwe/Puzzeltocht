@@ -1,97 +1,159 @@
 <%
-// puzzle: { _id, name, pages: [...] }
-// page:    current page object
-// pageIndex: number (0-based)
-const hasNext = !!puzzle.pages[pageIndex + 1];
-const showNext = (typeof page?.showNext === 'boolean') ? page.showNext : true;
+  // puzzle: { _id, name, pages: [...] }
+  // page: huidige page (object)
+  // pageIndex: 0-based index van de huidige pagina
+
+  const hasNext  = !!puzzle.pages[pageIndex + 1];
+  const showNext = (typeof page?.showNext === 'boolean') ? page.showNext : true;
+  const isMap    = (typeof page?.isMap === 'boolean')    ? page.isMap    : false;
 %>
+
+<!— Leaflet CSS in <head> van de pagina opnemen —>
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+  crossorigin=""
+/>
 
 <div class="space-y-6">
 
   <h1 class="text-2xl font-bold"><%= puzzle.name %></h1>
-
   <h2 class="text-xl font-semibold"><%= page.title %></h2>
 
-  <div class="space-y-4">
+  <% if (isMap) { %>
+    <!-- ====== KAARTPAGINA ====== -->
+    <div id="map" class="rounded-xl border shadow" style="height: 65vh;"></div>
 
-    <% (page.modules || []).forEach((mod) => { %>
+    <% if (hasNext && showNext) { %>
+      <div class="pt-4">
+        /puzzle/<%= puzzle._id %>/<%= pageIndex + 1 %>
+          Volgende pagina <span aria-hidden="true">➜</span>
+        </a>
+      </div>
+    <% } %>
 
-      <% if (mod.type === "text") { %>
-        <div class="p-4 bg-white border rounded-xl shadow">
-          <!-- Builder slaat HTML op -->
-          <%- mod.data?.text || "" %>
-        </div>
-      <% } %>
+    <!-- Leaflet JS + Kaartscript -->
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
+    <script>
+      (function(){
+        // Fallback center: Nederland
+        const map = L.map('map').setView([52.1326, 5.2913], 7);
 
-      <% if (mod.type === "image") { %>
-        <div class="p-4 bg-white border rounded-xl shadow">
-          <% if (mod.data?.url) { %>
-            <img
-              src="<%= mod.data.url %>"
-              alt=""
-              loading="lazy"
-              class="w-full h-auto rounded-lg border"
-              referrerpolicy="no-referrer"
-            />
-          <% } else { %>
-            <div class="text-gray-500 text-sm">Geen afbeelding opgegeven.</div>
-          <% } %>
-        </div>
-      <% } %>
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '&copy; OpenStreetMap-bijdragers'
+        }).addTo(map);
 
-      <% if (mod.type === "question") { %>
-        <div class="p-4 bg-white border rounded-xl shadow space-y-3">
-          <p class="font-semibold"><%= mod.data?.question || "Vraag" %></p>
+        function onLocationFound(e) {
+          const radius = e.accuracy; // meters
+          L.marker(e.latlng).addTo(map)
+            .bindPopup('Je bent hier 🎯')
+            .openPopup();
+          L.circle(e.latlng, {
+            radius,
+            color:'#2563eb',
+            fillColor:'#93c5fd',
+            fillOpacity:0.35
+          }).addTo(map);
+          map.setView(e.latlng, 16);
+        }
 
-          <form
-            class="space-y-2"
-            onsubmit="return checkAnswerBranch(
-              this,
-              '<%= (mod.data?.answer ? String(mod.data.answer).replace(/"/g,'&quot;') : '') %>',
-              <%= (Number.isInteger(mod.data?.goodPage) ? mod.data.goodPage : 'null') %>,
-              <%= (Number.isInteger(mod.data?.badPage)  ? mod.data.badPage  : 'null') %>,
-              '<%= puzzle._id %>'
-            )"
-          >
-            <input
-              type="text"
-              name="answer"
-              placeholder="Jouw antwoord"
-              class="border p-2 rounded w-full"
-              autocomplete="off"
-            />
-            <div class="flex gap-2">
-              <button class="bg-blue-600 text-white px-4 py-2 rounded-lg">Controleer</button>
-            </div>
-            <div class="text-sm" data-feedback></div>
-          </form>
-        </div>
-      <% } %>
+        function onLocationError(e) {
+          console.warn('Geolocatie mislukt:', e.message);
+          L.popup()
+            .setLatLng(map.getCenter())
+            .setContent('Kon je locatie niet ophalen. Sta locatie-toegang toe en gebruik HTTPS.')
+            .openOn(map);
+        }
 
-      <% if (mod.type === "location") { %>
-        <div class="p-4 bg-white border rounded-xl shadow space-y-1">
-          <p class="font-semibold">Locatie‑check</p>
-          <p>Lat: <%= (mod.data?.lat ?? "?") %></p>
-          <p>Lng: <%= (mod.data?.lng ?? "?") %></p>
-          <p>Straal: <%= (mod.data?.radius ?? 50) %> meter</p>
-        </div>
-      <% } %>
+        if (navigator.geolocation) {
+          map
+            .locate({ setView:false, enableHighAccuracy:true, timeout:10000 })
+            .on('locationfound', onLocationFound)
+            .on('locationerror', onLocationError);
+        } else {
+          onLocationError({ message: 'Geolocatie wordt niet ondersteund.' });
+        }
+      })();
+    </script>
 
-    <% }) %>
+  <% } else { %>
+    <!-- ====== NORMALE PAGINA (modules renderen) ====== -->
+    <div class="space-y-4">
 
-  </div>
+      <% (page.modules || []).forEach((mod) => { %>
 
-  <!-- Volgende pagina knop: alleen tonen als toegestaan -->
-  <% if (hasNext && showNext) { %>
-    <div>
-      <a
-        href="/puzzle/<%= puzzle._id %>/<%= pageIndex + 1 %>"
-        class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow"
-      >
-        Volgende pagina
-        <span aria-hidden="true">➜</span>
-      </a>
+        <% if (mod.type === "text") { %>
+          <div class="p-4 bg-white border rounded-xl shadow">
+            <!-- Builder slaat HTML op -->
+            <%- mod.data?.text || "" %>
+          </div>
+        <% } %>
+
+        <% if (mod.type === "image") { %>
+          <div class="p-4 bg-white border rounded-xl shadow">
+            <% if (mod.data?.url) { %>
+              <%= mod.data.url %>
+            <% } else { %>
+              <div class="text-gray-500 text-sm">Geen afbeelding opgegeven.</div>
+            <% } %>
+          </div>
+        <% } %>
+
+        <% if (mod.type === "question") { %>
+          <div class="p-4 bg-white border rounded-xl shadow space-y-3">
+            <p class="font-semibold"><%= mod.data?.question || "Vraag" %></p>
+
+            <form
+              class="space-y-2"
+              onsubmit="return checkAnswerBranch(
+                this,
+                '<%= (mod.data?.answer ? String(mod.data.answer).replace(/"/g,'&quot;') : '') %>',
+                <%= (Number.isInteger(mod.data?.goodPage) ? mod.data.goodPage : 'null') %>,
+                <%= (Number.isInteger(mod.data?.badPage)  ? mod.data.badPage  : 'null') %>,
+                '<%= puzzle._id %>'
+              )"
+            >
+              <input
+                type="text"
+                name="answer"
+                placeholder="Jouw antwoord"
+                class="border p-2 rounded w-full"
+                autocomplete="off"
+              />
+              <div class="flex gap-2">
+                <button class="bg-blue-600 text-white px-4 py-2 rounded-lg">Controleer</button>
+              </div>
+              <div class="text-sm" data-feedback></div>
+            </form>
+          </div>
+        <% } %>
+
+        <% if (mod.type === "location") { %>
+          <div class="p-4 bg-white border rounded-xl shadow space-y-1">
+            <p class="font-semibold">Locatie‑check</p>
+            <p>Lat: <%= (mod.data?.lat ?? "?") %></p>
+            <p>Lng: <%= (mod.data?.lng ?? "?") %></p>
+            <p>Straal: <%= (mod.data?.radius ?? 50) %> meter</p>
+          </div>
+        <% } %>
+
+      <% }) %>
+
     </div>
+
+    <% if (hasNext && showNext) { %>
+      <div class="pt-4">
+        /puzzle/<%= puzzle._id %>/<%= pageIndex + 1 %>
+          Volgende pagina <span aria-hidden="true">➜</span>
+        </a>
+      </div>
+    <% } %>
   <% } %>
 
 </div>
@@ -107,15 +169,16 @@ const showNext = (typeof page?.showNext === 'boolean') ? page.showNext : true;
   }
 
   /**
-   * Branching logic voor vraagblok.
-   * - goodPage/badPage zijn pagina-indexen (0-based) of null.
+   * Branching voor vraag‑blok:
+   * - correct  -> /puzzle/:id/:goodPage (indien ingesteld)
+   * - incorrect-> /puzzle/:id/:badPage  (indien ingesteld)
+   * Anders: alleen feedback tonen.
    */
   function checkAnswerBranch(form, correct, goodPage, badPage, puzzleId){
     const feedback = form.querySelector('[data-feedback]');
     const user = form.answer.value;
     const ok = normalize(user) === normalize(correct);
 
-    // Redirect als een target is ingesteld
     if (ok && Number.isInteger(goodPage)) {
       window.location.href = `/puzzle/${puzzleId}/${goodPage}`;
       return false;
@@ -125,9 +188,8 @@ const showNext = (typeof page?.showNext === 'boolean') ? page.showNext : true;
       return false;
     }
 
-    // Anders: alleen feedback tonen
     feedback.textContent = ok ? '✅ Klopt!' : '❌ Niet goed, probeer opnieuw.';
     feedback.style.color = ok ? '#059669' : '#dc2626';
-    return false;
+    return false; // voorkom page reload
   }
 </script>
