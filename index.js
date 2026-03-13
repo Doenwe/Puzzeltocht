@@ -296,6 +296,8 @@ app.post("/admin-builder/:id/save-all", requireAdmin, express.json(), async (req
   }
 });
 
+app.post("/admin-builder/:id/save-all", requireAdmin, express.json(), async (req, res)=>{ /* ... */ });
+
 app.use((req, res) => res.status(404).send("Pagina niet gevonden"));
 
 const port = process.env.PORT || 8080;
