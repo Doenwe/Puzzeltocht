@@ -1,0 +1,20 @@
+<h1 class="text-2xl font-bold mb-4"><%= puzzle.name %></h1>
+
+<p class="text-gray-700 mb-4">
+  Dit is de start van de puzzeltocht.
+</p>
+
+<a href="/" class="text-blue-600 underline">Terug</a>
+
+<hr class="my-6">
+
+<h2 class="text-xl font-semibold mb-4">Pagina's:</h2>
+
+<ul class="space-y-3">
+  <% puzzle.pages.forEach((p, i) => { %>
+    <li class="p-4 bg-white border rounded-xl shadow">
+      <strong>Pagina <%= i+1 %>: </strong>
+      <%= p.title %>
+    </li>
+  <% }) %>
+</ul>
