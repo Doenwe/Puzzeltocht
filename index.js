@@ -11,6 +11,7 @@ import multer from "multer";
 import csv from "csv-parser";
 import fs from "fs";
 
+import Puzzle from "./models/Puzzle.js";
 import Admin from "./models/Admin.js";
 import Code from "./models/Code.js";
 import Theme from "./models/Theme.js";
