@@ -212,112 +212,101 @@
   }
 
   // ===== Kaart initialisatie (alleen als #map bestaat) =====
+  // ===== Kaart initialisatie (alleen als #map bestaat) =====
   (function initMapIfPresent(){
     const mapEl = document.getElementById('map');
     if (!mapEl || typeof L === 'undefined') return;
 
+    // Haal de doellocatie op vanuit de EJS / database
+    const targetLat = <%= page.targetLat !== null && page.targetLat !== undefined ? page.targetLat : 'null' %>;
+    const targetLng = <%= page.targetLng !== null && page.targetLng !== undefined ? page.targetLng : 'null' %>;
+    const targetRadius = <%= page.targetRadius !== null && page.targetRadius !== undefined ? page.targetRadius : 50 %>;
+    const hasNextPage = <%= hasNext ? 'true' : 'false' %>;
+    const nextUrl = "/puzzle/<%= puzzle._id %>/<%= pageIndex + 1 %>";
+
+    let isRedirecting = false; // Voorkomt dat de pagina oneindig blijft herladen als je in het gebied staat
+
     // Init map – fallback NL
     const map = L.map('map', { zoomControl: true }).setView([52.1326, 5.2913], 7);
 
-    // Tiles (CARTO Voyager – strak en keyless)
-    // Standaard OpenStreetMap tiles - betrouwbaarder en gratis
-    const tiles = L.tileLayer(
-      'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-      {
-        maxZoom: 19,
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-      }
-    ).addTo(map);
+    // Gebruik de OpenStreetMap tiles (sneller en minder vaak geblokkeerd dan CARTO)
+    const tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
+    }).addTo(map);
 
-    // Log tile errors op mobiel om ad‑block/CSP issues te zien
-    tiles.on('tileerror', (e) => {
-      console.warn('Tile load error:', e);
-    });
-
-    // Mobile rendering fixes — zorg dat Leaflet echte grootte kent
+    // Mobile rendering fixes
     function fixSize(){ try { map.invalidateSize(false); } catch(e){} }
     fixSize();
     requestAnimationFrame(fixSize);
     window.addEventListener('resize', fixSize, { passive:true });
-    document.addEventListener('visibilitychange', ()=> { if(!document.hidden) fixSize(); });
-    window.addEventListener('pageshow', (e)=>{ if(e.persisted) fixSize(); }); // iOS bfcache
 
-    // ===== User location (blue dot + accuracy + optional heading) =====
+    // === Optioneel: Teken het doelgebied op de kaart ===
+    // Als je wilt dat spelers zien wáár ze naartoe moeten lopen, haal dan de '//' weg bij de volgende 3 regels:
+    // if (targetLat !== null && targetLng !== null) {
+    //   L.circle([targetLat, targetLng], { radius: targetRadius, color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.2 }).addTo(map);
+    // }
+
     let userMarker = null;
     let accuracyCircle = null;
 
-    function createUserIcon(hasHeading){
+    function createUserIcon(){
       const container = document.createElement('div');
       container.style.position = 'relative';
       const dot = document.createElement('div');
       dot.className = 'user-dot pulse';
       container.appendChild(dot);
-      if (hasHeading) {
-        const arrow = document.createElement('div');
-        arrow.className = 'heading-arrow';
-        container.appendChild(arrow);
-      }
       return L.divIcon({ className: '', html: container, iconSize: [20,20], iconAnchor: [10,10] });
-    }
-
-    function setHeadingRotation(marker, heading){
-      if (!marker || typeof heading !== 'number') return;
-      const el = marker.getElement();
-      if (!el) return;
-      const arrow = el.querySelector('.heading-arrow');
-      if (arrow) arrow.style.transform = `rotate(${heading}deg)`;
     }
 
     function onLocationFound(e){
       const latlng   = e.latlng;
       const accuracy = e.accuracy || 0;
-      const heading  = (typeof e.heading === 'number') ? e.heading : null;
 
+      // Update de blauwe stip van de speler
       if (!userMarker) {
-        userMarker = L.marker(latlng, { icon: createUserIcon(!!heading), zIndexOffset: 1000 }).addTo(map);
+        userMarker = L.marker(latlng, { icon: createUserIcon(), zIndexOffset: 1000 }).addTo(map);
+        if (map.getZoom() < 16) map.setView(latlng, 16);
       } else {
         userMarker.setLatLng(latlng);
       }
-      if (heading != null) setHeadingRotation(userMarker, heading);
 
       if (!accuracyCircle) {
-        accuracyCircle = L.circle(latlng, {
-          radius: accuracy,
-          color:'#1a73e8', weight: 1,
-          fillColor:'#1a73e8', fillOpacity: 0.08
-        }).addTo(map);
+        accuracyCircle = L.circle(latlng, { radius: accuracy, color:'#1a73e8', weight: 1, fillColor:'#1a73e8', fillOpacity: 0.08 }).addTo(map);
       } else {
         accuracyCircle.setLatLng(latlng).setRadius(accuracy);
       }
 
-      if (map.getZoom() < 15) map.setView(latlng, 15);
+      // --- 🚀 NIEUW: Check of de speler in het doelgebied is ---
+      if (targetLat !== null && targetLng !== null && hasNextPage && !isRedirecting) {
+        // Bereken de afstand in meters
+        const distance = latlng.distanceTo([targetLat, targetLng]);
+        
+        console.log(`Je bent ${Math.round(distance)} meter verwijderd van het doel.`);
+
+        // Zit de speler binnen de ingestelde radius?
+        if (distance <= targetRadius) {
+          isRedirecting = true; 
+          
+          // Leuke visuele overgang: laat de kaart even vervagen voordat hij naar de volgende pagina springt
+          mapEl.style.transition = 'opacity 0.8s ease';
+          mapEl.style.opacity = '0.3';
+          
+          setTimeout(() => {
+            window.location.href = nextUrl;
+          }, 1000); // 1 seconde vertraging voor een soepele overgang
+        }
+      }
     }
 
     function onLocationError(e){
       console.warn('Geolocatie mislukte:', e.message);
-      L.popup()
-        .setLatLng(map.getCenter())
-        .setContent('Kon je locatie niet ophalen. Sta locatie-toegang toe (HTTPS vereist) of probeer opnieuw.')
-        .openOn(map);
     }
 
-    // Start geolocatie (HTTPS of localhost)
     if (navigator.geolocation) {
-      map
-        .locate({ setView:false, enableHighAccuracy:true, timeout:10000, watch:true })
-        .on('locationfound', onLocationFound)
-        .on('locationerror', onLocationError);
-    } else {
-      onLocationError({ message: 'Geolocatie wordt niet ondersteund.' });
-    }
-
-    // (Optioneel) DeviceOrientation voor heading (Android werkt direct; iOS vereist permissie via user gesture)
-    if (window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission !== 'function') {
-      window.addEventListener('deviceorientation', (evt) => {
-        if (!userMarker) return;
-        const heading = (typeof evt.alpha === 'number') ? evt.alpha : null;
-        setHeadingRotation(userMarker, heading);
-      });
+      map.locate({ setView:false, enableHighAccuracy:true, timeout:10000, watch:true })
+         .on('locationfound', onLocationFound)
+         .on('locationerror', onLocationError);
     }
   })();
 </script>
