@@ -165,10 +165,20 @@
 
   function setPageTitleUI(){
     const title = pages[currentPage]?.title || ("Pagina " + (currentPage+1));
+    const isMap = !!((typeof pages[currentPage]?.isMap === "boolean") ? pages[currentPage].isMap : false);
+    
     qs("#page-title-label").textContent = title;
     qs("#page-title-input").value = title;
     qs("#page-shownext").checked = !!((typeof pages[currentPage]?.showNext === "boolean") ? pages[currentPage].showNext : true);
-    qs("#page-ismap").checked   = !!((typeof pages[currentPage]?.isMap   === "boolean") ? pages[currentPage].isMap   : false);
+    qs("#page-ismap").checked = isMap;
+
+    // NIEUW: Vul de target-velden in
+    qs("#page-target-lat").value = pages[currentPage]?.targetLat ?? "";
+    qs("#page-target-lng").value = pages[currentPage]?.targetLng ?? "";
+    qs("#page-target-radius").value = pages[currentPage]?.targetRadius ?? 50;
+
+    // Toon/verberg de target-instellingen afhankelijk van de 'isMap' checkbox
+    qs("#map-target-settings").style.display = isMap ? "block" : "none";
   }
 
   function renderPageList(){
