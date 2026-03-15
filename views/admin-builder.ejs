@@ -574,6 +574,18 @@
   });
   qs("#page-shownext").addEventListener("change", ()=>{ pages[currentPage].showNext = !!qs("#page-shownext").checked; });
   qs("#page-ismap").addEventListener("change", ()=>{ pages[currentPage].isMap   = !!qs("#page-ismap").checked; renderPage(currentPage); });
+  qs("#page-target-lat").addEventListener("input", (e)=>{
+    const val = e.target.value;
+    pages[currentPage].targetLat = val !== "" ? Number(val) : null;
+  });
+  qs("#page-target-lng").addEventListener("input", (e)=>{
+    const val = e.target.value;
+    pages[currentPage].targetLng = val !== "" ? Number(val) : null;
+  });
+  qs("#page-target-radius").addEventListener("input", (e)=>{
+    const val = e.target.value;
+    pages[currentPage].targetRadius = val !== "" ? Number(val) : 50;
+  });
 
   function toast(msg, error=false){
     const t=document.createElement('div'); t.textContent=msg;
