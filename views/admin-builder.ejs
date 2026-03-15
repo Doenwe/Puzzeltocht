@@ -8,6 +8,11 @@
       title: pg?.title || "Pagina",
       showNext: (typeof pg?.showNext === "boolean" ? pg.showNext : true),
       isMap: (typeof pg?.isMap === "boolean" ? pg.isMap : false),
+
+      targetLat: (pg?.targetLat !== undefined && pg?.targetLat !== null) ? Number(pg.targetLat) : null,
+      targetLng: (pg?.targetLng !== undefined && pg?.targetLng !== null) ? Number(pg.targetLng) : null,
+      targetRadius: (pg?.targetRadius !== undefined && pg?.targetRadius !== null) ? Number(pg.targetRadius) : 50,
+
       modules: Array.isArray(pg?.modules)
         ? pg.modules.map(m => ({
             type: m?.type || "",
