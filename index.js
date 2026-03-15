@@ -25,13 +25,6 @@ const __dirname = path.dirname(__filename);
 const app = express();
 app.set("trust proxy", 1);
 
-// === Zorg dat uploads-map bestaat ===
-const uploadDir = path.join(__dirname, "public", "uploads");
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-  console.log("📁 Map public/uploads bestond niet – aangemaakt.");
-}
-
 // Multer (CSV)
 const upload = multer({ dest: "uploads/" });
 
