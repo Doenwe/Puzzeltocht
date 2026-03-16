@@ -1,9 +1,8 @@
 <%
-  // Data vanuit de route:
-  // puzzle: { _id, name, pages: [...] }
-  // page:    puzzle.pages[pageIndex]
-  // pageIndex: Number (0-based)
-
+  // Server-variabelen uit de route:
+  // - puzzle:  { _id, name, pages: [...] }
+  // - page:    puzzle.pages[pageIndex]
+  // - pageIndex (0-based)
   const hasNext  = !!puzzle.pages[pageIndex + 1];
   const showNext = (typeof page?.showNext === 'boolean') ? page.showNext : true;
   const isMap    = (typeof page?.isMap === 'boolean')    ? page.isMap    : false;
@@ -16,7 +15,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title><%= puzzle.name %> — <%= page.title %></title>
 
-  <!-- ✅ Leaflet CSS (correct geladen) -->
+  <!-- Leaflet CSS -->
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -24,23 +23,38 @@
   />
 
   <style>
-    /* Kaartcontainer met stabiele hoogte (mobiel-proof) */
+    :root{
+      --primary:#2563eb;
+      --text:#111827;
+      --muted:#6b7280;
+      --card:#ffffff;
+      --border:#e5e7eb;
+      --accent:#ef4444;
+    }
+    body { margin:0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans"; color:var(--text); }
+    .container { max-width: 880px; margin: 0 auto; padding: 16px; display: grid; gap: 16px; }
+    h1,h2 { margin:0; }
+    .card { background: var(--card); border:1px solid var(--border); border-radius:14px; padding:16px; box-shadow: 0 4px 12px rgba(0,0,0,.06); }
+    .muted { color: var(--muted); font-size: .95rem; }
+
+    /* Kaartcontainer */
     #map {
       height: 65vh;
-      min-height: 380px; /* fallback voor kleine schermen/iOS */
+      min-height: 380px;
       border-radius: 14px;
-      border: 1px solid #e5e7eb;
+      border: 1px solid var(--border);
       box-shadow: 0 10px 24px rgba(0,0,0,.08);
-      background: #eef2ff; /* nette kleur totdat tiles laden */
+      background: #eef2ff;
+      position: relative;
     }
     .leaflet-container { background: #eef2ff; }
 
-    /* Professionele user-dot (Google-achtig) */
+    /* User dot (blauw) */
     .user-dot {
       width: 14px; height: 14px; border-radius: 50%;
-      background: #1a73e8;            /* blauw */
-      border: 3px solid #ffffff;      /* witte ring */
-      box-shadow: 0 0 0 2px rgba(26,115,232,0.25); /* zachte glow */
+      background: #1a73e8;
+      border: 3px solid #ffffff;
+      box-shadow: 0 0 0 2px rgba(26,115,232,0.25);
     }
     .user-dot.pulse { position: relative; }
     .user-dot.pulse::after {
@@ -57,30 +71,38 @@
       100% { transform: translate(-50%,-50%) scale(2.6); opacity: 0; }
     }
 
-    /* Heading-pijl (optioneel; draait met heading) */
-    .heading-arrow {
-      width: 0; height: 0;
-      border-left: 6px solid transparent;
-      border-right: 6px solid transparent;
-      border-bottom: 10px solid #1a73e8;
-      filter: drop-shadow(0 0 2px rgba(0,0,0,.3));
-      transform-origin: 50% 80%;
-      position: absolute; top: -14px; left: 50%;
-      translate: -50% 0;
+    /* Status-badge rechtsboven op de kaart */
+    .status-badge {
+      position: absolute; right: 12px; top: 12px;
+      background: rgba(255,255,255,.95);
+      backdrop-filter: blur(6px);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 8px 10px;
+      font-size: 13px;
+      color: var(--muted);
+      box-shadow: 0 6px 16px rgba(0,0,0,.08);
+      z-index: 500;
+      display: flex; align-items: center; gap: 8px;
     }
-
-    /* Simpele layout (werkt samen met je layout.ejs + Tailwind) */
-    .container { display: grid; gap: 1rem; }
-    .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 1rem; box-shadow: 0 4px 12px rgba(0,0,0,.06); }
-    .muted { color: #6b7280; font-size: .9rem; }
+    .status-dot { width:8px; height:8px; border-radius:50%; background:#9ca3af; }
+    .status-dot.ok { background:#10b981; }
+    .status-dot.warn { background:#f59e0b; }
+    .status-dot.err { background:#ef4444; }
 
     .next-btn {
       display: inline-flex; align-items: center; gap: 8px;
-      background: #2563eb; color: #fff; padding: 10px 14px;
+      background: var(--primary); color: #fff; padding: 10px 14px;
       border-radius: 10px; border: none; text-decoration: none;
       box-shadow: 0 6px 16px rgba(37,99,235,.25);
     }
     .next-btn:hover { filter: brightness(1.05); }
+    .grid { display:grid; gap: 1rem; }
+    input[type="text"], input[type="number"] {
+      border:1px solid var(--border); border-radius:10px; padding:10px;
+      width:100%;
+    }
+    button[type="submit"] { cursor:pointer; }
   </style>
 </head>
 <body>
@@ -94,10 +116,22 @@
 
   <% if (isMap) { %>
     <!-- ============ KAARTPAGINA ============ -->
-    <div id="map"></div>
+    <div class="card" style="padding:0;">
+      <div id="map">
+        <div id="mapStatus" class="status-badge" aria-live="polite">
+          <span class="status-dot" id="gpsDot"></span>
+          <span id="statusText">GPS wordt gezocht…</span>
+        </div>
+      </div>
+      <div style="padding: 12px 12px 6px;">
+        <p class="muted">
+          Geef toestemming voor locatie om automatisch door te gaan zodra je binnen de radius bent.
+        </p>
+      </div>
+    </div>
 
     <% if (hasNext && showNext) { %>
-      <div class="pt-4">
+      <div class="pt-2">
         <a class="next-btn" href="/puzzle/<%= puzzle._id %>/<%= pageIndex + 1 %>">
           <span>Volgende pagina</span> <span aria-hidden="true">➜</span>
         </a>
@@ -106,14 +140,11 @@
 
   <% } else { %>
     <!-- ============ NORMALE PAGINA (modules) ============ -->
-    <div class="grid" style="display:grid; gap: 1rem;">
+    <div class="grid">
       <% (page.modules || []).forEach((mod) => { %>
 
         <% if (mod.type === "text") { %>
-          <div class="card">
-            <!-- Builder slaat HTML op -->
-            <%- mod.data?.text || "" %>
-          </div>
+          <div class="card"><%- mod.data?.text || "" %></div>
         <% } %>
 
         <% if (mod.type === "image") { %>
@@ -144,9 +175,7 @@
                 type="text"
                 name="answer"
                 placeholder="Jouw antwoord"
-                class="border p-2 rounded w-full"
                 autocomplete="off"
-                style="border:1px solid #e5e7eb; border-radius:10px; padding:10px;"
               />
               <div class="flex gap-2">
                 <button class="next-btn" type="submit">Controleer</button>
@@ -169,7 +198,7 @@
     </div>
 
     <% if (hasNext && showNext) { %>
-      <div class="pt-4">
+      <div class="pt-2">
         <a class="next-btn" href="/puzzle/<%= puzzle._id %>/<%= pageIndex + 1 %>">
           <span>Volgende pagina</span> <span aria-hidden="true">➜</span>
         </a>
@@ -179,11 +208,11 @@
 
 </div>
 
-<!-- ✅ Leaflet JS (correct geladen, NA de HTML) -->
+<!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
 <script>
-  // ===== Branching voor vraag‑blokken =====
+  // ====== Branching voor vraag‑modules ======
   function normalize(str){
     return String(str||'')
       .trim()
@@ -211,42 +240,63 @@
     return false;
   }
 
-  // ===== Kaart initialisatie (alleen als #map bestaat) =====
-  // ===== Kaart initialisatie (alleen als #map bestaat) =====
+  // ====== Kaart initialisatie (alleen als #map bestaat) ======
   (function initMapIfPresent(){
     const mapEl = document.getElementById('map');
     if (!mapEl || typeof L === 'undefined') return;
 
-    // Haal de doellocatie op vanuit de EJS / database
+    // Waarden uit de server (EJS)
     const targetLat = <%= page.targetLat !== null && page.targetLat !== undefined ? page.targetLat : 'null' %>;
     const targetLng = <%= page.targetLng !== null && page.targetLng !== undefined ? page.targetLng : 'null' %>;
     const targetRadius = <%= page.targetRadius !== null && page.targetRadius !== undefined ? page.targetRadius : 50 %>;
     const hasNextPage = <%= hasNext ? 'true' : 'false' %>;
     const nextUrl = "/puzzle/<%= puzzle._id %>/<%= pageIndex + 1 %>";
 
-    let isRedirecting = false; // Voorkomt dat de pagina oneindig blijft herladen als je in het gebied staat
+    const gpsDot = document.getElementById('gpsDot');
+    const statusText = document.getElementById('statusText');
+    let isRedirecting = false;
 
-    // Init map – fallback NL
+    // Map init (NL fallback)
     const map = L.map('map', { zoomControl: true }).setView([52.1326, 5.2913], 7);
-
-    // Gebruik de OpenStreetMap tiles (sneller en minder vaak geblokkeerd dan CARTO)
-    const tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
     }).addTo(map);
 
-    // Mobile rendering fixes
+    // Sizing fix
     function fixSize(){ try { map.invalidateSize(false); } catch(e){} }
-    fixSize();
-    requestAnimationFrame(fixSize);
+    fixSize(); requestAnimationFrame(fixSize);
     window.addEventListener('resize', fixSize, { passive:true });
 
-    // === Optioneel: Teken het doelgebied op de kaart ===
-    // Als je wilt dat spelers zien wáár ze naartoe moeten lopen, haal dan de '//' weg bij de volgende 3 regels:
-    // if (targetLat !== null && targetLng !== null) {
-    //   L.circle([targetLat, targetLng], { radius: targetRadius, color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.2 }).addTo(map);
-    // }
+    // Doel cirkel + marker tekenen (indien ingesteld)
+    const hasTarget = (targetLat !== null && targetLng !== null);
+    let targetCircle = null;
+    let targetMarker = null;
 
+    if (hasTarget) {
+      targetCircle = L.circle([targetLat, targetLng], {
+        radius: Number(targetRadius) || 50,
+        color: '#ef4444',
+        weight: 2,
+        fillColor: '#ef4444',
+        fillOpacity: 0.18
+      }).addTo(map);
+
+      targetMarker = L.marker([targetLat, targetLng], { title: 'Doellocatie' })
+        .addTo(map)
+        .bindPopup(
+          `<strong>Doellocatie</strong><br>Lat: ${Number(targetLat).toFixed(6)}<br>Lng: ${Number(targetLng).toFixed(6)}<br>Straal: ${Number(targetRadius) || 50} m`
+        );
+
+      // Zorg dat de cirkel in beeld is
+      const bounds = targetCircle.getBounds();
+      map.fitBounds(bounds, { padding: [20, 20], maxZoom: 17 });
+      statusText.textContent = 'Doellocatie geladen. GPS wordt gezocht…';
+    } else {
+      statusText.textContent = 'Geen doellocatie ingesteld. GPS wordt gezocht…';
+    }
+
+    // Gebruiker marker + accuracy
     let userMarker = null;
     let accuracyCircle = null;
 
@@ -263,50 +313,58 @@
       const latlng   = e.latlng;
       const accuracy = e.accuracy || 0;
 
-      // Update de blauwe stip van de speler
       if (!userMarker) {
         userMarker = L.marker(latlng, { icon: createUserIcon(), zIndexOffset: 1000 }).addTo(map);
-        if (map.getZoom() < 16) map.setView(latlng, 16);
+        // Als er geen target is, centreer dan op de gebruiker
+        if (!hasTarget && map.getZoom() < 16) map.setView(latlng, 16);
       } else {
         userMarker.setLatLng(latlng);
       }
 
       if (!accuracyCircle) {
-        accuracyCircle = L.circle(latlng, { radius: accuracy, color:'#1a73e8', weight: 1, fillColor:'#1a73e8', fillOpacity: 0.08 }).addTo(map);
+        accuracyCircle = L.circle(latlng, {
+          radius: accuracy,
+          color:'#1a73e8',
+          weight: 1,
+          fillColor:'#1a73e8',
+          fillOpacity: 0.08
+        }).addTo(map);
       } else {
         accuracyCircle.setLatLng(latlng).setRadius(accuracy);
       }
 
-      // --- 🚀 NIEUW: Check of de speler in het doelgebied is ---
-      if (targetLat !== null && targetLng !== null && hasNextPage && !isRedirecting) {
-        // Bereken de afstand in meters
-        const distance = latlng.distanceTo([targetLat, targetLng]);
-        
-        console.log(`Je bent ${Math.round(distance)} meter verwijderd van het doel.`);
-
-        // Zit de speler binnen de ingestelde radius?
-        if (distance <= targetRadius) {
-          isRedirecting = true; 
-          
-          // Leuke visuele overgang: laat de kaart even vervagen voordat hij naar de volgende pagina springt
+      // Status bijwerken
+      gpsDot.className = 'status-dot ok';
+      if (hasTarget) {
+        const distance = latlng.distanceTo([targetLat, targetLng]); // meters
+        statusText.textContent = `Afstand tot doel: ~${Math.round(distance)} m (radius: ${Number(targetRadius)||50} m)`;
+        // Auto-advance indien binnen de radius
+        if (hasNextPage && !isRedirecting && distance <= (Number(targetRadius) || 50)) {
+          isRedirecting = true;
           mapEl.style.transition = 'opacity 0.8s ease';
           mapEl.style.opacity = '0.3';
-          
-          setTimeout(() => {
-            window.location.href = nextUrl;
-          }, 1000); // 1 seconde vertraging voor een soepele overgang
+          setTimeout(() => { window.location.href = nextUrl; }, 1000);
         }
+      } else {
+        statusText.textContent = 'GPS actief. Geen doellocatie ingesteld.';
       }
     }
 
     function onLocationError(e){
+      gpsDot.className = 'status-dot err';
+      statusText.textContent = 'Locatie kon niet worden bepaald. Sta locatie-toegang toe.';
       console.warn('Geolocatie mislukte:', e.message);
     }
 
     if (navigator.geolocation) {
+      gpsDot.className = 'status-dot warn';
+      statusText.textContent = hasTarget ? 'Doellocatie geladen. GPS wordt gezocht…' : 'GPS wordt gezocht…';
       map.locate({ setView:false, enableHighAccuracy:true, timeout:10000, watch:true })
          .on('locationfound', onLocationFound)
          .on('locationerror', onLocationError);
+    } else {
+      gpsDot.className = 'status-dot err';
+      statusText.textContent = 'Deze browser ondersteunt geen geolocatie.';
     }
   })();
 </script>
