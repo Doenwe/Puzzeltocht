@@ -1,6 +1,11 @@
 // models/Puzzle.js
 import mongoose from "mongoose";
 
+/*
+|--------------------------------------------------------------------------
+| Module Schema (zoals je nu al gebruikt)
+|--------------------------------------------------------------------------
+*/
 const ModuleSchema = new mongoose.Schema(
   {
     type: { type: String, required: true, trim: true },
@@ -9,21 +14,50 @@ const ModuleSchema = new mongoose.Schema(
   { _id: false }
 );
 
+/*
+|--------------------------------------------------------------------------
+| Page Schema  — volledig uitgebreid
+|--------------------------------------------------------------------------
+|
+| Jij hebt aangegeven:
+| - Instellingen moeten per pagina zijn  (JA)
+| - Builder moet toggles krijgen        (komt in volgende scripts)
+| - Server moet alles opslaan           (komt bij letter B)
+| - Audio moet uploadbaar zijn          (komt bij letter E)
+|
+| Hier worden alle velden gezet, zodat Mongoose ze bewaart.
+|--------------------------------------------------------------------------
+*/
+
 const PageSchema = new mongoose.Schema(
   {
-    title:   { type: String,  default: "Pagina", trim: true },
-    showNext:{ type: Boolean, default: true },   // toggle “Volgende pagina”
-    isMap:   { type: Boolean, default: false },  // kaartpagina
+    title:          { type: String,  default: "Pagina", trim: true },
+    showNext:       { type: Boolean, default: true },
+    isMap:          { type: Boolean, default: false },
 
-    // ✅ Nieuw: doellocatie op pagina-niveau
-    targetLat:    { type: Number, default: null },
-    targetLng:    { type: Number, default: null },
-    targetRadius: { type: Number, default: 50 },
+    // ⭐ Nieuw — Doellocatie
+    targetLat:      { type: Number,  default: null },
+    targetLng:      { type: Number,  default: null },
+    targetRadius:   { type: Number,  default: 50 },
 
+    // ⭐ Nieuw — Builder switches
+    showTargetArea: { type: Boolean, default: true },  // cirkel/marker tonen?
+    autoAdvance:    { type: Boolean, default: true },  // automatisch door?
+
+    // ⭐ Nieuw — Geluid bij binnen radius
+    soundUrl:       { type: String,  default: null, trim: true },
+
+    // Module‑blokken
     modules: { type: [ModuleSchema], default: [] },
   },
   { _id: false }
 );
+
+/*
+|--------------------------------------------------------------------------
+| Puzzle Schema
+|--------------------------------------------------------------------------
+*/
 
 const PuzzleSchema = new mongoose.Schema(
   {
@@ -44,6 +78,7 @@ const PuzzleSchema = new mongoose.Schema(
   }
 );
 
+// Index — jouw huidige code
 PuzzleSchema.index({ updatedAt: -1, createdAt: -1 });
 
 export default mongoose.model("Puzzle", PuzzleSchema);
