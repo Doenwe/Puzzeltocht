@@ -149,6 +149,7 @@
   if(!Array.isArray(pages) || !pages.length){ pages = [{ title:"Pagina 1", showNext:true, isMap:false, modules:[] }]; }
   let currentPage = 0;
   let selected = null;
+  let dragged = null;
 
   function mapGoogleDriveUrl(url){
     try{
@@ -172,12 +173,12 @@
     qs("#page-shownext").checked = !!((typeof pages[currentPage]?.showNext === "boolean") ? pages[currentPage].showNext : true);
     qs("#page-ismap").checked = isMap;
 
-    // NIEUW: Vul de target-velden in
+    // Targetvelden invullen
     qs("#page-target-lat").value = pages[currentPage]?.targetLat ?? "";
     qs("#page-target-lng").value = pages[currentPage]?.targetLng ?? "";
     qs("#page-target-radius").value = pages[currentPage]?.targetRadius ?? 50;
 
-    // Toon/verberg de target-instellingen afhankelijk van de 'isMap' checkbox
+    // Toon/verberg de target-instellingen afhankelijk van 'isMap'
     qs("#map-target-settings").style.display = isMap ? "block" : "none";
   }
 
@@ -208,10 +209,15 @@
       info.innerHTML = `
         <h4><span>Kaartpagina</span><span class="kind">map</span></h4>
         <div class="helper">In de speler zie je een live kaart met je huidige locatie. Modules op deze pagina worden genegeerd.</div>
+        <div class="map-target-preview" style="margin-top:8px; background:#f9fafb; border:1px solid #e5e7eb; padding:10px; border-radius:10px;">
+          <div class="helper">Nog geen doel ingesteld.</div>
+        </div>
       `;
       phone.appendChild(info);
+
       setPageTitleUI();
       clearPanel();
+      updateMapPreview(); // <- toon target + radius in de preview
       return;
     }
 
@@ -337,8 +343,6 @@
     btn.setAttribute("type","button");
     btn.addEventListener("click", ()=> addBlock(btn.dataset.type));
   });
-
-  let dragged = null;
 
   function getAfterEl(container, y){
     const blocks = qsa(".block:not(.dragging)", container);
@@ -471,20 +475,20 @@
 
       const lblQ = document.createElement("label"); lblQ.textContent = "Vraag";
       const inQ  = document.createElement("input"); inQ.id="p-q"; inQ.type="text"; inQ.value = q?.value || "";
-      inQ.oninput = ()=> { if(q) q.value = inQ.value; };
+      inQ.oninput = () => { if(q) q.value = inQ.value; };
       frag.append(lblQ, inQ);
 
       const lblA = document.createElement("label"); lblA.textContent = "Antwoord";
       const inA  = document.createElement("input"); inA.id="p-a"; inA.type="text"; inA.value = a?.value || "";
-      inA.oninput = ()=> { if(a) a.value = inA.value; };
+      inA.oninput = () => { if(a) a.value = inA.value; };
       frag.append(lblA, inA);
 
       const lblGood = document.createElement("label"); lblGood.textContent = "Bij goed antwoord → ga naar pagina";
-      const selGood = buildPageSelect("p-good"); selGood.value = (goodHidden?.value ?? ""); selGood.onchange = ()=> { if(goodHidden) goodHidden.value = selGood.value; };
+      const selGood = buildPageSelect("p-good"); selGood.value = (goodHidden?.value ?? ""); selGood.onchange = () => { if(goodHidden) goodHidden.value = selGood.value; };
       frag.append(lblGood, selGood);
 
       const lblBad = document.createElement("label"); lblBad.textContent = "Bij fout antwoord → ga naar pagina";
-      const selBad = buildPageSelect("p-bad"); selBad.value = (badHidden?.value ?? ""); selBad.onchange = ()=> { if(badHidden) badHidden.value = selBad.value; };
+      const selBad = buildPageSelect("p-bad"); selBad.value = (badHidden?.value ?? ""); selBad.onchange = () => { if(badHidden) badHidden.value = selBad.value; };
       frag.append(lblBad, selBad);
 
       pDyn.appendChild(frag);
@@ -504,9 +508,9 @@
       qs("#p-lat").value = lat?.value || "";
       qs("#p-lng").value = lng?.value || "";
       qs("#p-r").value   = r?.value   || 50;
-      qs("#p-lat").oninput = ()=> { if(lat) lat.value = qs("#p-lat").value; };
-      qs("#p-lng").oninput = ()=> { if(lng) lng.value = qs("#p-lng").value; };
-      qs("#p-r").oninput   = ()=> { if(r)   r.value   = qs("#p-r").value;   };
+      qs("#p-lat").oninput = () => { if(lat) lat.value = qs("#p-lat").value; };
+      qs("#p-lng").oninput = () => { if(lng) lng.value = qs("#p-lng").value; };
+      qs("#p-r").oninput   = () => { if(r)   r.value   = qs("#p-r").value;   };
     }
   }
 
@@ -573,19 +577,96 @@
     renderPageList();
   });
   qs("#page-shownext").addEventListener("change", ()=>{ pages[currentPage].showNext = !!qs("#page-shownext").checked; });
-  qs("#page-ismap").addEventListener("change", ()=>{ pages[currentPage].isMap   = !!qs("#page-ismap").checked; renderPage(currentPage); });
+  qs("#page-ismap").addEventListener("change", ()=>{
+    pages[currentPage].isMap = !!qs("#page-ismap").checked;
+    renderPage(currentPage); // bouw preview opnieuw
+  });
   qs("#page-target-lat").addEventListener("input", (e)=>{
     const val = e.target.value;
     pages[currentPage].targetLat = val !== "" ? Number(val) : null;
+    updateMapPreview(); // live bijwerken
   });
   qs("#page-target-lng").addEventListener("input", (e)=>{
     const val = e.target.value;
     pages[currentPage].targetLng = val !== "" ? Number(val) : null;
+    updateMapPreview(); // live bijwerken
   });
   qs("#page-target-radius").addEventListener("input", (e)=>{
     const val = e.target.value;
     pages[currentPage].targetRadius = val !== "" ? Number(val) : 50;
+    updateMapPreview(); // live bijwerken
   });
+
+  // --- NIEUW: Toon doel + radius in de kaart-preview (tekst + canvas) ---
+  function updateMapPreview(){
+    const pg = pages[currentPage] || {};
+    if (!pg?.isMap) return; // alleen relevant op kaartpagina
+
+    const wrap = phone.querySelector(".map-target-preview");
+    if (!wrap) return;
+
+    const hasCoords =
+      (pg.targetLat !== null && pg.targetLat !== undefined && pg.targetLat !== "") &&
+      (pg.targetLng !== null && pg.targetLng !== undefined && pg.targetLng !== "");
+
+    if (!hasCoords) {
+      wrap.innerHTML = `<div class="helper">Nog geen doel ingesteld.</div>`;
+      return;
+    }
+
+    const lat = Number(pg.targetLat);
+    const lng = Number(pg.targetLng);
+    const radius = (pg.targetRadius !== null && pg.targetRadius !== undefined) ? Number(pg.targetRadius) : 50;
+
+    const latTxt = isFinite(lat) ? lat.toFixed(6) : "—";
+    const lngTxt = isFinite(lng) ? lng.toFixed(6) : "—";
+    const radTxt = isFinite(radius) ? radius : 50;
+
+    wrap.innerHTML = `
+      <div style="display:flex; gap:12px; align-items:center;">
+        <canvas id="map-mini" width="160" height="160" style="border:1px solid #e5e7eb; border-radius:10px; background:#fff;"></canvas>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <div><strong>Doellocatie</strong></div>
+          <div style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;">
+            Lat: ${latTxt}<br>
+            Lng: ${lngTxt}
+          </div>
+          <div>Radius: <strong>${radTxt}</strong> meter</div>
+          <div class="helper">De speler gaat automatisch naar de volgende pagina als je binnen de radius komt (indien ingevuld).</div>
+        </div>
+      </div>
+    `;
+
+    // Cosmetische mini-visual (geen echte kaart-schaal)
+    const cv = wrap.querySelector("#map-mini");
+    const ctx = cv?.getContext("2d");
+    if (ctx) {
+      ctx.clearRect(0,0,cv.width,cv.height);
+      ctx.fillStyle="#ffffff";
+      ctx.fillRect(0,0,cv.width,cv.height);
+
+      ctx.fillStyle="#eef2ff";
+      ctx.strokeStyle="#6366f1";
+      ctx.lineWidth=2;
+
+      // Schematische mapping radius -> pixels
+      const rMin = 10, rMax = 70;
+      const pxRadius = Math.max(rMin, Math.min(rMax, (isFinite(radius) ? radius : 50) / 5)); // 50m ~10px, 350m ~70px
+      const cx = cv.width/2, cy = cv.height/2;
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, pxRadius, 0, Math.PI*2);
+      ctx.fill();
+      ctx.stroke();
+
+      // "Doelpunt" in het midden
+      ctx.fillStyle="#111827";
+      ctx.beginPath();
+      ctx.arc(cx, cy, 3, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+  // --- EINDE NIEUW ---
 
   function toast(msg, error=false){
     const t=document.createElement('div'); t.textContent=msg;
