@@ -11,9 +11,15 @@ const ModuleSchema = new mongoose.Schema(
 
 const PageSchema = new mongoose.Schema(
   {
-    title: { type: String, default: "Pagina", trim: true },
-    showNext: { type: Boolean, default: true }, // toggle “Volgende pagina”
-    isMap: { type: Boolean, default: false },   // kaartpagina
+    title:   { type: String,  default: "Pagina", trim: true },
+    showNext:{ type: Boolean, default: true },   // toggle “Volgende pagina”
+    isMap:   { type: Boolean, default: false },  // kaartpagina
+
+    // ✅ Nieuw: doellocatie op pagina-niveau
+    targetLat:    { type: Number, default: null },
+    targetLng:    { type: Number, default: null },
+    targetRadius: { type: Number, default: 50 },
+
     modules: { type: [ModuleSchema], default: [] },
   },
   { _id: false }
@@ -21,7 +27,7 @@ const PageSchema = new mongoose.Schema(
 
 const PuzzleSchema = new mongoose.Schema(
   {
-    name: { type: String, required: true, trim: true },
+    name:  { type: String, required: true, trim: true },
     pages: { type: [PageSchema], default: [] },
   },
   {
