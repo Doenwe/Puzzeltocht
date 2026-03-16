@@ -205,56 +205,93 @@ app.get("/admin-builder/:id", requireAdmin, async (req,res)=>{
   res.render("admin-builder", { puzzle, builderPage: true });
 });
 
-app.post("/admin-builder/:id/save-all", requireAdmin, express.json(), async (req, res)=>{
+app.post("/admin-builder/:id/save-all", requireAdmin, express.json(), async (req, res) => {
   try {
     const puzzle = await Puzzle.findById(req.params.id);
-    if(!puzzle) return res.status(404).send("Puzzle niet gevonden");
+    if (!puzzle) return res.status(404).send("Puzzle niet gevonden");
 
     const pages = Array.isArray(req.body.pages) ? req.body.pages : [];
 
-    const safePages = pages.map((p, idx) => {
-      // Booleans + strings
-      const title    = (typeof p?.title === "string" && p.title.trim()) ? p.title : `Pagina ${idx+1}`;
-      const showNext = (typeof p?.showNext === "boolean") ? p.showNext : true;
-      const isMap    = (typeof p?.isMap === "boolean") ? p.isMap : false;
+    // Helper: parse getal of null
+    const toNumOrNull = (v) => {
+      if (v === "" || v === undefined || v === null) return null;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : null;
+    };
 
-      // Numbers: null als leeg/undefined, anders Number(...) (met fallback op 50 voor radius)
-      const rawLat = p?.targetLat;
-      const rawLng = p?.targetLng;
-      const rawRad = p?.targetRadius;
+    // Helper: parse radius (default 50)
+    const toRadius = (v) => {
+      if (v === "" || v === undefined || v === null) return 50;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : 50;
+    };
 
-      const targetLat = (rawLat === "" || rawLat === undefined || rawLat === null) ? null : Number(rawLat);
-      const targetLng = (rawLng === "" || rawLng === undefined || rawLng === null) ? null : Number(rawLng);
-      const targetRadiusRaw = (rawRad === "" || rawRad === undefined || rawRad === null) ? 50 : Number(rawRad);
+    const safePages = pages.map((p, index) => {
+      const title =
+        typeof p?.title === "string" && p.title.trim()
+          ? p.title.trim()
+          : `Pagina ${index + 1}`;
 
-      const safeLat = Number.isFinite(targetLat) ? targetLat : null;
-      const safeLng = Number.isFinite(targetLng) ? targetLng : null;
-      const safeRad = Number.isFinite(targetRadiusRaw) ? targetRadiusRaw : 50;
+      const showNext =
+        typeof p?.showNext === "boolean" ? p.showNext : true;
 
+      const isMap =
+        typeof p?.isMap === "boolean" ? p.isMap : false;
+
+      // ⭐ Nieuw
+      const showTargetArea =
+        typeof p?.showTargetArea === "boolean" ? p.showTargetArea : true;
+
+      const autoAdvance =
+        typeof p?.autoAdvance === "boolean" ? p.autoAdvance : true;
+
+      const soundUrl =
+        typeof p?.soundUrl === "string" && p.soundUrl.trim()
+          ? p.soundUrl.trim()
+          : null;
+
+      // ⭐ Nieuw — doellocatie opslaan
+      const targetLat = toNumOrNull(p?.targetLat);
+      const targetLng = toNumOrNull(p?.targetLng);
+      const targetRadius = toRadius(p?.targetRadius);
+
+      // Module-data normaliseren
       const modules = Array.isArray(p?.modules)
         ? p.modules
-            .filter(m => m && typeof m.type === "string" && m.type.trim().length > 0)
-            .map(m => ({ type: m.type.trim(), data: m?.data || {} }))
+            .filter(
+              (m) =>
+                m &&
+                typeof m.type === "string" &&
+                m.type.trim().length > 0
+            )
+            .map((m) => ({
+              type: m.type.trim(),
+              data: m.data || {},
+            }))
         : [];
 
       return {
-        title: title,
-        showNext: showNext,
-        isMap: isMap,
-        targetLat: safeLat,
-        targetLng: safeLng,
-        targetRadius: safeRad,
-        modules
+        title,
+        showNext,
+        isMap,
+        targetLat,
+        targetLng,
+        targetRadius,
+        showTargetArea,
+        autoAdvance,
+        soundUrl,
+        modules,
       };
     });
 
+    // Opslaan in DB
     puzzle.pages = safePages;
     puzzle.markModified("pages");
     await puzzle.save();
 
-    res.send("OK");
-  } catch(err){
-    console.error(err);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("❌ Fout bij opslaan:", err);
     res.status(500).send("Server error");
   }
 });
