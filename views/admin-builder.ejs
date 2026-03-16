@@ -1,80 +1,307 @@
 <%
-  // Normaliseer puzzle.pages naar .data (i.p.v. oud .content) en voeg defaults toe
+  // Normaliseer puzzle.pages naar .data + voeg nieuwe velden toe
   const normalizePages = (puz) => {
     if (!puz || !Array.isArray(puz.pages) || !puz.pages.length) {
-      return [{ title: "Pagina 1", showNext: true, isMap: false, modules: [] }];
+      return [{
+        title: "Pagina 1",
+        showNext: true,
+        isMap: false,
+        showTarget: true,        // NIEUW
+        autoNext: false,         // NIEUW
+        playSound: false,        // NIEUW
+        soundUrl: "",            // NIEUW
+        modules: []
+      }];
     }
+
     return puz.pages.map(pg => ({
       title: pg?.title || "Pagina",
-      showNext: (typeof pg?.showNext === "boolean" ? pg.showNext : true),
-      isMap: (typeof pg?.isMap === "boolean" ? pg.isMap : false),
+      showNext: typeof pg?.showNext === "boolean" ? pg.showNext : true,
+      isMap: typeof pg?.isMap === "boolean" ? pg.isMap : false,
 
-      targetLat: (pg?.targetLat !== undefined && pg?.targetLat !== null) ? Number(pg.targetLat) : null,
-      targetLng: (pg?.targetLng !== undefined && pg?.targetLng !== null) ? Number(pg.targetLng) : null,
-      targetRadius: (pg?.targetRadius !== undefined && pg?.targetRadius !== null) ? Number(pg.targetRadius) : 50,
+      // --- NIEUW TOEGEVOEGDE VELDEN ---
+      showTarget: typeof pg?.showTarget === "boolean" ? pg.showTarget : true,
+      autoNext: typeof pg?.autoNext === "boolean" ? pg.autoNext : false,
+      playSound: typeof pg?.playSound === "boolean" ? pg.playSound : false,
+      soundUrl: pg?.soundUrl || "",
+
+      // Bestaande target-informatie
+      targetLat: pg?.targetLat ?? null,
+      targetLng: pg?.targetLng ?? null,
+      targetRadius: pg?.targetRadius ?? 50,
 
       modules: Array.isArray(pg?.modules)
         ? pg.modules.map(m => ({
             type: m?.type || "",
-            data: m?.data || m?.content || {}   // tolerant voor oude data
+            data: m?.data || m?.content || {}
           }))
         : []
     }));
   };
+
   const pagesSafe = normalizePages(puzzle);
 %>
 
 <style>
-  :root{ --primary:#6366f1; --bg:#f5f7fa; --text:#111827; }
-  main{ max-width:100% !important; padding:0 !important; margin:0 !important; }
+  :root{
+    --primary:#6366f1;
+    --bg:#f5f7fa;
+    --text:#111827;
+  }
+  main{
+    max-width:100% !important;
+    padding:0 !important;
+    margin:0 !important;
+  }
   *{ box-sizing:border-box; }
-  .builder-wrap{ display:grid; grid-template-columns: 280px 1fr 320px; gap:0; height:calc(100vh - 56px); background:var(--bg); font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans"; color:var(--text); }
-  .sidebar{ background:#fff; border-right:1px solid #e5e7eb; padding:22px; display:flex; flex-direction:column; gap:20px; }
-  .sidebar h2{ font-size:20px; font-weight:800; margin:0; }
-  .element-btn{ width:100%; display:flex; align-items:center; gap:10px; padding:12px; background:#f9fafb; border:1px solid #e5e7eb; border-radius:10px; cursor:pointer; font-weight:600; transition:.15s ease; }
-  .element-btn:hover{ background:#eef2ff; border-color:var(--primary); }
-  .sidebar-actions{ margin-top:auto; display:flex; gap:12px; }
-  .btn{ flex:1; padding:10px; border-radius:10px; border:1px solid #ddd; font-weight:700; cursor:pointer; }
-  .btn-primary{ background:var(--primary); color:#fff; border:none; }
-  .canvas{ display:flex; justify-content:center; align-items:flex-start; padding:30px; }
-  .phone{ width:380px; height:740px; background:#fff; border-radius:35px; border:4px solid #111; overflow-y:auto; box-shadow:0 20px 50px rgba(0,0,0,0.18); padding:18px 18px 22px; }
-  .phone-header{ position:sticky; top:0; background:#fff; z-index:5; padding:8px 0 10px; margin-bottom:10px; border-bottom:1px dashed #ddd; display:flex; justify-content:space-between; gap:10px; align-items:center; }
-  .block{ padding:18px; background:#fff; border:1px solid #e5e7eb; border-radius:14px; margin-bottom:14px; box-shadow:0 4px 10px rgba(0,0,0,0.05); cursor:grab; position:relative; }
+
+  .builder-wrap{
+    display:grid;
+    grid-template-columns: 280px 1fr 330px;
+    gap:0;
+    height:calc(100vh - 56px);
+    background:var(--bg);
+    font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue";
+    color:var(--text);
+  }
+
+  /* SIDEBAR */
+  .sidebar{
+    background:#fff;
+    border-right:1px solid #e5e7eb;
+    padding:22px;
+    display:flex;
+    flex-direction:column;
+    gap:20px;
+  }
+  .sidebar h2{
+    font-size:20px;
+    font-weight:800;
+    margin:0;
+  }
+  .element-btn{
+    width:100%;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:12px;
+    background:#f9fafb;
+    border:1px solid #e5e7eb;
+    border-radius:10px;
+    cursor:pointer;
+    font-weight:600;
+    transition:.15s ease;
+  }
+  .element-btn:hover{
+    background:#eef2ff;
+    border-color:var(--primary);
+  }
+
+  .sidebar-actions{
+    margin-top:auto;
+    display:flex;
+    gap:12px;
+  }
+
+  .btn{
+    flex:1;
+    padding:10px;
+    border-radius:10px;
+    border:1px solid #ddd;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .btn-primary{
+    background:var(--primary);
+    color:#fff;
+    border:none;
+  }
+
+  /* MID CANVAS */
+  .canvas{
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
+    padding:30px;
+  }
+  .phone{
+    width:380px;
+    height:740px;
+    background:#fff;
+    border-radius:35px;
+    border:4px solid #111;
+    overflow-y:auto;
+    box-shadow:0 20px 50px rgba(0,0,0,0.18);
+    padding:18px 18px 22px;
+  }
+  .phone-header{
+    position:sticky;
+    top:0;
+    background:#fff;
+    z-index:5;
+    padding:8px 0 10px;
+    margin-bottom:10px;
+    border-bottom:1px dashed #ddd;
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    align-items:center;
+  }
+
+  .block{
+    padding:18px;
+    background:#fff;
+    border:1px solid #e5e7eb;
+    border-radius:14px;
+    margin-bottom:14px;
+    box-shadow:0 4px 10px rgba(0,0,0,0.05);
+    cursor:grab;
+    position:relative;
+  }
+
   .block.dragging{ opacity:.45; }
-  .block h4{ margin:0 0 8px; font-weight:700; font-size:15px; display:flex; gap:6px; align-items:center; }
-  .kind{ background:#f3f4f6; border:1px solid #ddd; padding:2px 6px; border-radius:8px; font-size:11px; }
-  .remove{ position:absolute; top:10px; right:10px; background:#ef4444; color:#fff; width:24px; height:24px; border:none; border-radius:6px; cursor:pointer; font-weight:900; }
-  [contenteditable="true"]{ padding:6px; border-radius:8px; transition:.15s; outline:2px dashed transparent; }
-  [contenteditable="true"]:focus{ background:#f0f4ff; outline-color:#aab4ff; }
-  .block input, .block textarea{ width:100%; padding:10px; border-radius:10px; border:1px solid #ddd; margin-bottom:8px; font-size:14px; }
-  .form-row{ display:flex; gap:10px; }
-  .helper{ font-size:12px; color:#6b7280; }
-  .right-panel{ background:#fff; border-left:1px solid #e5e7eb; padding:18px; overflow-y:auto; }
-  .right-panel h3{ margin:0 0 10px; font-size:16px; font-weight:800; }
-  .page-list{ display:flex; flex-direction:column; gap:6px; }
-  .page-item{ padding:8px 10px; background:#f3f4f6; border:1px solid #e5e7eb; border-radius:8px; cursor:pointer; font-size:14px; display:flex; justify-content:space-between; align-items:center; }
-  .page-item.active{ background:var(--primary); border-color:var(--primary); color:#fff; }
+
+  .block h4{
+    margin:0 0 8px;
+    font-weight:700;
+    font-size:15px;
+    display:flex;
+    gap:6px;
+    align-items:center;
+  }
+  .kind{
+    background:#f3f4f6;
+    border:1px solid #ddd;
+    padding:2px 6px;
+    border-radius:8px;
+    font-size:11px;
+  }
+  .remove{
+    position:absolute;
+    top:10px;
+    right:10px;
+    background:#ef4444;
+    color:#fff;
+    width:24px;
+    height:24px;
+    border:none;
+    border-radius:6px;
+    cursor:pointer;
+    font-weight:900;
+  }
+
+  [contenteditable="true"]{
+    padding:6px;
+    border-radius:8px;
+    transition:.15s;
+    outline:2px dashed transparent;
+  }
+  [contenteditable="true"]:focus{
+    background:#f0f4ff;
+    outline-color:#aab4ff;
+  }
+
+  .block input, .block textarea{
+    width:100%;
+    padding:10px;
+    border-radius:10px;
+    border:1px solid #ddd;
+    margin-bottom:8px;
+    font-size:14px;
+  }
+
+  .form-row{
+    display:flex;
+    gap:10px;
+  }
+
+  .helper{
+    font-size:12px;
+    color:#6b7280;
+  }
+
+  /* RIGHT PANEL */
+  .right-panel{
+    background:#fff;
+    border-left:1px solid #e5e7eb;
+    padding:18px;
+    overflow-y:auto;
+  }
+  .right-panel h3{
+    margin:0 0 10px;
+    font-size:16px;
+    font-weight:800;
+  }
+
+  .page-list{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+
+  .page-item{
+    padding:8px 10px;
+    background:#f3f4f6;
+    border:1px solid #e5e7eb;
+    border-radius:8px;
+    cursor:pointer;
+    font-size:14px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+  .page-item.active{
+    background:var(--primary);
+    border-color:var(--primary);
+    color:#fff;
+  }
+  
   .panel-section{ margin-top:16px; }
-  .right-panel label{ font-size:13px; margin-top:10px; display:block; }
-  .right-panel input, .right-panel textarea, .right-panel select{ width:100%; padding:10px; margin-top:4px; border-radius:8px; border:1px solid #ccc; background:#fff; }
-  hr.sep{ border:none; border-top:1px solid #eee; margin:16px 0; }
+
+  .right-panel label{
+    font-size:13px;
+    margin-top:10px;
+    display:block;
+  }
+
+  .right-panel input,
+  .right-panel textarea,
+  .right-panel select{
+    width:100%;
+    padding:10px;
+    margin-top:4px;
+    border-radius:8px;
+    border:1px solid #ccc;
+    background:#fff;
+  }
+
+  hr.sep{
+    border:none;
+    border-top:1px solid #eee;
+    margin:16px 0;
+  }
 </style>
 
 <div class="builder-wrap">
+
+  <!-- SIDEBAR -->
   <aside class="sidebar">
     <h2>Builder</h2>
+
     <div>
       <button class="element-btn" type="button" data-type="text">📝 Tekst</button>
       <button class="element-btn" type="button" data-type="image">🖼️ Afbeelding</button>
       <button class="element-btn" type="button" data-type="question">❓ Vraag</button>
       <button class="element-btn" type="button" data-type="location">📍 Locatie</button>
     </div>
+
     <div class="sidebar-actions">
       <button class="btn" type="button" id="btn-reset">Reset</button>
       <button class="btn btn-primary" type="button" id="btn-save">Opslaan</button>
     </div>
   </aside>
 
+  <!-- MIDDEN / TELEFOON CANVAS -->
   <section class="canvas">
     <div class="phone" id="phone" data-id="<%= puzzle._id %>">
       <div class="phone-header">
@@ -84,58 +311,115 @@
     </div>
   </section>
 
+  <!-- RECHTERPANEEL -->
   <aside class="right-panel" id="right-panel">
+
     <div>
       <h3>Paginas</h3>
       <div id="page-list" class="page-list"></div>
-      <button id="add-page-btn" class="btn" type="button" style="margin-top:10px;">+ Nieuwe pagina</button>
+
+      <button id="add-page-btn" class="btn" type="button" style="margin-top:10px;">
+        + Nieuwe pagina
+      </button>
 
       <div class="panel-section">
+
+        <!-- PAGINA TITEL -->
         <label>Paginatitel</label>
         <input id="page-title-input" type="text" placeholder="Paginatitel" />
 
+        <!-- SHOW NEXT PAGE -->
         <label style="display:flex; align-items:center; gap:8px; margin-top:10px;">
           <input id="page-shownext" type="checkbox" />
-          Toon “Volgende pagina”‑knop
+          Toon “Volgende pagina”-knop
         </label>
 
+        <!-- IS MAP -->
         <label style="display:flex; align-items:center; gap:8px; margin-top:10px;">
           <input id="page-ismap" type="checkbox" />
           Kaartpagina (toon alleen kaart met je locatie)
         </label>
 
-        <div id="map-target-settings" style="display:none; background:#f9fafb; border:1px solid #e5e7eb; padding:12px; border-radius:10px; margin-top:10px;">
+        <!-- TARGET SETTINGS -->
+        <div id="map-target-settings"
+          style="display:none; background:#f9fafb; border:1px solid #e5e7eb; padding:12px; border-radius:10px; margin-top:10px;">
+
           <label style="margin-top:0;"><strong>Doellocatie (optioneel)</strong></label>
-          <div class="helper" style="margin-bottom:8px;">Als je dit invult, gaat de app automatisch naar de volgende pagina zodra de speler binnen de radius is.</div>
-          
-          <div class="form-row">
-            <div><label>Lat</label><input id="page-target-lat" type="number" step="0.000001" placeholder="bijv. 52.123"></div>
-            <div><label>Lng</label><input id="page-target-lng" type="number" step="0.000001" placeholder="bijv. 5.123"></div>
+          <div class="helper" style="margin-bottom:8px;">
+            Als je dit invult, gaat de app automatisch naar de volgende pagina zodra de speler binnen de radius is.
           </div>
+
+          <div class="form-row">
+            <div>
+              <label>Lat</label>
+              <input id="page-target-lat" type="number" step="0.000001" placeholder="bijv. 52.123">
+            </div>
+            <div>
+              <label>Lng</label>
+              <input id="page-target-lng" type="number" step="0.000001" placeholder="bijv. 5.123">
+            </div>
+          </div>
+
           <label>Radius (meters)</label>
           <input id="page-target-radius" type="number" step="1" value="50">
         </div>
 
-        <div style="display:flex; gap:8px; margin-top:10px;">
-          <button id="delete-page-btn" class="btn" type="button" style="background:#fee2e2; color:#991b1b; border-color:#fecaca;">Pagina verwijderen</button>
+        <!-- NIEUW: SHOW TARGET -->
+        <label style="display:flex; align-items:center; gap:8px; margin-top:10px;">
+          <input id="page-showtarget" type="checkbox" />
+          Toon doellocatie aan speler
+        </label>
+
+        <!-- NIEUW: AUTO NEXT -->
+        <label style="display:flex; align-items:center; gap:8px; margin-top:8px;">
+          <input id="page-autonext" type="checkbox" />
+          Ga automatisch naar volgende pagina bij binnen radius
+        </label>
+
+        <!-- NIEUW: PLAY SOUND -->
+        <label style="display:flex; align-items:center; gap:8px; margin-top:8px;">
+          <input id="page-playsound" type="checkbox" />
+          Speel geluid af bij binnen radius
+        </label>
+
+        <!-- NIEUW: SOUND URL -->
+        <label style="margin-top:8px;">Geluidsbestand URL</label>
+        <input id="page-soundurl" type="text" placeholder="https://.../sound.mp3">
+
+        <!-- DELETE PAGE -->
+        <div style="display:flex; gap:8px; margin-top:12px;">
+          <button id="delete-page-btn" class="btn" type="button"
+            style="background:#fee2e2; color:#991b1b; border-color:#fecaca;">
+            Pagina verwijderen
+          </button>
         </div>
-        <div id="page-warning" style="display:none; background:#fee2e2; color:#991b1b; border:1px solid #fecaca; border-radius:10px; padding:10px; margin-top:10px;">Je kunt de laatste pagina niet verwijderen.</div>
+
+        <div id="page-warning"
+          style="display:none; background:#fee2e2; color:#991b1b; border:1px solid #fecaca;
+                 border-radius:10px; padding:10px; margin-top:10px;">
+          Je kunt de laatste pagina niet verwijderen.
+        </div>
+
       </div>
     </div>
 
     <hr class="sep">
 
+    <!-- BLOKINSTELLINGEN -->
     <div class="panel-section">
       <h3>Blok‑instellingen</h3>
       <small id="panel-empty">Selecteer een blok om te bewerken.</small>
+
       <div id="panel-fields" style="display:none;">
         <label>Type</label>
         <input id="panel-type" disabled />
+
         <div id="panel-dynamic" style="margin-top:8px;"></div>
       </div>
     </div>
+
   </aside>
-</div>
+</div> <!-- einde .builder-wrap -->
 
 <script>
 (function(){
@@ -146,7 +430,19 @@
   const qsa = (s,p=document)=>Array.from(p.querySelectorAll(s));
 
   let pages = JSON.parse(`<%- JSON.stringify(pagesSafe) %>`);
-  if(!Array.isArray(pages) || !pages.length){ pages = [{ title:"Pagina 1", showNext:true, isMap:false, modules:[] }]; }
+  if(!Array.isArray(pages) || !pages.length){
+    pages = [{
+      title:"Pagina 1",
+      showNext:true,
+      isMap:false,
+      showTarget:true,
+      autoNext:false,
+      playSound:false,
+      soundUrl:"",
+      modules:[]
+    }];
+  }
+
   let currentPage = 0;
   let selected = null;
   let dragged = null;
@@ -165,25 +461,36 @@
   }
 
   function setPageTitleUI(){
-    const title = pages[currentPage]?.title || ("Pagina " + (currentPage+1));
-    const isMap = !!((typeof pages[currentPage]?.isMap === "boolean") ? pages[currentPage].isMap : false);
-    
+    const page = pages[currentPage];
+
+    const title = page?.title || ("Pagina " + (currentPage+1));
+    const isMap = !!page?.isMap;
+
     qs("#page-title-label").textContent = title;
     qs("#page-title-input").value = title;
-    qs("#page-shownext").checked = !!((typeof pages[currentPage]?.showNext === "boolean") ? pages[currentPage].showNext : true);
-    qs("#page-ismap").checked = isMap;
 
-    // Targetvelden invullen
-    qs("#page-target-lat").value = pages[currentPage]?.targetLat ?? "";
-    qs("#page-target-lng").value = pages[currentPage]?.targetLng ?? "";
-    qs("#page-target-radius").value = pages[currentPage]?.targetRadius ?? 50;
+    qs("#page-shownext").checked = !!page.showNext;
+    qs("#page-ismap").checked = !!page.isMap;
 
-    // Toon/verberg de target-instellingen afhankelijk van 'isMap'
+    // --- NIEUWE VELDEN ---
+    qs("#page-showtarget").checked = !!page.showTarget;
+    qs("#page-autonext").checked = !!page.autoNext;
+    qs("#page-playsound").checked = !!page.playSound;
+    qs("#page-soundurl").value   = page.soundUrl || "";
+
+    // Bestaande targetvelden
+    qs("#page-target-lat").value = page?.targetLat ?? "";
+    qs("#page-target-lng").value = page?.targetLng ?? "";
+    qs("#page-target-radius").value = page?.targetRadius ?? 50;
+
+    // Toon/verberg target-instellingen als 'isMap' aan staat
     qs("#map-target-settings").style.display = isMap ? "block" : "none";
   }
 
   function renderPageList(){
-    const wrap = qs("#page-list"); wrap.innerHTML = "";
+    const wrap = qs("#page-list");
+    wrap.innerHTML = "";
+
     pages.forEach((p,i)=>{
       const item = document.createElement("div");
       item.className = "page-item" + (i===currentPage ? " active" : "");
@@ -194,65 +501,101 @@
     });
   }
 
-  function clearBlocks(){ qsa(".block", phone).forEach(b => b.remove()); }
+  function clearBlocks(){
+    qsa(".block", phone).forEach(b => b.remove());
+  }
 
   function renderPage(idx){
     clearBlocks();
     const pg = pages[idx];
 
+    // --- MAP PREVIEW-MODUS ---
     if (pg.isMap === true) {
       const info = document.createElement("div");
       info.className = "block";
-      info.dataset.type = "__preview__";  // markeer als preview
+      info.dataset.type = "__preview__";
       info.draggable = false;
       info.style.borderStyle = "dashed";
+
       info.innerHTML = `
-        <h4><span>Kaartpagina</span><span class="kind">map</span></h4>
-        <div class="helper">In de speler zie je een live kaart met je huidige locatie. Modules op deze pagina worden genegeerd.</div>
-        <div class="map-target-preview" style="margin-top:8px; background:#f9fafb; border:1px solid #e5e7eb; padding:10px; border-radius:10px;">
+        <h4>
+          <span>Kaartpagina</span>
+          <span class="kind">map</span>
+        </h4>
+        <div class="helper">
+          In de speler zie je een live kaart met je huidige locatie.
+          Modules op deze pagina worden genegeerd.
+        </div>
+
+        <div class="map-target-preview"
+          style="margin-top:8px; background:#f9fafb; border:1px solid #e5e7eb;
+                 padding:10px; border-radius:10px;">
           <div class="helper">Nog geen doel ingesteld.</div>
         </div>
+
+        <!-- NIEUW: indicatoren voor opties -->
+        <div style="margin-top:10px; font-size:13px; color:#555;">
+          <div>🎯 Doel zichtbaar: <strong>${pg.showTarget ? "ja" : "nee"}</strong></div>
+          <div>⏭ Automatisch door: <strong>${pg.autoNext ? "ja" : "nee"}</strong></div>
+          <div>🔊 Geluid afspelen: <strong>${pg.playSound ? "ja" : "nee"}</strong></div>
+          ${pg.soundUrl ? `<div>📁 Geluid: <code>${pg.soundUrl}</code></div>` : ""}
+        </div>
       `;
+
       phone.appendChild(info);
 
       setPageTitleUI();
       clearPanel();
-      updateMapPreview(); // <- toon target + radius in de preview
+      updateMapPreview(); 
       return;
     }
 
+    // --- NORMALE PAGINA: MODULES ---
     (pg.modules || []).forEach(m=>{
       const block = createBlock(m.type);
       phone.appendChild(block);
+
       const data = m.data || {};
 
       if(m.type==="text"){
         qs('[data-field="text"]', block).innerHTML = data?.text || "Nieuwe tekst";
       }
+
       if(m.type==="image"){
         const url = data?.url || "";
         const inp = qs('input[data-field="url"]', block);
         inp.value = url;
+
         if(url){
           const img = document.createElement("img");
-          img.className = "preview"; img.src = url; img.style.width="100%"; img.style.borderRadius="10px";
+          img.className = "preview";
+          img.src = url;
+          img.style.width = "100%";
+          img.style.borderRadius = "10px";
           qs(".content", block).appendChild(img);
-        }else{
+        } else {
           const helper = document.createElement("div");
-          helper.className = "helper"; helper.textContent = "Voeg een afbeelding URL toe of upload.";
+          helper.className = "helper";
+          helper.textContent = "Voeg een afbeelding URL toe of upload.";
           qs(".content", block).appendChild(helper);
         }
       }
+
       if(m.type==="question"){
         qs('[data-field="question"]', block).value = data?.question || "";
-        qs('[data-field="answer"]',  block).value = data?.answer || "";
-        qs('[data-field="goodPage"]', block).value = (Number.isInteger(data?.goodPage) ? data.goodPage : "");
-        qs('[data-field="badPage"]',  block).value = (Number.isInteger(data?.badPage)  ? data.badPage  : "");
+        qs('[data-field="answer"]',  block).value = data?.answer  || "";
+        qs('[data-field="goodPage"]', block).value = (
+          Number.isInteger(data?.goodPage) ? data.goodPage : ""
+        );
+        qs('[data-field="badPage"]', block).value = (
+          Number.isInteger(data?.badPage) ? data.badPage : ""
+        );
       }
+
       if(m.type==="location"){
-        qs('[data-field="lat"]',    block).value = (data?.lat ?? "");
-        qs('[data-field="lng"]',    block).value = (data?.lng ?? "");
-        qs('[data-field="radius"]', block).value = (data?.radius ?? 50);
+        qs('[data-field="lat"]',    block).value = data?.lat ?? "";
+        qs('[data-field="lng"]',    block).value = data?.lng ?? "";
+        qs('[data-field="radius"]', block).value = data?.radius ?? 50;
       }
     });
 
@@ -268,7 +611,16 @@
   }
 
   function addPage(){
-    pages.push({ title:"Nieuwe pagina", showNext:true, isMap:false, modules:[] });
+    pages.push({
+      title:"Nieuwe pagina",
+      showNext:true,
+      isMap:false,
+      showTarget:true,
+      autoNext:false,
+      playSound:false,
+      soundUrl:"",
+      modules:[]
+    });
     currentPage = pages.length - 1;
     renderPageList();
     renderPage(currentPage);
@@ -277,29 +629,41 @@
   function deletePage(){
     if(pages.length <= 1){
       const warn = qs("#page-warning");
-      warn.style.display = "block"; setTimeout(()=> warn.style.display="none", 1800);
+      warn.style.display = "block";
+      setTimeout(()=> warn.style.display="none", 1800);
       return;
     }
+
     pages.splice(currentPage, 1);
     currentPage = Math.max(0, currentPage - 1);
+
     renderPageList();
     renderPage(currentPage);
   }
-
-  function createBlock(type){
+function createBlock(type){
     const div = document.createElement("div");
-    div.className = "block"; div.draggable = true; div.dataset.type = type;
+    div.className = "block";
+    div.draggable = true;
+    div.dataset.type = type;
+
     div.innerHTML = `
       <button class="remove" type="button">×</button>
-      <h4><span>${type[0].toUpperCase()+type.slice(1)}</span><span class="kind">${type}</span></h4>
+      <h4>
+        <span>${type[0].toUpperCase() + type.slice(1)}</span>
+        <span class="kind">${type}</span>
+      </h4>
       <div class="content"></div>
     `;
+
     const content = qs(".content", div);
 
-    if(type==="text"){
-      content.innerHTML = `<div contenteditable="true" data-field="text">Nieuwe tekst</div>`;
+    if(type === "text"){
+      content.innerHTML = `
+        <div contenteditable="true" data-field="text">Nieuwe tekst</div>
+      `;
     }
-    if(type==="image"){
+
+    if(type === "image"){
       content.innerHTML = `
         <div style="display:flex; gap:8px; margin-bottom:8px;">
           <input type="url" data-field="url" placeholder="Afbeeldings-URL" style="flex:1;">
@@ -309,17 +673,22 @@
         <div class="helper">Voeg een URL toe of upload een afbeelding.</div>
       `;
     }
-    if(type==="question"){
+
+    if(type === "question"){
       content.innerHTML = `
         <label>Vraag:</label>
         <input data-field="question">
+
         <label>Antwoord:</label>
         <input data-field="answer">
+
+        <!-- Verborgen target pages -->
         <input type="hidden" data-field="goodPage">
         <input type="hidden" data-field="badPage">
       `;
     }
-    if(type==="location"){
+
+    if(type === "location"){
       content.innerHTML = `
         <div class="form-row">
           <input type="number" step="0.000001" placeholder="Lat" data-field="lat">
@@ -339,133 +708,218 @@
     setSelected(block);
   }
 
+  // Sidebar buttons
   qsa(".element-btn").forEach(btn=>{
-    btn.setAttribute("type","button");
-    btn.addEventListener("click", ()=> addBlock(btn.dataset.type));
+    btn.addEventListener("click", () => addBlock(btn.dataset.type));
   });
 
   function getAfterEl(container, y){
     const blocks = qsa(".block:not(.dragging)", container);
+
     return blocks.reduce((closest, child)=>{
       const box = child.getBoundingClientRect();
       const offset = y - (box.top + box.height / 2);
+
       if(offset < 0 && offset > closest.offset){
         return { offset, element: child };
       }
       return closest;
-    }, { offset: -Infinity, element: null }).element;
+    }, { offset:-Infinity, element:null }).element;
   }
 
   phone.addEventListener("dragover", (e)=>{
     if(!dragged) return;
     e.preventDefault();
+
     const after = getAfterEl(phone, e.clientY);
     if(after == null) phone.appendChild(dragged);
     else phone.insertBefore(dragged, after);
   });
 
   function wireBlock(block){
+    // Drag
     block.addEventListener("dragstart", (e)=>{
-      dragged = block; block.classList.add("dragging");
-      if(e.dataTransfer){ e.dataTransfer.setData("text/plain",""); e.dataTransfer.effectAllowed = "move"; }
-    });
-    block.addEventListener("dragend", ()=>{ block.classList.remove("dragging"); dragged = null; });
+      dragged = block;
+      block.classList.add("dragging");
 
+      if(e.dataTransfer){
+        e.dataTransfer.setData("text/plain", "");
+        e.dataTransfer.effectAllowed = "move";
+      }
+    });
+
+    block.addEventListener("dragend", ()=>{
+      block.classList.remove("dragging");
+      dragged = null;
+    });
+
+    // IMAGE INPUT HANDLING
     block.addEventListener("input", (e)=>{
       if(e.target.matches('input[data-field="url"]')){
         const url = e.target.value.trim();
-        const old = qs("img.preview", block);
+        const oldImg = qs("img.preview", block);
         const helper = qs(".helper", block);
+
         if(url){
-          if(old){ old.src = url; }
-          else{
+          if(oldImg){
+            oldImg.src = url;
+          } else {
             const img = document.createElement("img");
-            img.className = "preview"; img.src = url; img.style.width="100%"; img.style.borderRadius="10px";
-            if(helper) helper.replaceWith(img); else qs(".content", block).appendChild(img);
+            img.className = "preview";
+            img.src = url;
+            img.style.width = "100%";
+            img.style.borderRadius = "10px";
+
+            if(helper) helper.replaceWith(img);
+            else qs(".content", block).appendChild(img);
           }
-        } else if(old){
+        } else if(oldImg){
           const h = document.createElement("div");
-          h.className = "helper"; h.textContent = "Voeg een afbeelding URL toe of upload.";
-          old.replaceWith(h);
+          h.className = "helper";
+          h.textContent = "Voeg een afbeelding URL toe of upload.";
+
+          oldImg.replaceWith(h);
         }
       }
     });
 
+    // UPLOAD LOGIC
     const uploadBtn = block.querySelector(".btn-upload");
     const fileInput = block.querySelector(".file-hidden");
     const urlInput  = block.querySelector('input[data-field="url"]');
-    if (uploadBtn && fileInput && urlInput) {
-      uploadBtn.addEventListener("click", () => fileInput.click());
+
+    if(uploadBtn && fileInput && urlInput){
+      uploadBtn.addEventListener("click", ()=> fileInput.click());
+
       fileInput.addEventListener("change", async () => {
         const file = fileInput.files?.[0];
-        if (!file) return;
-        const fd = new FormData(); fd.append("image", file);
+        if(!file) return;
+
+        const fd = new FormData();
+        fd.append("image", file);
+
         try {
-          const res = await fetch("/admin-upload-image", { method: "POST", body: fd });
-          if (!res.ok) throw new Error(await res.text());
+          const res = await fetch("/admin-upload-image", {
+            method: "POST",
+            body: fd
+          });
+          if(!res.ok) throw new Error(await res.text());
+
           const json = await res.json();
           urlInput.value = json.url;
           urlInput.dispatchEvent(new Event("input"));
-        } catch (e) { console.error(e); alert("Uploaden mislukt"); }
-        finally { fileInput.value = ""; }
+        }
+        catch(err){
+          console.error(err);
+          alert("Upload mislukt");
+        }
+        finally {
+          fileInput.value = "";
+        }
       });
-      urlInput.addEventListener("change", () => {
+
+      urlInput.addEventListener("change", ()=>{
         const raw = urlInput.value.trim();
         const mapped = mapGoogleDriveUrl(raw);
-        if (mapped !== raw) { urlInput.value = mapped; urlInput.dispatchEvent(new Event("input")); }
+
+        if(mapped !== raw){
+          urlInput.value = mapped;
+          urlInput.dispatchEvent(new Event("input"));
+        }
       });
     }
 
-    block.addEventListener("click", ()=> setSelected(block));
+    // BLOCK SELECTION
+    block.addEventListener("click", ()=>{
+      setSelected(block);
+    });
   }
 
   phone.addEventListener("click", (e)=>{
     if(e.target.classList.contains("remove")){
       const bl = e.target.closest(".block");
-      if(bl){ if(selected === bl) clearPanel(); bl.remove(); }
+      if(bl){
+        if(selected === bl) clearPanel();
+        bl.remove();
+      }
     }
   });
 
   document.addEventListener("dragstart", ()=> document.body.style.userSelect = "none");
   document.addEventListener("dragend",   ()=> document.body.style.userSelect = "");
-
-  const pEmpty = qs("#panel-empty");
+const pEmpty = qs("#panel-empty");
   const pFields = qs("#panel-fields");
   const pType = qs("#panel-type");
   const pDyn = qs("#panel-dynamic");
 
   function buildPageSelect(id){
-    const sel = document.createElement("select"); sel.id = id;
-    const opt0 = document.createElement("option"); opt0.value = ""; opt0.textContent = "— kies pagina —";
+    const sel = document.createElement("select");
+    sel.id = id;
+
+    const opt0 = document.createElement("option");
+    opt0.value = "";
+    opt0.textContent = "— kies pagina —";
     sel.appendChild(opt0);
-    pages.forEach((p,idx)=>{
+
+    pages.forEach((p, idx) => {
       const opt = document.createElement("option");
       opt.value = String(idx);
       opt.textContent = `${idx+1}. ${p.title?.trim() ? p.title : "Pagina " + (idx+1)}`;
       sel.appendChild(opt);
     });
+
     return sel;
   }
 
   function setSelected(block){
-    selected = block; pEmpty.style.display = "none"; pFields.style.display = "block"; pDyn.innerHTML = "";
-    const type = block.dataset.type; pType.value = type;
+    selected = block;
 
-    if(type==="text"){
+    pEmpty.style.display = "none";
+    pFields.style.display = "block";
+    pDyn.innerHTML = "";
+
+    const type = block.dataset.type;
+    pType.value = type;
+
+    // TEXT BLOCK
+    if(type === "text"){
       const src = qs('[data-field="text"]', block);
-      pDyn.innerHTML = `<label>Tekst</label><textarea id="p-text" rows="4"></textarea>`;
-      const ta = qs("#p-text"); ta.value = src?.innerHTML || "";
-      ta.oninput = ()=> { if(src) src.innerHTML = ta.value; };
+
+      pDyn.innerHTML = `
+        <label>Tekst</label>
+        <textarea id="p-text" rows="4"></textarea>
+      `;
+
+      const ta = qs("#p-text");
+      ta.value = src?.innerHTML || "";
+
+      ta.oninput = () => {
+        if(src) src.innerHTML = ta.value;
+      };
     }
 
-    if(type==="image"){
+    // IMAGE BLOCK
+    if(type === "image"){
       const src = qs('input[data-field="url"]', block);
-      pDyn.innerHTML = `<label>Afbeeldings-URL</label><input id="p-url" type="url" placeholder="https://...">`;
-      const inp = qs("#p-url"); inp.value = src?.value || "";
-      inp.oninput = ()=>{ if(src){ src.value = mapGoogleDriveUrl(inp.value); src.dispatchEvent(new Event('input')); } };
+
+      pDyn.innerHTML = `
+        <label>Afbeeldings‑URL</label>
+        <input id="p-url" type="url" placeholder="https://...">
+      `;
+
+      const inp = qs("#p-url");
+      inp.value = src?.value || "";
+
+      inp.oninput = () => {
+        if(src){
+          src.value = mapGoogleDriveUrl(inp.value);
+          src.dispatchEvent(new Event("input"));
+        }
+      };
     }
 
-    if(type==="question"){
+    // QUESTION BLOCK
+    if(type === "question"){
       const q = qs('input[data-field="question"]', block);
       const a = qs('input[data-field="answer"]',  block);
       const goodHidden = qs('input[data-field="goodPage"]', block);
@@ -473,41 +927,79 @@
 
       const frag = document.createDocumentFragment();
 
-      const lblQ = document.createElement("label"); lblQ.textContent = "Vraag";
-      const inQ  = document.createElement("input"); inQ.id="p-q"; inQ.type="text"; inQ.value = q?.value || "";
+      // Vraag
+      const lblQ = document.createElement("label");
+      lblQ.textContent = "Vraag";
+
+      const inQ = document.createElement("input");
+      inQ.id = "p-q";
+      inQ.type = "text";
+      inQ.value = q?.value || "";
       inQ.oninput = () => { if(q) q.value = inQ.value; };
+
       frag.append(lblQ, inQ);
 
-      const lblA = document.createElement("label"); lblA.textContent = "Antwoord";
-      const inA  = document.createElement("input"); inA.id="p-a"; inA.type="text"; inA.value = a?.value || "";
+      // Antwoord
+      const lblA = document.createElement("label");
+      lblA.textContent = "Antwoord";
+
+      const inA = document.createElement("input");
+      inA.id = "p-a";
+      inA.type = "text";
+      inA.value = a?.value || "";
       inA.oninput = () => { if(a) a.value = inA.value; };
+
       frag.append(lblA, inA);
 
-      const lblGood = document.createElement("label"); lblGood.textContent = "Bij goed antwoord → ga naar pagina";
-      const selGood = buildPageSelect("p-good"); selGood.value = (goodHidden?.value ?? ""); selGood.onchange = () => { if(goodHidden) goodHidden.value = selGood.value; };
+      // GOOD PAGE
+      const lblGood = document.createElement("label");
+      lblGood.textContent = "Bij goed antwoord → ga naar pagina";
+
+      const selGood = buildPageSelect("p-good");
+      selGood.value = (goodHidden?.value ?? "");
+      selGood.onchange = () => { if(goodHidden) goodHidden.value = selGood.value; };
+
       frag.append(lblGood, selGood);
 
-      const lblBad = document.createElement("label"); lblBad.textContent = "Bij fout antwoord → ga naar pagina";
-      const selBad = buildPageSelect("p-bad"); selBad.value = (badHidden?.value ?? ""); selBad.onchange = () => { if(badHidden) badHidden.value = selBad.value; };
+      // BAD PAGE
+      const lblBad = document.createElement("label");
+      lblBad.textContent = "Bij fout antwoord → ga naar pagina";
+
+      const selBad = buildPageSelect("p-bad");
+      selBad.value = (badHidden?.value ?? "");
+      selBad.onchange = () => { if(badHidden) badHidden.value = selBad.value; };
+
       frag.append(lblBad, selBad);
 
       pDyn.appendChild(frag);
     }
 
-    if(type==="location"){
+    // LOCATION BLOCK
+    if(type === "location"){
       const lat = qs('input[data-field="lat"]', block);
       const lng = qs('input[data-field="lng"]', block);
       const r   = qs('input[data-field="radius"]', block);
+
       pDyn.innerHTML = `
         <div class="form-row">
-          <div><label>Lat</label><input id="p-lat" type="number" step="0.000001"></div>
-          <div><label>Lng</label><input id="p-lng" type="number" step="0.000001"></div>
+          <div>
+            <label>Lat</label>
+            <input id="p-lat" type="number" step="0.000001">
+          </div>
+          <div>
+            <label>Lng</label>
+            <input id="p-lng" type="number" step="0.000001">
+          </div>
         </div>
-        <label>Radius</label><input id="p-r" type="number" step="1">
+
+        <label>Radius</label>
+        <input id="p-r" type="number" step="1">
       `;
+
       qs("#p-lat").value = lat?.value || "";
       qs("#p-lng").value = lng?.value || "";
       qs("#p-r").value   = r?.value   || 50;
+
       qs("#p-lat").oninput = () => { if(lat) lat.value = qs("#p-lat").value; };
       qs("#p-lng").oninput = () => { if(lng) lng.value = qs("#p-lng").value; };
       qs("#p-r").oninput   = () => { if(r)   r.value   = qs("#p-r").value;   };
@@ -515,165 +1007,249 @@
   }
 
   function clearPanel(){
-    selected = null; qs("#panel-empty").style.display = "block"; qs("#panel-fields").style.display = "none"; qs("#panel-dynamic").innerHTML = "";
+    selected = null;
+    pEmpty.style.display = "block";
+    pFields.style.display = "none";
+    pDyn.innerHTML = "";
   }
-
-  function collect(){
+function collect(){
     const blocks = qsa(".block", phone).filter(b => {
       const t = (b.dataset.type || "").trim();
-      return t && t !== "__preview__"; // preview overslaan
+      return t && t !== "__preview__";
     });
 
     return blocks.map(b=>{
       const type = b.dataset.type;
       const data = {};
-      if(type==="text"){
+
+      if(type === "text"){
         data.text = qs('[data-field="text"]', b)?.innerHTML || "";
       }
-      if(type==="image"){
+
+      if(type === "image"){
         data.url = qs('input[data-field="url"]', b)?.value?.trim() || "";
       }
-      if(type==="question"){
+
+      if(type === "question"){
         data.question = qs('input[data-field="question"]', b)?.value || "";
         data.answer   = qs('input[data-field="answer"]',  b)?.value || "";
+
         const gp = qs('input[data-field="goodPage"]', b)?.value;
         const bp = qs('input[data-field="badPage"]',  b)?.value;
+
         data.goodPage = (gp !== "" && !Number.isNaN(+gp)) ? Number(gp) : null;
         data.badPage  = (bp !== "" && !Number.isNaN(+bp)) ? Number(bp) : null;
       }
-      if(type==="location"){
+
+      if(type === "location"){
         const lat = qs('input[data-field="lat"]', b)?.value;
         const lng = qs('input[data-field="lng"]', b)?.value;
         const rad = qs('input[data-field="radius"]', b)?.value;
+
         data.lat    = lat !== "" ? Number(lat) : null;
         data.lng    = lng !== "" ? Number(lng) : null;
         data.radius = rad !== "" ? Number(rad) : 50;
       }
+
       return { type, data };
     });
   }
 
   async function saveAll(){
     pages[currentPage].modules = collect();
+
     const id = phone.dataset.id;
+
     try{
-      const res = await fetch(`/admin-builder/${id}/save-all`,{
-        method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ pages })
+      const res = await fetch(`/admin-builder/${id}/save-all`, {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ pages })
       });
+
       if(!res.ok) throw new Error(await res.text());
       toast("Opgeslagen ✅");
-    }catch(err){ console.error(err); toast("Opslaan mislukt ❌", true); }
+    }
+    catch(err){
+      console.error(err);
+      toast("Opslaan mislukt ❌", true);
+    }
   }
-  function resetPage(){ location.reload(); }
+
+  function resetPage(){
+    location.reload();
+  }
+
   qs("#btn-save").addEventListener("click", saveAll);
   qs("#btn-reset").addEventListener("click", resetPage);
 
   qs("#add-page-btn").addEventListener("click", addPage);
   qs("#delete-page-btn").addEventListener("click", deletePage);
 
+  // PAGE INPUT HANDLERS
   qs("#page-title-input").addEventListener("input", ()=>{
     pages[currentPage].title = qs("#page-title-input").value;
     qs("#page-title-label").textContent = pages[currentPage].title;
     renderPageList();
   });
-  qs("#page-shownext").addEventListener("change", ()=>{ pages[currentPage].showNext = !!qs("#page-shownext").checked; });
+
+  qs("#page-shownext").addEventListener("change", ()=>{
+    pages[currentPage].showNext = !!qs("#page-shownext").checked;
+  });
+
   qs("#page-ismap").addEventListener("change", ()=>{
     pages[currentPage].isMap = !!qs("#page-ismap").checked;
-    renderPage(currentPage); // bouw preview opnieuw
-  });
-  qs("#page-target-lat").addEventListener("input", (e)=>{
-    const val = e.target.value;
-    pages[currentPage].targetLat = val !== "" ? Number(val) : null;
-    updateMapPreview(); // live bijwerken
-  });
-  qs("#page-target-lng").addEventListener("input", (e)=>{
-    const val = e.target.value;
-    pages[currentPage].targetLng = val !== "" ? Number(val) : null;
-    updateMapPreview(); // live bijwerken
-  });
-  qs("#page-target-radius").addEventListener("input", (e)=>{
-    const val = e.target.value;
-    pages[currentPage].targetRadius = val !== "" ? Number(val) : 50;
-    updateMapPreview(); // live bijwerken
+    renderPage(currentPage);
   });
 
-  // --- NIEUW: Toon doel + radius in de kaart-preview (tekst + canvas) ---
+  // NIEUW: SHOW TARGET
+  qs("#page-showtarget").addEventListener("change", ()=>{
+    pages[currentPage].showTarget = !!qs("#page-showtarget").checked;
+    if(pages[currentPage].isMap) updateMapPreview();
+  });
+
+  // NIEUW: AUTO NEXT
+  qs("#page-autonext").addEventListener("change", ()=>{
+    pages[currentPage].autoNext = !!qs("#page-autonext").checked;
+    if(pages[currentPage].isMap) updateMapPreview();
+  });
+
+  // NIEUW: PLAY SOUND
+  qs("#page-playsound").addEventListener("change", ()=>{
+    pages[currentPage].playSound = !!qs("#page-playsound").checked;
+    if(pages[currentPage].isMap) updateMapPreview();
+  });
+
+  // NIEUW: SOUND URL
+  qs("#page-soundurl").addEventListener("input", ()=>{
+    pages[currentPage].soundUrl = qs("#page-soundurl").value;
+    if(pages[currentPage].isMap) updateMapPreview();
+  });
+
+  // TARGET INPUTS
+  qs("#page-target-lat").addEventListener("input", (e)=>{
+    const v = e.target.value;
+    pages[currentPage].targetLat = v !== "" ? Number(v) : null;
+    updateMapPreview();
+  });
+
+  qs("#page-target-lng").addEventListener("input", (e)=>{
+    const v = e.target.value;
+    pages[currentPage].targetLng = v !== "" ? Number(v) : null;
+    updateMapPreview();
+  });
+
+  qs("#page-target-radius").addEventListener("input", (e)=>{
+    const v = e.target.value;
+    pages[currentPage].targetRadius = v !== "" ? Number(v) : 50;
+    updateMapPreview();
+  });
+
+
+  // --- MINI MAP PREVIEW (tekst + canvas) ---
   function updateMapPreview(){
-    const pg = pages[currentPage] || {};
-    if (!pg?.isMap) return; // alleen relevant op kaartpagina
+    const pg = pages[currentPage];
+    if(!pg?.isMap) return;
 
     const wrap = phone.querySelector(".map-target-preview");
-    if (!wrap) return;
+    if(!wrap) return;
 
-    const hasCoords =
-      (pg.targetLat !== null && pg.targetLat !== undefined && pg.targetLat !== "") &&
-      (pg.targetLng !== null && pg.targetLng !== undefined && pg.targetLng !== "");
+    const hasCoords = (
+      pg.targetLat !== null && pg.targetLat !== "" &&
+      pg.targetLng !== null && pg.targetLng !== ""
+    );
 
-    if (!hasCoords) {
+    if(!hasCoords){
       wrap.innerHTML = `<div class="helper">Nog geen doel ingesteld.</div>`;
       return;
     }
 
     const lat = Number(pg.targetLat);
     const lng = Number(pg.targetLng);
-    const radius = (pg.targetRadius !== null && pg.targetRadius !== undefined) ? Number(pg.targetRadius) : 50;
+    const radius = Number(pg.targetRadius || 50);
 
     const latTxt = isFinite(lat) ? lat.toFixed(6) : "—";
     const lngTxt = isFinite(lng) ? lng.toFixed(6) : "—";
-    const radTxt = isFinite(radius) ? radius : 50;
 
     wrap.innerHTML = `
       <div style="display:flex; gap:12px; align-items:center;">
-        <canvas id="map-mini" width="160" height="160" style="border:1px solid #e5e7eb; border-radius:10px; background:#fff;"></canvas>
+        <canvas id="map-mini" width="160" height="160"
+          style="border:1px solid #e5e7eb; border-radius:10px; background:#fff;">
+        </canvas>
+
         <div style="display:flex; flex-direction:column; gap:6px;">
           <div><strong>Doellocatie</strong></div>
-          <div style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;">
+
+          <div style="font-family: ui-monospace, monospace;">
             Lat: ${latTxt}<br>
             Lng: ${lngTxt}
           </div>
-          <div>Radius: <strong>${radTxt}</strong> meter</div>
-          <div class="helper">De speler gaat automatisch naar de volgende pagina als je binnen de radius komt (indien ingevuld).</div>
+
+          <div>Radius: <strong>${radius}</strong> meter</div>
+
+          <div class="helper">
+            De speler gaat automatisch verder als je binnen de radius komt (indien optie aanstaat).
+          </div>
         </div>
       </div>
     `;
 
-    // Cosmetische mini-visual (geen echte kaart-schaal)
     const cv = wrap.querySelector("#map-mini");
     const ctx = cv?.getContext("2d");
-    if (ctx) {
+
+    if(ctx){
       ctx.clearRect(0,0,cv.width,cv.height);
-      ctx.fillStyle="#ffffff";
+
+      ctx.fillStyle = "#ffffff";
       ctx.fillRect(0,0,cv.width,cv.height);
 
-      ctx.fillStyle="#eef2ff";
-      ctx.strokeStyle="#6366f1";
-      ctx.lineWidth=2;
+      ctx.fillStyle = "#eef2ff";
+      ctx.strokeStyle = "#6366f1";
+      ctx.lineWidth = 2;
 
-      // Schematische mapping radius -> pixels
       const rMin = 10, rMax = 70;
-      const pxRadius = Math.max(rMin, Math.min(rMax, (isFinite(radius) ? radius : 50) / 5)); // 50m ~10px, 350m ~70px
-      const cx = cv.width/2, cy = cv.height/2;
+      const pxRadius = Math.max(rMin, Math.min(rMax, radius / 5));
+      const cx = cv.width/2;
+      const cy = cv.height/2;
 
       ctx.beginPath();
       ctx.arc(cx, cy, pxRadius, 0, Math.PI*2);
       ctx.fill();
       ctx.stroke();
 
-      // "Doelpunt" in het midden
-      ctx.fillStyle="#111827";
+      ctx.fillStyle = "#111827";
       ctx.beginPath();
       ctx.arc(cx, cy, 3, 0, Math.PI*2);
       ctx.fill();
     }
   }
-  // --- EINDE NIEUW ---
-
+// --- TOAST MECHANISME ---
   function toast(msg, error=false){
-    const t=document.createElement('div'); t.textContent=msg;
-    Object.assign(t.style,{position:'fixed',right:'20px',bottom:'20px',background: error ? '#ef4444' : 'var(--primary)',color:'#fff',padding:'10px 14px',borderRadius:'12px',boxShadow:'0 8px 24px rgba(0,0,0,.2)',zIndex:'9999'}); document.body.appendChild(t);
-    setTimeout(()=> t.remove(), 2000);
+    const t = document.createElement("div");
+    t.textContent = msg;
+
+    Object.assign(t.style, {
+      position: 'fixed',
+      right: '20px',
+      bottom: '20px',
+      background: error ? '#ef4444' : 'var(--primary)',
+      color: '#fff',
+      padding: '10px 14px',
+      borderRadius: '12px',
+      boxShadow: '0 8px 24px rgba(0,0,0,.2)',
+      zIndex: '9999',
+      fontSize: '14px'
+    });
+
+    document.body.appendChild(t);
+
+    setTimeout(() => t.remove(), 2000);
   }
 
-  renderPageList(); renderPage(currentPage);
-})();
+  // INIT
+  renderPageList();
+  renderPage(currentPage);
+
+})(); // einde IIFE
 </script>
+</div> <!-- einde .builder-wrap -->
