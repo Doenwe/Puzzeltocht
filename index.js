@@ -211,19 +211,45 @@ app.post("/admin-builder/:id/save-all", requireAdmin, express.json(), async (req
     if(!puzzle) return res.status(404).send("Puzzle niet gevonden");
 
     const pages = Array.isArray(req.body.pages) ? req.body.pages : [];
-    const safePages = pages.map(p => ({
-      title: (p?.title ?? "Pagina"),
-      showNext: (typeof p?.showNext === "boolean" ? p.showNext : true),
-      isMap: (typeof p?.isMap === "boolean" ? p.isMap : false),
-      modules: Array.isArray(p?.modules)
+
+    const safePages = pages.map((p, idx) => {
+      // Booleans + strings
+      const title    = (typeof p?.title === "string" && p.title.trim()) ? p.title : `Pagina ${idx+1}`;
+      const showNext = (typeof p?.showNext === "boolean") ? p.showNext : true;
+      const isMap    = (typeof p?.isMap === "boolean") ? p.isMap : false;
+
+      // Numbers: null als leeg/undefined, anders Number(...) (met fallback op 50 voor radius)
+      const rawLat = p?.targetLat;
+      const rawLng = p?.targetLng;
+      const rawRad = p?.targetRadius;
+
+      const targetLat = (rawLat === "" || rawLat === undefined || rawLat === null) ? null : Number(rawLat);
+      const targetLng = (rawLng === "" || rawLng === undefined || rawLng === null) ? null : Number(rawLng);
+      const targetRadiusRaw = (rawRad === "" || rawRad === undefined || rawRad === null) ? 50 : Number(rawRad);
+
+      const safeLat = Number.isFinite(targetLat) ? targetLat : null;
+      const safeLng = Number.isFinite(targetLng) ? targetLng : null;
+      const safeRad = Number.isFinite(targetRadiusRaw) ? targetRadiusRaw : 50;
+
+      const modules = Array.isArray(p?.modules)
         ? p.modules
-            .filter(m => m && typeof m.type === "string" && m.type.trim().length > 0) // filter lege types
+            .filter(m => m && typeof m.type === "string" && m.type.trim().length > 0)
             .map(m => ({ type: m.type.trim(), data: m?.data || {} }))
-        : []
-    }));
+        : [];
+
+      return {
+        title: title,
+        showNext: showNext,
+        isMap: isMap,
+        targetLat: safeLat,
+        targetLng: safeLng,
+        targetRadius: safeRad,
+        modules
+      };
+    });
 
     puzzle.pages = safePages;
-    puzzle.markModified('pages');
+    puzzle.markModified("pages");
     await puzzle.save();
 
     res.send("OK");
