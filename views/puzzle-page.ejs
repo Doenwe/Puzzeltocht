@@ -1,17 +1,19 @@
 <%
-  // Server-variabelen uit de route:
-  // - puzzle:  { _id, name, pages: [...] }
-  // - page:    puzzle.pages[pageIndex]
-  // - pageIndex (0-based)
   const hasNext  = !!puzzle.pages[pageIndex + 1];
   const showNext = (typeof page?.showNext === 'boolean') ? page.showNext : true;
   const isMap    = (typeof page?.isMap === 'boolean')    ? page.isMap    : false;
+
+  // Nieuwe veld‑waarden (default val)
+  const showTarget   = (typeof page?.showTarget === 'boolean') ? page.showTarget : true;
+  const autoNext     = (typeof page?.autoNext   === 'boolean') ? page.autoNext   : false;
+  const playSound    = (typeof page?.playSound  === 'boolean') ? page.playSound  : false;
+  const soundUrl     = page?.soundUrl || "";
 %>
 
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title><%= puzzle.name %> — <%= page.title %></title>
 
@@ -31,59 +33,49 @@
       --border:#e5e7eb;
       --accent:#ef4444;
     }
-    body { margin:0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans"; color:var(--text); }
-    .container { max-width: 880px; margin: 0 auto; padding: 16px; display: grid; gap: 16px; }
+    body { margin:0; font-family: Inter, system-ui; color:var(--text); }
+
+    .container { max-width:880px; margin:0 auto; padding:16px; display:grid; gap:16px; }
     h1,h2 { margin:0; }
-    .card { background: var(--card); border:1px solid var(--border); border-radius:14px; padding:16px; box-shadow: 0 4px 12px rgba(0,0,0,.06); }
-    .muted { color: var(--muted); font-size: .95rem; }
+    .card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px; box-shadow:0 4px 12px rgba(0,0,0,.06); }
+    .muted { color:var(--muted); }
 
-    /* Kaartcontainer */
     #map {
-      height: 65vh;
-      min-height: 380px;
-      border-radius: 14px;
-      border: 1px solid var(--border);
-      box-shadow: 0 10px 24px rgba(0,0,0,.08);
-      background: #eef2ff;
-      position: relative;
+      height:65vh; min-height:380px;
+      border-radius:14px; border:1px solid var(--border);
+      background:#eef2ff; position:relative;
+      box-shadow:0 10px 24px rgba(0,0,0,.08);
     }
-    .leaflet-container { background: #eef2ff; }
+    .leaflet-container { background:#eef2ff; }
 
-    /* User dot (blauw) */
     .user-dot {
-      width: 14px; height: 14px; border-radius: 50%;
-      background: #1a73e8;
-      border: 3px solid #ffffff;
-      box-shadow: 0 0 0 2px rgba(26,115,232,0.25);
+      width:14px; height:14px; border-radius:50%;
+      background:#1a73e8; border:3px solid #fff;
+      box-shadow:0 0 0 2px rgba(26,115,232,0.25);
     }
-    .user-dot.pulse { position: relative; }
+    .user-dot.pulse { position:relative; }
     .user-dot.pulse::after {
-      content: "";
-      position: absolute; left: 50%; top: 50%;
-      width: 14px; height: 14px; transform: translate(-50%,-50%);
-      border-radius: 50%;
-      background: rgba(26,115,232,0.3);
-      animation: userDotPulse 2.2s ease-out infinite;
+      content:""; position:absolute; left:50%; top:50%;
+      width:14px; height:14px;
+      transform:translate(-50%,-50%);
+      border-radius:50%; background:rgba(26,115,232,.3);
+      animation:userPulse 2.2s ease-out infinite;
     }
-    @keyframes userDotPulse {
-      0%   { transform: translate(-50%,-50%) scale(1);   opacity: .6; }
-      70%  { transform: translate(-50%,-50%) scale(2.6); opacity: 0; }
-      100% { transform: translate(-50%,-50%) scale(2.6); opacity: 0; }
+    @keyframes userPulse {
+      0% { transform:translate(-50%,-50%) scale(1); opacity:.6; }
+      70%{ transform:translate(-50%,-50%) scale(2.6); opacity:0; }
+      100%{ transform:translate(-50%,-50%) scale(2.6); opacity:0; }
     }
 
-    /* Status-badge rechtsboven op de kaart */
     .status-badge {
-      position: absolute; right: 12px; top: 12px;
-      background: rgba(255,255,255,.95);
-      backdrop-filter: blur(6px);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 8px 10px;
-      font-size: 13px;
-      color: var(--muted);
-      box-shadow: 0 6px 16px rgba(0,0,0,.08);
-      z-index: 500;
-      display: flex; align-items: center; gap: 8px;
+      position:absolute; right:12px; top:12px;
+      background:rgba(255,255,255,.95); backdrop-filter:blur(6px);
+      border:1px solid var(--border);
+      border-radius:12px; padding:8px 10px;
+      font-size:13px; color:var(--muted);
+      box-shadow:0 6px 16px rgba(0,0,0,.08);
+      display:flex; align-items:center; gap:8px;
+      z-index:500;
     }
     .status-dot { width:8px; height:8px; border-radius:50%; background:#9ca3af; }
     .status-dot.ok { background:#10b981; }
@@ -91,39 +83,39 @@
     .status-dot.err { background:#ef4444; }
 
     .next-btn {
-      display: inline-flex; align-items: center; gap: 8px;
-      background: var(--primary); color: #fff; padding: 10px 14px;
-      border-radius: 10px; border: none; text-decoration: none;
-      box-shadow: 0 6px 16px rgba(37,99,235,.25);
+      display:inline-flex; gap:8px; align-items:center;
+      padding:10px 14px; background:var(--primary); color:#fff;
+      border-radius:10px; text-decoration:none;
+      box-shadow:0 6px 16px rgba(37,99,235,.25);
     }
-    .next-btn:hover { filter: brightness(1.05); }
-    .grid { display:grid; gap: 1rem; }
-    input[type="text"], input[type="number"] {
-      border:1px solid var(--border); border-radius:10px; padding:10px;
-      width:100%;
-    }
-    button[type="submit"] { cursor:pointer; }
+    .next-btn:hover { filter:brightness(1.05); }
+
+    .grid { display:grid; gap:1rem; }
   </style>
 </head>
-<body>
 
+<body>
 <div class="container">
 
   <div>
-    <h1 class="text-2xl font-bold"><%= puzzle.name %></h1>
-    <h2 class="text-xl font-semibold"><%= page.title %></h2>
+    <h1><%= puzzle.name %></h1>
+    <h2><%= page.title %></h2>
   </div>
 
   <% if (isMap) { %>
-    <!-- ============ KAARTPAGINA ============ -->
+
+    <!-- ===== MAP PAGINA ===== -->
     <div class="card" style="padding:0;">
       <div id="map">
-        <div id="mapStatus" class="status-badge" aria-live="polite">
+
+        <div id="mapStatus" class="status-badge">
           <span class="status-dot" id="gpsDot"></span>
           <span id="statusText">GPS wordt gezocht…</span>
         </div>
+
       </div>
-      <div style="padding: 12px 12px 6px;">
+
+      <div style="padding:12px;">
         <p class="muted">
           Geef toestemming voor locatie om automatisch door te gaan zodra je binnen de radius bent.
         </p>
@@ -132,16 +124,18 @@
 
     <% if (hasNext && showNext) { %>
       <div class="pt-2">
-        <a class="next-btn" href="/puzzle/<%= puzzle._id %>/<%= pageIndex + 1 %>">
-          <span>Volgende pagina</span> <span aria-hidden="true">➜</span>
+        <a class="next-btn" href="/puzzle/<%= puzzle._id %>/<%= pageIndex+1 %>">
+          Volgende pagina ➜
         </a>
       </div>
     <% } %>
 
   <% } else { %>
-    <!-- ============ NORMALE PAGINA (modules) ============ -->
+
+    <!-- ===== NORMALE PAGINA (modules) ===== -->
     <div class="grid">
-      <% (page.modules || []).forEach((mod) => { %>
+
+      <% (page.modules || []).forEach((mod)=>{ %>
 
         <% if (mod.type === "text") { %>
           <div class="card"><%- mod.data?.text || "" %></div>
@@ -150,7 +144,7 @@
         <% if (mod.type === "image") { %>
           <div class="card" style="padding:0;">
             <% if (mod.data?.url) { %>
-              <img src="<%= mod.data.url %>" alt="" style="width:100%; display:block; border-radius:12px;" />
+              <img src="<%= mod.data.url %>" style="width:100%; border-radius:12px;">
             <% } else { %>
               <div class="muted" style="padding:1rem;">Geen afbeelding opgegeven.</div>
             <% } %>
@@ -159,214 +153,181 @@
 
         <% if (mod.type === "question") { %>
           <div class="card" style="display:grid; gap:.5rem;">
-            <p class="font-semibold"><%= mod.data?.question || "Vraag" %></p>
+            <p class="font-semibold"><%= mod.data?.question || "" %></p>
 
             <form
               onsubmit="return checkAnswerBranch(
                 this,
-                '<%= (mod.data?.answer ? String(mod.data.answer).replace(/"/g,'&quot;') : '') %>',
-                <%= (Number.isInteger(mod.data?.goodPage) ? mod.data.goodPage : 'null') %>,
-                <%= (Number.isInteger(mod.data?.badPage)  ? mod.data.badPage  : 'null') %>,
+                '<%= (mod.data?.answer||'').replace(/"/g,'&quot;') %>',
+                <%= Number.isInteger(mod.data?.goodPage) ? mod.data.goodPage : 'null' %>,
+                <%= Number.isInteger(mod.data?.badPage)  ? mod.data.badPage  : 'null' %>,
                 '<%= puzzle._id %>'
               )"
               style="display:grid; gap:.5rem;"
             >
-              <input
-                type="text"
-                name="answer"
-                placeholder="Jouw antwoord"
-                autocomplete="off"
-              />
-              <div class="flex gap-2">
-                <button class="next-btn" type="submit">Controleer</button>
-              </div>
+              <input type="text" name="answer" placeholder="Jouw antwoord">
+              <button class="next-btn" type="submit">Controleer</button>
               <div class="text-sm" data-feedback></div>
             </form>
           </div>
         <% } %>
 
         <% if (mod.type === "location") { %>
-          <div class="card" style="display:grid; gap:.25rem;">
-            <p class="font-semibold">Locatie‑check</p>
-            <p class="muted">Lat: <%= (mod.data?.lat ?? "?") %></p>
-            <p class="muted">Lng: <%= (mod.data?.lng ?? "?") %></p>
-            <p class="muted">Straal: <%= (mod.data?.radius ?? 50) %> meter</p>
+          <div class="card">
+            <p class="font-semibold">Locatie-check</p>
+            <p class="muted">Lat: <%= mod.data?.lat ?? "?" %></p>
+            <p class="muted">Lng: <%= mod.data?.lng ?? "?" %></p>
+            <p class="muted">Radius: <%= mod.data?.radius ?? 50 %> m</p>
           </div>
         <% } %>
 
       <% }) %>
+
     </div>
 
     <% if (hasNext && showNext) { %>
       <div class="pt-2">
-        <a class="next-btn" href="/puzzle/<%= puzzle._id %>/<%= pageIndex + 1 %>">
-          <span>Volgende pagina</span> <span aria-hidden="true">➜</span>
+        <a class="next-btn" href="/puzzle/<%= puzzle._id %>/<%= pageIndex+1 %>">
+          Volgende pagina ➜
         </a>
       </div>
     <% } %>
+
   <% } %>
 
 </div>
 
 <!-- Leaflet JS -->
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-  // ====== Branching voor vraag‑modules ======
-  function normalize(str){
-    return String(str||'')
-      .trim()
-      .toLowerCase()
-      .normalize('NFKD')
-      .replace(/[\u0300-\u036f]/g,'')
-      .replace(/\s+/g,' ');
+/* ========== Branching voor vraagmodules ========== */
+function normalize(str){
+  return String(str||"")
+    .trim().toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g,'')
+    .replace(/\s+/g,' ');
+}
+function checkAnswerBranch(form, correct, goodPage, badPage, puzzleId){
+  const fb = form.querySelector('[data-feedback]');
+  const user = form.answer.value;
+  const ok = normalize(user) === normalize(correct);
+
+  if (ok && Number.isInteger(goodPage)) {
+    window.location.href = `/puzzle/${puzzleId}/${goodPage}`;
+    return false;
   }
-  function checkAnswerBranch(form, correct, goodPage, badPage, puzzleId){
-    const feedback = form.querySelector('[data-feedback]');
-    const user = form.answer.value;
-    const ok = normalize(user) === normalize(correct);
-
-    if (ok && Number.isInteger(goodPage)) {
-      window.location.href = `/puzzle/${puzzleId}/${goodPage}`;
-      return false;
-    }
-    if (!ok && Number.isInteger(badPage)) {
-      window.location.href = `/puzzle/${puzzleId}/${badPage}`;
-      return false;
-    }
-
-    feedback.textContent = ok ? '✅ Klopt!' : '❌ Niet goed, probeer opnieuw.';
-    feedback.style.color = ok ? '#059669' : '#dc2626';
+  if (!ok && Number.isInteger(badPage)) {
+    window.location.href = `/puzzle/${puzzleId}/${badPage}`;
     return false;
   }
 
-  // ====== Kaart initialisatie (alleen als #map bestaat) ======
-  (function initMapIfPresent(){
-    const mapEl = document.getElementById('map');
-    if (!mapEl || typeof L === 'undefined') return;
+  fb.textContent = ok ? "✅ Klopt!" : "❌ Niet goed, probeer opnieuw.";
+  fb.style.color = ok ? "#059669" : "#dc2626";
+  return false;
+}
 
-    // Waarden uit de server (EJS)
-    const targetLat = <%= page.targetLat !== null && page.targetLat !== undefined ? page.targetLat : 'null' %>;
-    const targetLng = <%= page.targetLng !== null && page.targetLng !== undefined ? page.targetLng : 'null' %>;
-    const targetRadius = <%= page.targetRadius !== null && page.targetRadius !== undefined ? page.targetRadius : 50 %>;
-    const hasNextPage = <%= hasNext ? 'true' : 'false' %>;
-    const nextUrl = "/puzzle/<%= puzzle._id %>/<%= pageIndex + 1 %>";
+/* ========== MAP PAGINA ========== */
+(function initMap(){
+  const mapEl = document.getElementById('map');
+  if (!mapEl || typeof L === "undefined") return;
 
-    const gpsDot = document.getElementById('gpsDot');
-    const statusText = document.getElementById('statusText');
-    let isRedirecting = false;
+  const targetLat    = <%= page.targetLat ?? 'null' %>;
+  const targetLng    = <%= page.targetLng ?? 'null' %>;
+  const targetRadius = <%= page.targetRadius ?? 50 %>;
+  const showTarget   = <%= showTarget ? 'true' : 'false' %>;
+  const autoNext     = <%= autoNext ? 'true' : 'false' %>;
+  const playSound    = <%= playSound ? 'true' : 'false' %>;
+  const soundUrl     = "<%= soundUrl %>";
 
-    // Map init (NL fallback)
-    const map = L.map('map', { zoomControl: true }).setView([52.1326, 5.2913], 7);
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
+  const hasNextPage  = <%= hasNext ? 'true' : 'false' %>;
+  const nextUrl      = "/puzzle/<%= puzzle._id %>/<%= pageIndex+1 %>";
+
+  let audio = null;
+  if (playSound && soundUrl.trim() !== "") {
+    audio = new Audio(soundUrl);
+  }
+
+  const gpsDot = document.getElementById('gpsDot');
+  const statusText = document.getElementById('statusText');
+
+  let isRedirecting = false;
+
+  const map = L.map('map', { zoomControl:true }).setView([52,5], 7);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:19 }).addTo(map);
+
+  // TARGET
+  const hasTarget = (targetLat !== null && targetLng !== null);
+  let targetCircle = null;
+  let targetMarker = null;
+
+  if (hasTarget && showTarget) {
+    targetCircle = L.circle([targetLat, targetLng], {
+      radius:Number(targetRadius),
+      color:'#ef4444', weight:2,
+      fillColor:'#ef4444', fillOpacity:0.18
     }).addTo(map);
 
-    // Sizing fix
-    function fixSize(){ try { map.invalidateSize(false); } catch(e){} }
-    fixSize(); requestAnimationFrame(fixSize);
-    window.addEventListener('resize', fixSize, { passive:true });
+    targetMarker = L.marker([targetLat, targetLng]).addTo(map);
 
-    // Doel cirkel + marker tekenen (indien ingesteld)
-    const hasTarget = (targetLat !== null && targetLng !== null);
-    let targetCircle = null;
-    let targetMarker = null;
+    map.fitBounds(targetCircle.getBounds(), { padding:[20,20], maxZoom:17 });
+  }
 
-    if (hasTarget) {
-      targetCircle = L.circle([targetLat, targetLng], {
-        radius: Number(targetRadius) || 50,
-        color: '#ef4444',
-        weight: 2,
-        fillColor: '#ef4444',
-        fillOpacity: 0.18
-      }).addTo(map);
+  // USER MARKER
+  let userMarker = null;
 
-      targetMarker = L.marker([targetLat, targetLng], { title: 'Doellocatie' })
-        .addTo(map)
-        .bindPopup(
-          `<strong>Doellocatie</strong><br>Lat: ${Number(targetLat).toFixed(6)}<br>Lng: ${Number(targetLng).toFixed(6)}<br>Straal: ${Number(targetRadius) || 50} m`
-        );
+  function createUserIcon(){
+    const d = document.createElement('div');
+    d.innerHTML = '<div class="user-dot pulse"></div>';
+    return L.divIcon({ html:d, iconSize:[20,20], iconAnchor:[10,10], className:'' });
+  }
 
-      // Zorg dat de cirkel in beeld is
-      const bounds = targetCircle.getBounds();
-      map.fitBounds(bounds, { padding: [20, 20], maxZoom: 17 });
-      statusText.textContent = 'Doellocatie geladen. GPS wordt gezocht…';
+  function onLocationFound(e){
+    const pos = e.latlng;
+
+    if (!userMarker) {
+      userMarker = L.marker(pos, { icon:createUserIcon() }).addTo(map);
     } else {
-      statusText.textContent = 'Geen doellocatie ingesteld. GPS wordt gezocht…';
+      userMarker.setLatLng(pos);
     }
 
-    // Gebruiker marker + accuracy
-    let userMarker = null;
-    let accuracyCircle = null;
+    gpsDot.className = "status-dot ok";
 
-    function createUserIcon(){
-      const container = document.createElement('div');
-      container.style.position = 'relative';
-      const dot = document.createElement('div');
-      dot.className = 'user-dot pulse';
-      container.appendChild(dot);
-      return L.divIcon({ className: '', html: container, iconSize: [20,20], iconAnchor: [10,10] });
+    if (!hasTarget) {
+      statusText.textContent = "GPS actief. Geen doellocatie.";
+      return;
     }
 
-    function onLocationFound(e){
-      const latlng   = e.latlng;
-      const accuracy = e.accuracy || 0;
+    const dist = pos.distanceTo([targetLat, targetLng]);
+    statusText.textContent =
+      `Afstand tot doel: ~${Math.round(dist)} m (radius: ${targetRadius} m)`;
 
-      if (!userMarker) {
-        userMarker = L.marker(latlng, { icon: createUserIcon(), zIndexOffset: 1000 }).addTo(map);
-        // Als er geen target is, centreer dan op de gebruiker
-        if (!hasTarget && map.getZoom() < 16) map.setView(latlng, 16);
-      } else {
-        userMarker.setLatLng(latlng);
-      }
+    if (autoNext && hasNextPage && !isRedirecting && dist <= Number(targetRadius)) {
+      isRedirecting = true;
 
-      if (!accuracyCircle) {
-        accuracyCircle = L.circle(latlng, {
-          radius: accuracy,
-          color:'#1a73e8',
-          weight: 1,
-          fillColor:'#1a73e8',
-          fillOpacity: 0.08
-        }).addTo(map);
-      } else {
-        accuracyCircle.setLatLng(latlng).setRadius(accuracy);
-      }
+      if (audio) audio.play().catch(()=>{});
 
-      // Status bijwerken
-      gpsDot.className = 'status-dot ok';
-      if (hasTarget) {
-        const distance = latlng.distanceTo([targetLat, targetLng]); // meters
-        statusText.textContent = `Afstand tot doel: ~${Math.round(distance)} m (radius: ${Number(targetRadius)||50} m)`;
-        // Auto-advance indien binnen de radius
-        if (hasNextPage && !isRedirecting && distance <= (Number(targetRadius) || 50)) {
-          isRedirecting = true;
-          mapEl.style.transition = 'opacity 0.8s ease';
-          mapEl.style.opacity = '0.3';
-          setTimeout(() => { window.location.href = nextUrl; }, 1000);
-        }
-      } else {
-        statusText.textContent = 'GPS actief. Geen doellocatie ingesteld.';
-      }
+      setTimeout(()=> window.location.href = nextUrl, 800);
     }
+  }
 
-    function onLocationError(e){
-      gpsDot.className = 'status-dot err';
-      statusText.textContent = 'Locatie kon niet worden bepaald. Sta locatie-toegang toe.';
-      console.warn('Geolocatie mislukte:', e.message);
-    }
+  function onLocationError(){
+    gpsDot.className = "status-dot err";
+    statusText.textContent = "Locatie kon niet worden bepaald.";
+  }
 
-    if (navigator.geolocation) {
-      gpsDot.className = 'status-dot warn';
-      statusText.textContent = hasTarget ? 'Doellocatie geladen. GPS wordt gezocht…' : 'GPS wordt gezocht…';
-      map.locate({ setView:false, enableHighAccuracy:true, timeout:10000, watch:true })
-         .on('locationfound', onLocationFound)
-         .on('locationerror', onLocationError);
-    } else {
-      gpsDot.className = 'status-dot err';
-      statusText.textContent = 'Deze browser ondersteunt geen geolocatie.';
-    }
-  })();
+  if (navigator.geolocation) {
+    gpsDot.className = "status-dot warn";
+    map.locate({ watch:true, enableHighAccuracy:true })
+      .on('locationfound', onLocationFound)
+      .on('locationerror', onLocationError);
+  } else {
+    gpsDot.className = "status-dot err";
+    statusText.textContent = "Browser ondersteunt geen GPS.";
+  }
+
+})();
 </script>
 
 </body>
