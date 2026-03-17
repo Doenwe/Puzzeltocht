@@ -303,9 +303,11 @@ function checkAnswerBranch(form, correct, goodPage, badPage, puzzleId){
       isRedirecting = true;
 
       // SPEEL GELUID AF (globale speler)
+      
       if (playSound && soundUrl.trim() !== "") {
-        playSound(soundUrl);
+        playSfx(soundUrl);
       }
+
 
       // 1 seconde wachten, zodat audio 100% start voor de paginawissel
       setTimeout(() => {
@@ -333,7 +335,7 @@ function checkAnswerBranch(form, correct, goodPage, badPage, puzzleId){
 
 const audioPlayer = document.getElementById("global-sound-player");
 
-function playSound(url) {
+function playSfx(url) {
   if (!url) return;
   audioPlayer.src = url;
   audioPlayer.currentTime = 0;
