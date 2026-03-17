@@ -244,8 +244,12 @@ function checkAnswerBranch(form, correct, goodPage, badPage, puzzleId){
   const soundUrl     = "<%= soundUrl %>";
   const playSoundOnStart = <%= playSoundOnStart ? 'true' : 'false' %>;
   
-  // === Geluid afspelen bij openen van pagina ===
-  if (playSoundOnStart && soundUrl.trim() !== "") {
+  // === Geluid afspelen bij openen van pagina (alleen in echte speler, niet in builder) ===
+  if (
+    playSoundOnStart &&
+    soundUrl.trim() !== "" &&
+    window.location.pathname.startsWith("/puzzle/")
+  ) {
     playSfx(soundUrl);
   }
 
