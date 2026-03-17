@@ -41,11 +41,12 @@ const PageSchema = new mongoose.Schema(
     targetRadius:   { type: Number,  default: 50 },
 
     // ⭐ Nieuwe opties — exact zoals front‑end
-    showTarget:     { type: Boolean, default: true },   // zichtbaar marker
-    autoNext:       { type: Boolean, default: false },  // automatisch door
-    playSound:      { type: Boolean, default: false },  // geluid aan
-    soundUrl:       { type: String,  default: "", trim: true },
-
+    showTarget:       { type: Boolean, default: true },   // zichtbaar marker
+    autoNext:         { type: Boolean, default: false },  // automatisch door
+    playSound:        { type: Boolean, default: false },  // geluid bij binnen radius
+    playSoundOnStart: { type: Boolean, default: false },  // geluid bij openen pagina  ← NIEUW
+    soundUrl:         { type: String,  default: "", trim: true },
+    
     // Modules
     modules: { type: [ModuleSchema], default: [] },
   },
