@@ -41,8 +41,12 @@ const imageStorage = multer.diskStorage({
 const uploadImage = multer({
   storage: imageStorage,
   fileFilter: (req, file, cb) => {
-    if (!file.mimetype.startsWith("image/")) return cb(new Error("Alleen afbeeldingen toegestaan"), false);
-    cb(null, true);
+    if (
+      !file.mimetype.startsWith("image/") &&
+      !file.mimetype.startsWith("audio/")
+    ){
+      return cb(new Error("Alleen afbeeldingen of geluidsbestanden toegestaan"), false);
+    }
   },
   limits: { fileSize: 5 * 1024 * 1024 }
 });
