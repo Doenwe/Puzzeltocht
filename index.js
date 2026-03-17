@@ -239,16 +239,19 @@ app.post("/admin-builder/:id/save-all", requireAdmin, express.json(), async (req
         typeof p?.isMap === "boolean" ? p.isMap : false;
 
       // ⭐ Nieuw
-      const showTargetArea =
-        typeof p?.showTargetArea === "boolean" ? p.showTargetArea : true;
+      const showTarget =
+        typeof p?.showTarget === "boolean" ? p.showTarget : true;
 
-      const autoAdvance =
-        typeof p?.autoAdvance === "boolean" ? p.autoAdvance : true;
+      const autoNext =
+        typeof p?.autoNext === "boolean" ? p.autoNext : false;
+
+    const playSound =
+      typeof p?.playSound === "boolean" ? p.playSound : false;
 
       const soundUrl =
         typeof p?.soundUrl === "string" && p.soundUrl.trim()
           ? p.soundUrl.trim()
-          : null;
+          : "";
 
       // ⭐ Nieuw — doellocatie opslaan
       const targetLat = toNumOrNull(p?.targetLat);
