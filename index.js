@@ -127,6 +127,8 @@ app.post("/admin-upload-image", requireAdmin, uploadImage.single("image"), (req,
   res.json({ url });
 });
 
+app.use(express.json());
+
 // Routes
 app.get("/", (req, res) => { res.render("index", { error: null }); });
 
