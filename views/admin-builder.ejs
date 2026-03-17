@@ -383,9 +383,17 @@
 
         </div>
 
-        <!-- NIEUW: SOUND URL -->
-        <label style="margin-top:8px;">Geluidsbestand URL</label>
-        <input id="page-soundurl" type="text" placeholder="https://.../sound.mp3">
+        <label style="margin-top:8px;">Geluidsbestand</label>
+
+          <div style="display:flex; gap:8px; margin-bottom:8px;">
+            <input id="page-soundurl" type="text" placeholder="/uploads/sound.mp3" style="flex:1;">
+  
+            <button type="button" id="btn-sound-upload" class="btn-upload" style="white-space:nowrap;">
+              Uploaden
+            </button>
+
+            <input type="file" id="file-sound-upload" accept="audio/*" style="display:none;">
+          </div>
 
         <!-- DELETE PAGE -->
         <div style="display:flex; gap:8px; margin-top:12px;">
@@ -1279,5 +1287,45 @@ function collect(){
   renderPage(currentPage);
 
 })(); // einde IIFE
+
+// --- SOUND UPLOAD LOGICA ---
+const soundUploadBtn = qs("#btn-sound-upload");
+const soundFileInput = qs("#file-sound-upload");
+const soundUrlInput  = qs("#page-soundurl");
+
+soundUploadBtn.addEventListener("click", () => {
+  soundFileInput.click();
+});
+
+soundFileInput.addEventListener("change", async () => {
+  const file = soundFileInput.files?.[0];
+  if (!file) return;
+
+  const fd = new FormData();
+  fd.append("image", file);   // hergebruik endpoint
+
+  try {
+    const res = await fetch("/admin-upload-image", {
+      method: "POST",
+      body: fd
+    });
+
+    if (!res.ok) throw new Error(await res.text());
+
+    const json = await res.json();
+    soundUrlInput.value = json.url;
+
+    // Update opslaan in pagina-data
+    pages[currentPage].soundUrl = json.url;
+  }
+  catch (err) {
+    console.error(err);
+    alert("Upload mislukt");
+  }
+  finally {
+    soundFileInput.value = "";
+  }
+});
+
 </script>
 </div> <!-- einde .builder-wrap -->
