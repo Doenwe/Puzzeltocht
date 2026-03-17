@@ -603,12 +603,32 @@
     clearPanel();
   }
 
-  function switchPage(nextIndex){
+function savePageSettings() {
+  const pg = pages[currentPage];
+
+  pg.title        = qs("#page-title-input").value;
+  pg.showNext     = qs("#page-shownext").checked;
+  pg.isMap        = qs("#page-ismap").checked;
+
+  // nieuwe velden
+  pg.showTarget   = qs("#page-showtarget").checked;
+  pg.autoNext     = qs("#page-autonext").checked;
+  pg.playSound    = qs("#page-playsound").checked;
+  pg.soundUrl     = qs("#page-soundurl").value;
+
+  // target velden
+  pg.targetLat    = qs("#page-target-lat").value !== "" ? Number(qs("#page-target-lat").value) : null;
+  pg.targetLng    = qs("#page-target-lng").value !== "" ? Number(qs("#page-target-lng").value) : null;
+  pg.targetRadius = qs("#page-target-radius").value !== "" ? Number(qs("#page-target-radius").value) : 50;
+}
+
+function switchPage(nextIndex){
+    savePageSettings();
     pages[currentPage].modules = collect();
     currentPage = nextIndex;
     renderPageList();
     renderPage(currentPage);
-  }
+}
 
   function addPage(){
     pages.push({
@@ -1056,6 +1076,7 @@ function collect(){
   }
 
   async function saveAll(){
+    savePageSettings();
     pages[currentPage].modules = collect();
 
     const id = phone.dataset.id;
