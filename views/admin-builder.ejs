@@ -515,7 +515,6 @@
       item.innerHTML = `<span>${p.title?.trim() ? p.title : ("Pagina " + (i+1))}</span>`;
       item.addEventListener("click", ()=> switchPage(i));
       wrap.appendChild(item);
-      playSoundIfNeeded();
     });
   }
 
