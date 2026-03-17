@@ -826,7 +826,7 @@ function createBlock(type){
         if(!file) return;
 
         const fd = new FormData();
-        fd.append("image", file);
+        fd.append("file", file);
 
         try {
           const res = await fetch("/admin-upload-media", {
@@ -1299,7 +1299,7 @@ function collect(){
       if (!file) return;
 
       const fd = new FormData();
-      fd.append("image", file); // zelfde endpoint werkt voor audio
+      fd.append("file", file); // zelfde endpoint werkt voor audio
 
       try {
         const res = await fetch("/admin-upload-media", {
