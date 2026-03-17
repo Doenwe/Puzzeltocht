@@ -8,7 +8,6 @@
         isMap: false,
         showTarget: true,        // NIEUW
         autoNext: false,         // NIEUW
-        playSound: false,        // NIEUW
         playSoundOnStart: false,
         soundUrl: "",            // NIEUW
         modules: []
@@ -23,7 +22,6 @@
       // --- NIEUW TOEGEVOEGDE VELDEN ---
       showTarget: typeof pg?.showTarget === "boolean" ? pg.showTarget : true,
       autoNext: typeof pg?.autoNext === "boolean" ? pg.autoNext : false,
-      playSound: typeof pg?.playSound === "boolean" ? pg.playSound : false,
       playSoundOnStart: typeof pg?.playSoundOnStart === "boolean" ? pg.playSoundOnStart : false,
       soundUrl: pg?.soundUrl || "",
 
@@ -379,11 +377,6 @@
           </label>
 
           <label style="display:flex; align-items:center; gap:8px; margin-top:8px;">
-            <input id="page-playsound" type="checkbox" />
-            Speel geluid af bij binnen radius
-          </label>
-
-          <label style="display:flex; align-items:center; gap:8px; margin-top:8px;">
             <input id="page-playsound-start" type="checkbox" />
             Speel geluid bij openen pagina
           </label>
@@ -491,7 +484,6 @@
     // --- NIEUWE VELDEN ---
     qs("#page-showtarget").checked = !!page.showTarget;
     qs("#page-autonext").checked = !!page.autoNext;
-    qs("#page-playsound").checked = !!page.playSound;
     qs("#page-soundurl").value   = page.soundUrl || "";
     qs("#page-playsound-start").checked = !!page.playSoundOnStart;
 
@@ -630,7 +622,6 @@ function savePageSettings() {
   // nieuwe velden
   pg.showTarget   = qs("#page-showtarget").checked;
   pg.autoNext     = qs("#page-autonext").checked;
-  pg.playSound    = qs("#page-playsound").checked;
   pg.playSoundOnStart = qs("#page-playsound-start").checked;
   pg.soundUrl     = qs("#page-soundurl").value;
 
@@ -1159,11 +1150,6 @@ function collect(){
   });
 
   // NIEUW: PLAY SOUND
-  qs("#page-playsound").addEventListener("change", ()=>{
-    pages[currentPage].playSound = !!qs("#page-playsound").checked;
-    if(pages[currentPage].isMap) updateMapPreview();
-  });
-
   qs("#page-playsound-start").addEventListener("change", () => {
     pages[currentPage].playSoundOnStart = !!qs("#page-playsound-start").checked;
   });
