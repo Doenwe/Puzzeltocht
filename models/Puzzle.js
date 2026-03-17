@@ -35,19 +35,18 @@ const PageSchema = new mongoose.Schema(
     showNext:       { type: Boolean, default: true },
     isMap:          { type: Boolean, default: false },
 
-    // ⭐ Nieuw — Doellocatie
+    // Coordinates
     targetLat:      { type: Number,  default: null },
     targetLng:      { type: Number,  default: null },
     targetRadius:   { type: Number,  default: 50 },
 
-    // ⭐ Nieuw — Builder switches
-    showTargetArea: { type: Boolean, default: true },  // cirkel/marker tonen?
-    autoAdvance:    { type: Boolean, default: true },  // automatisch door?
+    // ⭐ Nieuwe opties — exact zoals front‑end
+    showTarget:     { type: Boolean, default: true },   // zichtbaar marker
+    autoNext:       { type: Boolean, default: false },  // automatisch door
+    playSound:      { type: Boolean, default: false },  // geluid aan
+    soundUrl:       { type: String,  default: "", trim: true },
 
-    // ⭐ Nieuw — Geluid bij binnen radius
-    soundUrl:       { type: String,  default: null, trim: true },
-
-    // Module‑blokken
+    // Modules
     modules: { type: [ModuleSchema], default: [] },
   },
   { _id: false }
