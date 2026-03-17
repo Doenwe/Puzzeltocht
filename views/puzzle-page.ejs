@@ -252,6 +252,10 @@ function checkAnswerBranch(form, correct, goodPage, badPage, puzzleId){
   const soundUrl     = "<%= soundUrl %>";
   const playSoundOnStart = <%= playSoundOnStart ? 'true' : 'false' %>;
 
+  if (playSoundOnStart && soundUrl.trim() !== "" && window.location.pathname.startsWith("/puzzle/")) {
+      playSfx(soundUrl);
+  }
+
   const hasNextPage  = <%= hasNext ? 'true' : 'false' %>;
   const nextUrl      = "/puzzle/<%= puzzle._id %>/<%= pageIndex+1 %>";
 
