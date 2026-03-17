@@ -8,6 +8,7 @@
   const autoNext     = (typeof page?.autoNext   === 'boolean') ? page.autoNext   : false;
   const playSound    = (typeof page?.playSound  === 'boolean') ? page.playSound  : false;
   const soundUrl     = page?.soundUrl || "";
+  const playSoundOnStart = (typeof page?.playSoundOnStart === 'boolean') ? page.playSoundOnStart : false;
 %>
 
 <!DOCTYPE html>
@@ -241,6 +242,12 @@ function checkAnswerBranch(form, correct, goodPage, badPage, puzzleId){
   const autoNext     = <%= autoNext ? 'true' : 'false' %>;
   const playSound    = <%= playSound ? 'true' : 'false' %>;
   const soundUrl     = "<%= soundUrl %>";
+  const playSoundOnStart = <%= playSoundOnStart ? 'true' : 'false' %>;
+  
+  // === Geluid afspelen bij openen van pagina ===
+  if (playSoundOnStart && soundUrl.trim() !== "") {
+    playSfx(soundUrl);
+  }
 
   const hasNextPage  = <%= hasNext ? 'true' : 'false' %>;
   const nextUrl      = "/puzzle/<%= puzzle._id %>/<%= pageIndex+1 %>";
