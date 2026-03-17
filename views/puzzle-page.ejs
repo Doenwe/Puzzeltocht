@@ -193,7 +193,15 @@
         </a>
       </div>
     <% } %>
-
+    <script>
+      // geluid afspelen bij openen pagina (niet‑kaart pagina’s)
+      const soundUrlNormal = "<%= soundUrl %>";
+      const playOnStartNormal = <%= playSoundOnStart ? 'true' : 'false' %>;
+    
+      if (playOnStartNormal && soundUrlNormal.trim() !== "" && window.location.pathname.startsWith("/puzzle/")) {
+        playSfx(soundUrlNormal);
+      }
+    </script>
   <% } %>
 
 </div>
