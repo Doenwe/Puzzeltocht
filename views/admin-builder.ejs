@@ -364,23 +364,24 @@
           <input id="page-target-radius" type="number" step="1" value="50">
         </div>
 
-        <!-- NIEUW: SHOW TARGET -->
-        <label style="display:flex; align-items:center; gap:8px; margin-top:10px;">
-          <input id="page-showtarget" type="checkbox" />
-          Toon doellocatie aan speler
-        </label>
+        <div id="map-extra-options" style="display:none; margin-top:10px;">
 
-        <!-- NIEUW: AUTO NEXT -->
-        <label style="display:flex; align-items:center; gap:8px; margin-top:8px;">
-          <input id="page-autonext" type="checkbox" />
-          Ga automatisch naar volgende pagina bij binnen radius
-        </label>
+          <label style="display:flex; align-items:center; gap:8px; margin-top:10px;">
+            <input id="page-showtarget" type="checkbox" />
+            Toon doellocatie aan speler
+          </label>
 
-        <!-- NIEUW: PLAY SOUND -->
-        <label style="display:flex; align-items:center; gap:8px; margin-top:8px;">
-          <input id="page-playsound" type="checkbox" />
-          Speel geluid af bij binnen radius
-        </label>
+          <label style="display:flex; align-items:center; gap:8px; margin-top:8px;">
+            <input id="page-autonext" type="checkbox" />
+            Ga automatisch naar volgende pagina bij binnen radius
+          </label>
+
+          <label style="display:flex; align-items:center; gap:8px; margin-top:8px;">
+            <input id="page-playsound" type="checkbox" />
+            Speel geluid af bij binnen radius
+          </label>
+
+        </div>
 
         <!-- NIEUW: SOUND URL -->
         <label style="margin-top:8px;">Geluidsbestand URL</label>
@@ -471,6 +472,7 @@
 
     qs("#page-shownext").checked = !!page.showNext;
     qs("#page-ismap").checked = !!page.isMap;
+    qs("#map-extra-options").style.display = page.isMap ? "block" : "none
 
     // --- NIEUWE VELDEN ---
     qs("#page-showtarget").checked = !!page.showTarget;
@@ -1118,8 +1120,13 @@ function collect(){
     pages[currentPage].showNext = !!qs("#page-shownext").checked;
   });
 
-  qs("#page-ismap").addEventListener("change", ()=>{
-    pages[currentPage].isMap = !!qs("#page-ismap").checked;
+  qs("#page-ismap").addEventListener("change", () => {
+    const isMap = !!qs("#page-ismap").checked;
+    pages[currentPage].isMap = isMap;
+
+    // Extra opties tonen of verbergen
+    qs("#map-extra-options").style.display = isMap ? "block" : "none";
+
     renderPage(currentPage);
   });
 
