@@ -6,7 +6,6 @@
   // Nieuwe veld‑waarden (default val)
   const showTarget   = (typeof page?.showTarget === 'boolean') ? page.showTarget : true;
   const autoNext     = (typeof page?.autoNext   === 'boolean') ? page.autoNext   : false;
-  const playSound    = (typeof page?.playSound  === 'boolean') ? page.playSound  : false;
   const soundUrl     = page?.soundUrl || "";
   const playSoundOnStart = (typeof page?.playSoundOnStart === 'boolean') ? page.playSoundOnStart : false;
 %>
@@ -248,7 +247,6 @@ function checkAnswerBranch(form, correct, goodPage, badPage, puzzleId){
   const targetRadius = <%= page.targetRadius ?? 50 %>;
   const showTarget   = <%= showTarget ? 'true' : 'false' %>;
   const autoNext     = <%= autoNext ? 'true' : 'false' %>;
-  const playSound    = <%= playSound ? 'true' : 'false' %>;
   const soundUrl     = "<%= soundUrl %>";
   const playSoundOnStart = <%= playSoundOnStart ? 'true' : 'false' %>;
 
@@ -315,13 +313,6 @@ function checkAnswerBranch(form, correct, goodPage, badPage, puzzleId){
 
     if (autoNext && hasNextPage && !isRedirecting && dist <= Number(targetRadius)) {
       isRedirecting = true;
-
-      // SPEEL GELUID AF (globale speler)
-      
-      if (playSound && soundUrl.trim() !== "") {
-        playSfx(soundUrl);
-      }
-
 
       // 1 seconde wachten, zodat audio 100% start voor de paginawissel
       setTimeout(() => {
