@@ -204,6 +204,14 @@
 
 <script>
 /* ========== Branching voor vraagmodules ========== */
+const audioPlayer = document.getElementById("global-sound-player");
+
+function playSfx(url) {
+  if (!url) return;
+  audioPlayer.src = url;
+  audioPlayer.currentTime = 0;
+  audioPlayer.play().catch(() => {});
+}
 function normalize(str){
   return String(str||"")
     .trim().toLowerCase()
@@ -243,15 +251,6 @@ function checkAnswerBranch(form, correct, goodPage, badPage, puzzleId){
   const playSound    = <%= playSound ? 'true' : 'false' %>;
   const soundUrl     = "<%= soundUrl %>";
   const playSoundOnStart = <%= playSoundOnStart ? 'true' : 'false' %>;
-  
-  // === Geluid afspelen bij openen van pagina (alleen in echte speler, niet in builder) ===
-  if (
-    playSoundOnStart &&
-    soundUrl.trim() !== "" &&
-    window.location.pathname.startsWith("/puzzle/")
-  ) {
-    playSfx(soundUrl);
-  }
 
   const hasNextPage  = <%= hasNext ? 'true' : 'false' %>;
   const nextUrl      = "/puzzle/<%= puzzle._id %>/<%= pageIndex+1 %>";
@@ -344,14 +343,6 @@ function checkAnswerBranch(form, correct, goodPage, badPage, puzzleId){
 
 })();
 
-const audioPlayer = document.getElementById("global-sound-player");
-
-function playSfx(url) {
-  if (!url) return;
-  audioPlayer.src = url;
-  audioPlayer.currentTime = 0;
-  audioPlayer.play().catch(() => {});
-}
 </script>
 
 </body>
