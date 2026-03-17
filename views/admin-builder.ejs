@@ -829,7 +829,7 @@ function createBlock(type){
         fd.append("image", file);
 
         try {
-          const res = await fetch("/admin-upload-image", {
+          const res = await fetch("/admin-upload-media", {
             method: "POST",
             body: fd
           });
@@ -1302,7 +1302,7 @@ function collect(){
       fd.append("image", file); // zelfde endpoint werkt voor audio
 
       try {
-        const res = await fetch("/admin-upload-image", {
+        const res = await fetch("/admin-upload-media", {
           method: "POST",
           body: fd
         });
