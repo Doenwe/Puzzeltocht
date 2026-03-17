@@ -95,6 +95,7 @@
 </head>
 
 <body>
+<audio id="global-sound-player" style="display:none;"></audio>
 <div class="container">
 
   <div>
@@ -328,6 +329,15 @@ function checkAnswerBranch(form, correct, goodPage, badPage, puzzleId){
   }
 
 })();
+
+const audioPlayer = document.getElementById("global-sound-player");
+
+function playSound(url) {
+  if (!url) return;
+  audioPlayer.src = url;
+  audioPlayer.currentTime = 0;
+  audioPlayer.play().catch(() => {});
+}
 </script>
 
 </body>
