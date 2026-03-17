@@ -1,275 +1,346 @@
 <%
   const hasNext  = !!puzzle.pages[pageIndex + 1];
-  const showNext = page?.showNext ?? true;
-  const isMap    = page?.isMap    ?? false;
+  const showNext = (typeof page?.showNext === 'boolean') ? page.showNext : true;
+  const isMap    = (typeof page?.isMap === 'boolean')    ? page.isMap    : false;
 
-  const showTarget      = page?.showTarget ?? true;
-  const autoNext        = page?.autoNext   ?? false;
-  const shouldPlaySound = page?.playSound  ?? false;
-  const soundUrl        = page?.soundUrl   || "";
+  // Nieuwe veld‑waarden (default val)
+  const showTarget   = (typeof page?.showTarget === 'boolean') ? page.showTarget : true;
+  const autoNext     = (typeof page?.autoNext   === 'boolean') ? page.autoNext   : false;
+  const playSound    = (typeof page?.playSound  === 'boolean') ? page.playSound  : false;
+  const soundUrl     = page?.soundUrl || "";
 %>
 
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title><%= puzzle.name %> — <%= page.title %></title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title><%= puzzle.name %> — <%= page.title %></title>
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <!-- Leaflet CSS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    crossorigin=""
+  />
 
-<style>
-:root{
-  --primary:#2563eb;
-  --text:#111827;
-  --muted:#6b7280;
-  --card:#ffffff;
-  --border:#e5e7eb;
-}
-body{
-  margin:0;
-  font-family:Inter,system-ui;
-  background:#f8fafc;
-  color:var(--text);
-}
-.container{
-  max-width:880px;
-  margin:0 auto;
-  padding:16px;
-  display:grid;
-  gap:16px;
-}
-.card{
-  background:#fff;
-  border:1px solid var(--border);
-  padding:16px;
-  border-radius:14px;
-  box-shadow:0 3px 10px rgba(0,0,0,0.05);
-}
-#map{
-  height:65vh;
-  border-radius:14px;
-  border:1px solid var(--border);
-}
-.next-btn{
-  display:inline-flex;
-  background:var(--primary);
-  color:white;
-  padding:10px 14px;
-  border-radius:10px;
-  text-decoration:none;
-  font-weight:600;
-  gap:5px;
-}
-.grid{ display:grid; gap:16px; }
-.muted{ color:var(--muted); }
-</style>
+  <style>
+    :root{
+      --primary:#2563eb;
+      --text:#111827;
+      --muted:#6b7280;
+      --card:#ffffff;
+      --border:#e5e7eb;
+      --accent:#ef4444;
+    }
+    body { margin:0; font-family: Inter, system-ui; color:var(--text); }
+
+    .container { max-width:880px; margin:0 auto; padding:16px; display:grid; gap:16px; }
+    h1,h2 { margin:0; }
+    .card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px; box-shadow:0 4px 12px rgba(0,0,0,.06); }
+    .muted { color:var(--muted); }
+
+    #map {
+      height:65vh; min-height:380px;
+      border-radius:14px; border:1px solid var(--border);
+      background:#eef2ff; position:relative;
+      box-shadow:0 10px 24px rgba(0,0,0,.08);
+    }
+    .leaflet-container { background:#eef2ff; }
+
+    .user-dot {
+      width:14px; height:14px; border-radius:50%;
+      background:#1a73e8; border:3px solid #fff;
+      box-shadow:0 0 0 2px rgba(26,115,232,0.25);
+    }
+    .user-dot.pulse { position:relative; }
+    .user-dot.pulse::after {
+      content:""; position:absolute; left:50%; top:50%;
+      width:14px; height:14px;
+      transform:translate(-50%,-50%);
+      border-radius:50%; background:rgba(26,115,232,.3);
+      animation:userPulse 2.2s ease-out infinite;
+    }
+    @keyframes userPulse {
+      0% { transform:translate(-50%,-50%) scale(1); opacity:.6; }
+      70%{ transform:translate(-50%,-50%) scale(2.6); opacity:0; }
+      100%{ transform:translate(-50%,-50%) scale(2.6); opacity:0; }
+    }
+
+    .status-badge {
+      position:absolute; right:12px; top:12px;
+      background:rgba(255,255,255,.95); backdrop-filter:blur(6px);
+      border:1px solid var(--border);
+      border-radius:12px; padding:8px 10px;
+      font-size:13px; color:var(--muted);
+      box-shadow:0 6px 16px rgba(0,0,0,.08);
+      display:flex; align-items:center; gap:8px;
+      z-index:500;
+    }
+    .status-dot { width:8px; height:8px; border-radius:50%; background:#9ca3af; }
+    .status-dot.ok { background:#10b981; }
+    .status-dot.warn { background:#f59e0b; }
+    .status-dot.err { background:#ef4444; }
+
+    .next-btn {
+      display:inline-flex; gap:8px; align-items:center;
+      padding:10px 14px; background:var(--primary); color:#fff;
+      border-radius:10px; text-decoration:none;
+      box-shadow:0 6px 16px rgba(37,99,235,.25);
+    }
+    .next-btn:hover { filter:brightness(1.05); }
+
+    .grid { display:grid; gap:1rem; }
+  </style>
 </head>
 
 <body>
-
-<!-- PERSISTENTE AUDIO DIE NIET VERDWIJNT TUSSEN PAGINA'S -->
-<audio id="global-sound" preload="auto" style="display:none;"></audio>
-
-<!-- iOS / ANDROID audio unlock -->
-<button id="audio-unlock"
-  style="opacity:0; position:absolute; pointer-events:none;">unlock</button>
-
+<audio id="global-sound-player" style="display:none;"></audio>
 <div class="container">
-<h1><%= puzzle.name %></h1>
-<h2><%= page.title %></h2>
 
-<% if (isMap) { %>
-
-  <div class="card" style="padding:0">
-    <div id="map"></div>
+  <div>
+    <h1><%= puzzle.name %></h1>
+    <h2><%= page.title %></h2>
   </div>
 
-<% } else { %>
+  <% if (isMap) { %>
 
-  <div class="grid">
+    <!-- ===== MAP PAGINA ===== -->
+    <div class="card" style="padding:0;">
+      <div id="map">
 
-    <% (page.modules || []).forEach(mod => { %>
-
-      <% if (mod.type === "text") { %>
-        <div class="card"><%- mod.data?.text %></div>
-      <% } %>
-
-      <% if (mod.type === "image") { %>
-        <div class="card" style="padding:0;">
-          <% if (mod.data?.url) { %>
-            <img src="<%= mod.data.url %>" style="width:100%; border-radius:12px;" />
-          <% } else { %>
-            <div class="muted" style="padding:12px;">Geen afbeelding opgegeven.</div>
-          <% } %>
+        <div id="mapStatus" class="status-badge">
+          <span class="status-dot" id="gpsDot"></span>
+          <span id="statusText">GPS wordt gezocht…</span>
         </div>
-      <% } %>
 
-      <% if (mod.type === "question") { %>
-        <div class="card">
-          <p><%= mod.data?.question %></p>
+      </div>
 
-          <form onsubmit="return checkAnswerBranch(
-            this,
-            '<%= (mod.data?.answer||'').replace(/"/g,'&quot;') %>',
-            <%= Number.isInteger(mod.data?.goodPage) ? mod.data.goodPage : 'null' %>,
-            <%= Number.isInteger(mod.data?.badPage)  ? mod.data.badPage  : 'null' %>,
-            '<%= puzzle._id %>'
-          )">
-            <input name="answer" type="text" placeholder="Jouw antwoord">
-            <button class="next-btn">Controleer</button>
-            <div data-feedback style="margin-top:8px;"></div>
-          </form>
-        </div>
-      <% } %>
+      <div style="padding:12px;">
+        <p class="muted">
+          Geef toestemming voor locatie om automatisch door te gaan zodra je binnen de radius bent.
+        </p>
+      </div>
+    </div>
 
-    <% }) %>
+    <% if (hasNext && showNext) { %>
+      <div class="pt-2">
+        <a class="next-btn" href="/puzzle/<%= puzzle._id %>/<%= pageIndex+1 %>">
+          Volgende pagina ➜
+        </a>
+      </div>
+    <% } %>
 
-  </div>
+  <% } else { %>
 
-<% } %>
+    <!-- ===== NORMALE PAGINA (modules) ===== -->
+    <div class="grid">
 
-<% if (hasNext && showNext) { %>
-  <button class="next-btn" onclick="navigateAjax('/puzzle/<%= puzzle._id %>/<%= pageIndex+1 %>')">
-    Volgende pagina ➜
-  </button>
-<% } %>
+      <% (page.modules || []).forEach((mod)=>{ %>
+
+        <% if (mod.type === "text") { %>
+          <div class="card"><%- mod.data?.text || "" %></div>
+        <% } %>
+
+        <% if (mod.type === "image") { %>
+          <div class="card" style="padding:0;">
+            <% if (mod.data?.url) { %>
+              <img src="<%= mod.data.url %>" style="width:100%; border-radius:12px;">
+            <% } else { %>
+              <div class="muted" style="padding:1rem;">Geen afbeelding opgegeven.</div>
+            <% } %>
+          </div>
+        <% } %>
+
+        <% if (mod.type === "question") { %>
+          <div class="card" style="display:grid; gap:.5rem;">
+            <p class="font-semibold"><%= mod.data?.question || "" %></p>
+
+            <form
+              onsubmit="return checkAnswerBranch(
+                this,
+                '<%= (mod.data?.answer||'').replace(/"/g,'&quot;') %>',
+                <%= Number.isInteger(mod.data?.goodPage) ? mod.data.goodPage : 'null' %>,
+                <%= Number.isInteger(mod.data?.badPage)  ? mod.data.badPage  : 'null' %>,
+                '<%= puzzle._id %>'
+              )"
+              style="display:grid; gap:.5rem;"
+            >
+              <input type="text" name="answer" placeholder="Jouw antwoord">
+              <button class="next-btn" type="submit">Controleer</button>
+              <div class="text-sm" data-feedback></div>
+            </form>
+          </div>
+        <% } %>
+
+        <% if (mod.type === "location") { %>
+          <div class="card">
+            <p class="font-semibold">Locatie-check</p>
+            <p class="muted">Lat: <%= mod.data?.lat ?? "?" %></p>
+            <p class="muted">Lng: <%= mod.data?.lng ?? "?" %></p>
+            <p class="muted">Radius: <%= mod.data?.radius ?? 50 %> m</p>
+          </div>
+        <% } %>
+
+      <% }) %>
+
+    </div>
+
+    <% if (hasNext && showNext) { %>
+      <div class="pt-2">
+        <a class="next-btn" href="/puzzle/<%= puzzle._id %>/<%= pageIndex+1 %>">
+          Volgende pagina ➜
+        </a>
+      </div>
+    <% } %>
+
+  <% } %>
 
 </div>
 
+<!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-/* =========================================
-   AUDIO ENGINE (blijft spelen bij paginawissel!)
-   ========================================= */
-const audioPlayer = document.getElementById("global-sound");
-
-// iPhone unlock
-function unlockAudio(){
-  audioPlayer.play().then(()=>{
-    audioPlayer.pause();
-    audioPlayer.currentTime = 0;
-  }).catch(()=>{});
+/* ========== Branching voor vraagmodules ========== */
+function normalize(str){
+  return String(str||"")
+    .trim().toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g,'')
+    .replace(/\s+/g,' ');
 }
-document.body.addEventListener("touchstart", unlockAudio, {once:true});
-document.body.addEventListener("click", unlockAudio, {once:true});
+function checkAnswerBranch(form, correct, goodPage, badPage, puzzleId){
+  const fb = form.querySelector('[data-feedback]');
+  const user = form.answer.value;
+  const ok = normalize(user) === normalize(correct);
 
-// preload
-window.addEventListener("load", ()=>{
-  if ("<%= soundUrl %>".trim()) {
-    audioPlayer.src = "<%= soundUrl %>";
-    audioPlayer.load();
+  if (ok && Number.isInteger(goodPage)) {
+    window.location.href = `/puzzle/${puzzleId}/${goodPage}`;
+    return false;
   }
-});
+  if (!ok && Number.isInteger(badPage)) {
+    window.location.href = `/puzzle/${puzzleId}/${badPage}`;
+    return false;
+  }
 
-function playSfx(url){
-  if (!url) return;
-  audioPlayer.src = url;
-  audioPlayer.currentTime = 0;
-  audioPlayer.play().catch(()=>{});
-}
-
-
-/* =========================================
-   AJAX NAVIGATIE (audio blijft spelen)
-   ========================================= */
-async function navigateAjax(url){
-  const res = await fetch(url);
-  const html = await res.text();
-  document.open();
-  document.write(html);
-  document.close();
-}
-
-
-/* =========================================
-   BRANCHING voor vragen
-   ========================================= */
-function normalize(s){
-  return String(s||"").trim().toLowerCase()
-    .normalize("NFKD").replace(/[\u0300-\u036f]/g,"");
-}
-function checkAnswerBranch(form, correct, goodPage, badPage, pid){
-  const fb = form.querySelector("[data-feedback]");
-  const ok = normalize(form.answer.value) === normalize(correct);
-
-  if (ok && Number.isInteger(goodPage))
-    return navigateAjax(`/puzzle/${pid}/${goodPage}`), false;
-  if (!ok && Number.isInteger(badPage))
-    return navigateAjax(`/puzzle/${pid}/${badPage}`), false;
-
-  fb.textContent = ok ? "✅ Klopt!" : "❌ Niet goed";
+  fb.textContent = ok ? "✅ Klopt!" : "❌ Niet goed, probeer opnieuw.";
   fb.style.color = ok ? "#059669" : "#dc2626";
   return false;
 }
 
-
-/* =========================================
-   MAP + AUTO NEXT
-   ========================================= */
+/* ========== MAP PAGINA ========== */
 (function initMap(){
-  const el = document.getElementById("map");
-  if (!el) return;
+  const mapEl = document.getElementById('map');
+  if (!mapEl || typeof L === "undefined") return;
 
-  const targetLat  = <%= page.targetLat ?? 'null' %>;
-  const targetLng  = <%= page.targetLng ?? 'null' %>;
-  const targetRad  = <%= page.targetRadius ?? 50 %>;
-  const showTarget = <%= showTarget ? 'true':'false' %>;
-  const autoNext   = <%= autoNext ? 'true':'false' %>;
-  const shouldPlay = <%= shouldPlaySound ? 'true':'false' %>;
-  const soundUrl   = "<%= soundUrl %>";
-  const hasNext    = <%= hasNext ? 'true':'false' %>;
-  const nextUrl    = "/puzzle/<%= puzzle._id %>/<%= pageIndex+1 %>";
+  const targetLat    = <%= page.targetLat ?? 'null' %>;
+  const targetLng    = <%= page.targetLng ?? 'null' %>;
+  const targetRadius = <%= page.targetRadius ?? 50 %>;
+  const showTarget   = <%= showTarget ? 'true' : 'false' %>;
+  const autoNext     = <%= autoNext ? 'true' : 'false' %>;
+  const playSound    = <%= playSound ? 'true' : 'false' %>;
+  const soundUrl     = "<%= soundUrl %>";
 
-  let redirecting = false;
+  const hasNextPage  = <%= hasNext ? 'true' : 'false' %>;
+  const nextUrl      = "/puzzle/<%= puzzle._id %>/<%= pageIndex+1 %>";
 
-  const map = L.map("map").setView([52,5], 7);
-  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom:19}).addTo(map);
+  const gpsDot = document.getElementById('gpsDot');
+  const statusText = document.getElementById('statusText');
 
-  const hasTarget = targetLat !== null && targetLng !== null;
+  let isRedirecting = false;
 
-  if (hasTarget && showTarget){
-    const c = L.circle([targetLat,targetLng], {
-      radius:targetRad,
-      color:"#ef4444",
-      fillColor:"#ef4444",
-      fillOpacity:0.2
+  const map = L.map('map', { zoomControl:true }).setView([52,5], 7);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:19 }).addTo(map);
+
+  // TARGET
+  const hasTarget = (targetLat !== null && targetLng !== null);
+  let targetCircle = null;
+  let targetMarker = null;
+
+  if (hasTarget && showTarget) {
+    targetCircle = L.circle([targetLat, targetLng], {
+      radius:Number(targetRadius),
+      color:'#ef4444', weight:2,
+      fillColor:'#ef4444', fillOpacity:0.18
     }).addTo(map);
-    L.marker([targetLat,targetLng]).addTo(map);
-    map.fitBounds(c.getBounds(), {padding:[20,20]});
+
+    targetMarker = L.marker([targetLat, targetLng]).addTo(map);
+
+    map.fitBounds(targetCircle.getBounds(), { padding:[20,20], maxZoom:17 });
   }
 
+  // USER MARKER
   let userMarker = null;
 
-  function onLocation(e){
+  function createUserIcon(){
+    const d = document.createElement('div');
+    d.innerHTML = '<div class="user-dot pulse"></div>';
+    return L.divIcon({ html:d, iconSize:[20,20], iconAnchor:[10,10], className:'' });
+  }
+
+  function onLocationFound(e){
     const pos = e.latlng;
-    if (!userMarker) userMarker = L.marker(pos).addTo(map);
-    else userMarker.setLatLng(pos);
 
-    if (!hasTarget) return;
+    if (!userMarker) {
+      userMarker = L.marker(pos, { icon:createUserIcon() }).addTo(map);
+    } else {
+      userMarker.setLatLng(pos);
+    }
 
-    const d = pos.distanceTo([targetLat,targetLng]);
+    gpsDot.className = "status-dot ok";
 
-    if (
-      autoNext &&
-      hasNext &&
-      !redirecting &&
-      d <= Number(targetRad)
-    ){
-      redirecting = true;
+    if (!hasTarget) {
+      statusText.textContent = "GPS actief. Geen doellocatie.";
+      return;
+    }
 
-      if (shouldPlay && soundUrl.trim())
-          playSfx(soundUrl);
+    const dist = pos.distanceTo([targetLat, targetLng]);
+    statusText.textContent =
+      `Afstand tot doel: ~${Math.round(dist)} m (radius: ${targetRadius} m)`;
 
-      // navigatie via AJAX → audio blijft doorspelen
-      setTimeout(()=>navigateAjax(nextUrl), 200);
+    if (autoNext && hasNextPage && !isRedirecting && dist <= Number(targetRadius)) {
+      isRedirecting = true;
+
+      // SPEEL GELUID AF (globale speler)
+      
+      if (playSound && soundUrl.trim() !== "") {
+        playSfx(soundUrl);
+      }
+
+
+      // 1 seconde wachten, zodat audio 100% start voor de paginawissel
+      setTimeout(() => {
+        window.location.href = nextUrl;
+      }, 1000);
     }
   }
 
-  map.locate({watch:true, enableHighAccuracy:true})
-     .on("locationfound", onLocation);
+  function onLocationError(){
+    gpsDot.className = "status-dot err";
+    statusText.textContent = "Locatie kon niet worden bepaald.";
+  }
+
+  if (navigator.geolocation) {
+    gpsDot.className = "status-dot warn";
+    map.locate({ watch:true, enableHighAccuracy:true })
+      .on('locationfound', onLocationFound)
+      .on('locationerror', onLocationError);
+  } else {
+    gpsDot.className = "status-dot err";
+    statusText.textContent = "Browser ondersteunt geen GPS.";
+  }
+
 })();
+
+const audioPlayer = document.getElementById("global-sound-player");
+
+function playSfx(url) {
+  if (!url) return;
+  audioPlayer.src = url;
+  audioPlayer.currentTime = 0;
+  audioPlayer.play().catch(() => {});
+}
 </script>
 
 </body>
