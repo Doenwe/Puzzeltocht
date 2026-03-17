@@ -345,6 +345,31 @@
           Speel geluid bij openen pagina
         </label>
 
+        <!-- ⭐ ALTIJD ZICHTBARE GELUIDSOPTIES ⭐ -->
+        <div id="page-sound-settings"
+             style="background:#f9fafb; border:1px solid #e5e7eb;
+                    padding:12px; border-radius:10px; margin-top:10px;">
+        
+            <!-- Speel geluid bij openen pagina -->
+            <label style="display:flex; align-items:center; gap:8px;">
+              <input id="page-playsound-start" type="checkbox" />
+              Speel geluid bij openen pagina
+            </label>
+        
+            <!-- Geluidsbestand -->
+            <label style="margin-top:10px;">Geluidsbestand</label>
+        
+            <div style="display:flex; gap:8px; margin-bottom:8px;">
+              <input id="page-soundurl" type="text" placeholder="/uploads/sound.mp3" style="flex:1;">
+        
+              <button type="button" id="btn-sound-upload" class="btn-upload" style="white-space:nowrap;">
+                Uploaden
+              </button>
+        
+              <input type="file" id="file-sound-upload" accept="audio/*" style="display:none;">
+            </div>
+        </div>
+
         <!-- TARGET SETTINGS -->
         <div id="map-target-settings"
           style="display:none; background:#f9fafb; border:1px solid #e5e7eb; padding:12px; border-radius:10px; margin-top:10px;">
@@ -381,18 +406,6 @@
             Ga automatisch naar volgende pagina bij binnen radius
           </label>
         </div>
-
-        <label style="margin-top:8px;">Geluidsbestand</label>
-
-          <div style="display:flex; gap:8px; margin-bottom:8px;">
-            <input id="page-soundurl" type="text" placeholder="/uploads/sound.mp3" style="flex:1;">
-  
-            <button type="button" id="btn-sound-upload" class="btn-upload" style="white-space:nowrap;">
-              Uploaden
-            </button>
-
-            <input type="file" id="file-sound-upload" accept="audio/*" style="display:none;">
-          </div>
 
         <!-- DELETE PAGE -->
         <div style="display:flex; gap:8px; margin-top:12px;">
