@@ -280,9 +280,13 @@ app.post("/admin-builder/:id/save-all", requireAdmin, express.json(), async (req
         targetLat,
         targetLng,
         targetRadius,
-        showTargetArea,
-        autoAdvance,
+
+        // nieuwe velden
+        showTarget,
+        autoNext,
+        playSound,
         soundUrl,
+
         modules,
       };
     });
