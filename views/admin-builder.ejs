@@ -357,16 +357,19 @@
             </label>
         
             <!-- Geluidsbestand -->
-            <label style="margin-top:10px;">Geluidsbestand</label>
-        
-            <div style="display:flex; gap:8px; margin-bottom:8px;">
-              <input id="page-soundurl" type="text" placeholder="/uploads/sound.mp3" style="flex:1;">
-        
-              <button type="button" id="btn-sound-upload" class="btn-upload" style="white-space:nowrap;">
-                Uploaden
-              </button>
-        
-              <input type="file" id="file-sound-upload" accept="audio/*" style="display:none;">
+            <div id="sound-file-section" style="margin-top:10px; display:none;">
+            
+              <label>Geluidsbestand</label>
+            
+              <div style="display:flex; gap:8px; margin-bottom:8px;">
+                <input id="page-soundurl" type="text" placeholder="/uploads/sound.mp3" style="flex:1;">
+            
+                <button type="button" id="btn-sound-upload" class="btn-upload" style="white-space:nowrap;">
+                  Uploaden
+                </button>
+            
+                <input type="file" id="file-sound-upload" accept="audio/*" style="display:none;">
+              </div>
             </div>
         </div>
 
@@ -498,7 +501,8 @@
     qs("#page-showtarget").checked = !!page.showTarget;
     qs("#page-autonext").checked = !!page.autoNext;
     qs("#page-soundurl").value   = page.soundUrl || "";
-    qs("#page-playsound-start").checked = !!page.playSoundOnStart;
+    qs("#sound-file-section").style.display =
+      page.playSoundOnStart ? "block" : "none";
 
     // Bestaande targetvelden
     qs("#page-target-lat").value = page?.targetLat ?? "";
@@ -1163,7 +1167,11 @@ function collect(){
 
   // NIEUW: PLAY SOUND
   qs("#page-playsound-start").addEventListener("change", () => {
-    pages[currentPage].playSoundOnStart = !!qs("#page-playsound-start").checked;
+    const checked = qs("#page-playsound-start").checked;
+    pages[currentPage].playSoundOnStart = checked;
+  
+    // toon/verberg geluidsbestand
+    qs("#sound-file-section").style.display = checked ? "block" : "none";
   });
 
   // NIEUW: SOUND URL
