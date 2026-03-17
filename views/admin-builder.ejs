@@ -340,11 +340,6 @@
           Kaartpagina (toon alleen kaart met je locatie)
         </label>
 
-        <label style="display:flex; align-items:center; gap:8px; margin-top:8px;">
-          <input id="page-playsound-start" type="checkbox" />
-          Speel geluid bij openen pagina
-        </label>
-
         <!-- ⭐ ALTIJD ZICHTBARE GELUIDSOPTIES ⭐ -->
         <div id="page-sound-settings"
              style="background:#f9fafb; border:1px solid #e5e7eb;
@@ -495,6 +490,7 @@
 
     qs("#page-shownext").checked = !!page.showNext;
     qs("#page-ismap").checked = !!page.isMap;
+    qs("#page-playsound-start").checked = !!page.playSoundOnStart;
     qs("#map-extra-options").style.display = page.isMap ? "block" : "none";
 
     // --- NIEUWE VELDEN ---
