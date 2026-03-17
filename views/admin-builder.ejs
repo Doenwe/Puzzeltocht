@@ -9,6 +9,7 @@
         showTarget: true,        // NIEUW
         autoNext: false,         // NIEUW
         playSound: false,        // NIEUW
+        playSoundOnStart: false,
         soundUrl: "",            // NIEUW
         modules: []
       }];
@@ -23,6 +24,7 @@
       showTarget: typeof pg?.showTarget === "boolean" ? pg.showTarget : true,
       autoNext: typeof pg?.autoNext === "boolean" ? pg.autoNext : false,
       playSound: typeof pg?.playSound === "boolean" ? pg.playSound : false,
+      playSoundOnStart: typeof pg?.playSoundOnStart === "boolean" ? pg.playSoundOnStart : false,
       soundUrl: pg?.soundUrl || "",
 
       // Bestaande target-informatie
@@ -381,6 +383,10 @@
             Speel geluid af bij binnen radius
           </label>
 
+          <label style="display:flex; align-items:center; gap:8px; margin-top:8px;">
+            <input id="page-playsound-start" type="checkbox" />
+            Speel geluid bij openen pagina
+          </label>
         </div>
 
         <label style="margin-top:8px;">Geluidsbestand</label>
@@ -487,6 +493,7 @@
     qs("#page-autonext").checked = !!page.autoNext;
     qs("#page-playsound").checked = !!page.playSound;
     qs("#page-soundurl").value   = page.soundUrl || "";
+    qs("#page-playsound-start").checked = !!page.playSoundOnStart;
 
     // Bestaande targetvelden
     qs("#page-target-lat").value = page?.targetLat ?? "";
@@ -508,6 +515,7 @@
       item.innerHTML = `<span>${p.title?.trim() ? p.title : ("Pagina " + (i+1))}</span>`;
       item.addEventListener("click", ()=> switchPage(i));
       wrap.appendChild(item);
+      playSoundIfNeeded();
     });
   }
 
@@ -624,6 +632,7 @@ function savePageSettings() {
   pg.showTarget   = qs("#page-showtarget").checked;
   pg.autoNext     = qs("#page-autonext").checked;
   pg.playSound    = qs("#page-playsound").checked;
+  pg.playSoundOnStart = qs("#page-playsound-start").checked;
   pg.soundUrl     = qs("#page-soundurl").value;
 
   // target velden
@@ -1156,6 +1165,10 @@ function collect(){
     if(pages[currentPage].isMap) updateMapPreview();
   });
 
+  qs("#page-playsound-start").addEventListener("change", () => {
+    pages[currentPage].playSoundOnStart = !!qs("#page-playsound-start").checked;
+  });
+
   // NIEUW: SOUND URL
   qs("#page-soundurl").addEventListener("input", ()=>{
     pages[currentPage].soundUrl = qs("#page-soundurl").value;
@@ -1330,6 +1343,17 @@ function collect(){
   // INIT
   renderPageList();
   renderPage(currentPage);
+
+  function playSoundIfNeeded() {
+    const pg = pages[currentPage];
+    if (!pg?.playSoundOnStart) return;
+    if (!pg?.soundUrl) return;
+
+    const audio = new Audio(pg.soundUrl);
+    audio.play().catch(err => {
+      console.warn("Autoplay geblokkeerd door browser:", err);
+    });
+  }
 
 })(); // einde IIFE
 </script>
