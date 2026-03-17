@@ -245,11 +245,6 @@ function checkAnswerBranch(form, correct, goodPage, badPage, puzzleId){
   const hasNextPage  = <%= hasNext ? 'true' : 'false' %>;
   const nextUrl      = "/puzzle/<%= puzzle._id %>/<%= pageIndex+1 %>";
 
-  let audio = null;
-  if (playSound && soundUrl.trim() !== "") {
-    audio = new Audio(soundUrl);
-  }
-
   const gpsDot = document.getElementById('gpsDot');
   const statusText = document.getElementById('statusText');
 
@@ -307,9 +302,15 @@ function checkAnswerBranch(form, correct, goodPage, badPage, puzzleId){
     if (autoNext && hasNextPage && !isRedirecting && dist <= Number(targetRadius)) {
       isRedirecting = true;
 
-      if (audio) audio.play().catch(()=>{});
+      // SPEEL GELUID AF (globale speler)
+      if (playSound && soundUrl.trim() !== "") {
+        playSound(soundUrl);
+      }
 
-      setTimeout(()=> window.location.href = nextUrl, 800);
+      // 1 seconde wachten, zodat audio 100% start voor de paginawissel
+      setTimeout(() => {
+        window.location.href = nextUrl;
+      }, 1000);
     }
   }
 
