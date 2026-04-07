@@ -34,6 +34,10 @@
       font-size: 15px;
     }
 
+    .btn.secondary {
+      background: #334155;
+    }
+
     .feedback {
       margin-top: 10px;
       font-weight: 600;
@@ -68,7 +72,7 @@
 
       <% if (mod.data?.questionType === "mc") { %>
 
-        <!-- ===== MULTIPLE CHOICE ===== -->
+        <!-- MULTIPLE CHOICE -->
         <div
           data-mc
           data-puzzle="<%= puzzle._id %>"
@@ -98,8 +102,8 @@
 
       <% } else { %>
 
-        <!-- ===== OPEN VRAAG ===== -->
-        <form onsubmit="return handleOpen(this)">
+        <!-- OPEN VRAAG -->
+        <form onsubmit="return handleOpen(event, this)">
           <input type="text" name="answer" placeholder="Jouw antwoord">
           <button class="btn" type="submit">Controleer</button>
           <div class="feedback"></div>
@@ -115,6 +119,18 @@
   <% } %>
 
 <% }) %>
+
+<!-- ✅ VOLGENDE PAGINA KNOP -->
+<% if (page.showNext && Number.isInteger(page.nextPage)) { %>
+  <div style="margin-top: 32px;">
+    <button
+      class="btn secondary"
+      onclick="goNext('<%= puzzle._id %>', <%= page.nextPage %>)"
+    >
+      Volgende pagina →
+    </button>
+  </div>
+<% } %>
 
 <script>
 /* ===== MULTIPLE CHOICE ===== */
@@ -158,7 +174,7 @@ function handleMC(btn) {
 }
 
 /* ===== OPEN VRAAG ===== */
-function handleOpen(form) {
+function handleOpen(event, form) {
   event.preventDefault();
 
   const fb = form.querySelector('.feedback');
@@ -183,6 +199,11 @@ function handleOpen(form) {
   fb.textContent = ok ? "Goed!" : "Fout!";
   fb.style.color = ok ? "green" : "red";
   return false;
+}
+
+/* ===== VOLGENDE PAGINA ===== */
+function goNext(puzzle, page) {
+  window.location.href = `/puzzle/${puzzle}/${page}`;
 }
 </script>
 
