@@ -3,11 +3,11 @@
   const showNext = (typeof page?.showNext === 'boolean') ? page.showNext : true;
   const isMap    = (typeof page?.isMap === 'boolean')    ? page.isMap    : false;
 
-  // Nieuwe veld‑waarden (default val)
   const showTarget   = (typeof page?.showTarget === 'boolean') ? page.showTarget : true;
   const autoNext     = (typeof page?.autoNext   === 'boolean') ? page.autoNext   : false;
   const soundUrl     = page?.soundUrl || "";
-  const playSoundOnStart = (typeof page?.playSoundOnStart === 'boolean') ? page.playSoundOnStart : false;
+  const playSoundOnStart = (typeof page?.playSoundOnStart === 'boolean')
+    ? page.playSoundOnStart : false;
 %>
 
 <!DOCTYPE html>
@@ -15,9 +15,12 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
+
   <title><%= puzzle.name %> — <%= page.title %></title>
 
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+  <link rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        crossorigin=""/>
 
   <style>
     :root{
@@ -28,247 +31,171 @@
       --border:#e5e7eb;
       --accent:#ef4444;
     }
-    body { margin:0; font-family: Inter, system-ui; color:var(--text); }
-    .container { max-width:880px; margin:0 auto; padding:16px; display:grid; gap:16px; }
-    .card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px; box-shadow:0 4px 12px rgba(0,0,0,.06); }
+
+    body {
+      margin:0;
+      font-family: Inter, system-ui;
+      color:var(--text);
+    }
+
+    .container {
+      max-width:880px;
+      margin:0 auto;
+      padding:16px;
+      display:grid;
+      gap:16px;
+    }
+
+    .card {
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:16px;
+      box-shadow:0 4px 12px rgba(0,0,0,.06);
+    }
+
     .muted { color:var(--muted); }
 
-    #map {
-      height:65vh; min-height:380px;
-      border-radius:14px; border:1px solid var(--border);
-      background:#eef2ff; position:relative;
-      box-shadow:0 10px 24px rgba(0,0,0,.08);
-    }
-    .leaflet-container { background:#eef2ff; }
-
     .next-btn {
-      display:inline-flex; gap:8px; align-items:center;
-      padding:10px 14px; background:var(--primary); color:#fff;
-      border-radius:10px; text-decoration:none;
-      box-shadow:0 6px 16px rgba(37,99,235,.25);
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:10px 14px;
+      background:var(--primary);
+      color:white;
+      border:none;
+      border-radius:10px;
+      cursor:pointer;
+    }
+
+    #map {
+      height:65vh;
+      min-height:380px;
+      border-radius:14px;
+      border:1px solid var(--border);
     }
   </style>
 </head>
 
 <body>
+
 <audio id="global-sound-player" style="display:none;"></audio>
 
 <div class="container">
 
-  <div>
+  <header>
     <h1><%= puzzle.name %></h1>
     <h2><%= page.title %></h2>
-  </div>
+  </header>
 
   <% if (isMap) { %>
 
     <!-- ================= MAP PAGINA ================= -->
     <div class="card" style="padding:0;">
-      <div id="map">
-        <div id="mapStatus" class="status-badge">
-          <span class="status-dot" id="gpsDot"></span>
-          <span id="statusText">GPS wordt gezocht…</span>
-        </div>
-      </div>
-
+      <div id="map"></div>
       <div style="padding:12px;">
-        <p class="muted">Geef toestemming voor locatie om automatisch door te gaan zodra je binnen de radius bent.</p>
+        <p class="muted">
+          Ga automatisch door zodra je binnen de radius bent.
+        </p>
       </div>
     </div>
 
     <% if (hasNext && showNext) { %>
-      <div class="pt-2">
-        <a class="next-btn" href="/puzzle/<%= puzzle._id %>/<%= pageIndex+1 %>">
-          Volgende pagina ➜
-        </a>
-      </div>
+      <a class="next-btn"
+         href="/puzzle/<%= puzzle._id %>/<%= pageIndex+1 %>">
+        Volgende pagina →
+      </a>
     <% } %>
 
   <% } else { %>
 
-    <!-- =============== NORMALE PAGINA (modules) =============== -->
-    <div class="grid">
-      <% (page.modules || []).forEach((mod)=>{ %>
+    <!-- ================= NORMALE PAGINA ================= -->
+    <% (page.modules || []).forEach(mod => { %>
 
-        <% if (mod.type === "text") { %>
-          <div class="card"><%- mod.data?.text || "" %></div>
-        <% } %>
+      <% if (mod.type === "text") { %>
+        <div class="card"><%- mod.data?.text || "" %></div>
+      <% } %>
 
-        <% if (mod.type === "image") { %>
-          <div class="card" style="padding:0;">
-            <% if (mod.data?.url) { %>
-              <img src="<%= mod.data.url %>" style="width:100%; border-radius:12px;">
-            <% } else { %>
-              <div class="muted" style="padding:1rem;">Geen afbeelding opgegeven.</div>
-            <% } %>
-          </div>
-        <% } %>
+      <% if (mod.type === "image") { %>
+        <div class="card" style="padding:0;">
+          <% if (mod.data?.url) { %>
+            <img src="<%= mod.data.url %>"
+                 style="width:100%; border-radius:14px;">
+          <% } %>
+        </div>
+      <% } %>
 
-        <% if (mod.type === "question") { %>
-          <div class="card" style="display:grid; gap:.75rem;">
-            <p class="font-semibold"><%= mod.data?.question || "" %></p>
-        
-            <% if (mod.data?.questionType === "mc") { %>
-        
-              <!-- MULTIPLE CHOICE -->
-              <form
-                onsubmit="checkMCBranch(
-                  events,
+      <% if (mod.type === "question") { %>
+        <div class="card">
+          <p><strong><%= mod.data?.question || "" %></strong></p>
+
+          <% if (mod.data?.questionType === "mc") { %>
+
+            <!-- ===== MULTIPLE CHOICE ===== -->
+            <div data-mc-block style="display:grid; gap:8px;">
+
+              <% (mod.data?.options || []).forEach((opt, i) => { %>
+                <label style="display:flex; gap:8px;">
+                  <input type="radio" name="mc-answer"
+                         value="<%= i %>">
+                  <%= opt.text %>
+                </label>
+              <% }) %>
+
+              <button class="next-btn"
+                type="button"
+                onclick="checkMCBranch(
                   this,
                   <%- JSON.stringify(mod.data?.options || []) %>,
                   <%= Number.isInteger(mod.data?.goodPage) ? mod.data.goodPage : 'null' %>,
                   <%= Number.isInteger(mod.data?.badPage)  ? mod.data.badPage  : 'null' %>,
                   '<%= puzzle._id %>'
-                )"
-                style="display:grid; gap:.5rem;"
-              >
-                <% (mod.data?.options || []).forEach((opt, i) => { %>
-                  <label style="display:flex; gap:.5rem; align-items:center;">
-                    <input type="radio" name="answer" value="<%= i %>">
-                    <%= opt.text %>
-                  </label>
-                <% }) %>
-        
-                <button class="next-btn" type="submit">Controleer</button>
-                <div class="text-sm" data-feedback></div>
-              </form>
-        
-            <% } else { %>
-        
-              <!-- OPEN VRAAG -->
-              <form
-                onsubmit="return checkAnswerBranch(
-                  this,
-                  '<%= (mod.data?.answer||'').replace(/"/g,'&quot;') %>',
-                  <%= Number.isInteger(mod.data?.goodPage) ? mod.data.goodPage : 'null' %>,
-                  <%= Number.isInteger(mod.data?.badPage)  ? mod.data.badPage  : 'null' %>,
-                  '<%= puzzle._id %>'
-                )"
-                style="display:grid; gap:.5rem;"
-              >
-                <input type="text" name="answer" placeholder="Jouw antwoord">
-                <button class="next-btn" type="submit">Controleer</button>
-                <div class="text-sm" data-feedback></div>
-              </form>
-        
-            <% } %>
-          </div>
-        <% } %>
+                )">
+                Controleer
+              </button>
 
-      <% }) %>
-    </div>
+              <div data-feedback></div>
+            </div>
+
+          <% } else { %>
+
+            <!-- ===== OPEN VRAAG ===== -->
+            <form onsubmit="return checkOpenBranch(
+              this,
+              '<%= (mod.data?.answer||'').replace(/"/g,'&quot;') %>',
+              <%= Number.isInteger(mod.data?.goodPage) ? mod.data.goodPage : 'null' %>,
+              <%= Number.isInteger(mod.data?.badPage)  ? mod.data.badPage  : 'null' %>,
+              '<%= puzzle._id %>'
+            )">
+              <input type="text" name="answer"
+                     placeholder="Jouw antwoord">
+              <button class="next-btn" type="submit">Controleer</button>
+              <div data-feedback></div>
+            </form>
+
+          <% } %>
+        </div>
+      <% } %>
+
+    <% }) %>
 
     <% if (hasNext && showNext) { %>
-      <div class="pt-2">
-        <a class="next-btn" href="/puzzle/<%= puzzle._id %>/<%= pageIndex+1 %>">
-          Volgende pagina ➜
-        </a>
-      </div>
+      <a class="next-btn"
+         href="/puzzle/<%= puzzle._id %>/<%= pageIndex+1 %>">
+        Volgende pagina →
+      </a>
     <% } %>
 
-    <!-- ⭐ GELUID BIJ OPENEN — NORMALE PAGINA -->
-    <script>
-      const soundUrlNormal = "<%= soundUrl %>";
-      const playOnStartNormal = <%= playSoundOnStart ? 'true' : 'false' %>;
-
-      if (
-        playOnStartNormal &&
-        soundUrlNormal.trim() !== "" &&
-        window.location.pathname.startsWith("/puzzle/")
-      ) {
-        const audioPlayer = document.getElementById("global-sound-player");
-        audioPlayer.src = soundUrlNormal;
-        audioPlayer.currentTime = 0;
-        audioPlayer.play().catch(()=>{});
-      }
-    </script>
-
   <% } %>
-
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-/* ========== GELUIDSSPELER ========== */
-const audioPlayer = document.getElementById("global-sound-player");
-function playSfx(url) {
-  if (!url) return;
-  audioPlayer.src = url;
-  audioPlayer.currentTime = 0;
-  audioPlayer.play().catch(()=>{});
-}
-
-/* ========== MAP PAGINA ========== */
-(function initMap(){
-  const mapEl = document.getElementById('map');
-  if (!mapEl || typeof L === "undefined") return;
-
-  const targetLat    = <%= page.targetLat ?? 'null' %>;
-  const targetLng    = <%= page.targetLng ?? 'null' %>;
-  const targetRadius = <%= page.targetRadius ?? 50 %>;
-  const showTarget   = <%= showTarget ? 'true' : 'false' %>;
-  const autoNext     = <%= autoNext ? 'true' : 'false' %>;
-  const soundUrl     = "<%= soundUrl %>";
-  const playSoundOnStart = <%= playSoundOnStart ? 'true' : 'false' %>;
-
-  // ⭐ GELUID BIJ OPENEN (MAP PAGINA)
-  if (
-    playSoundOnStart &&
-    soundUrl.trim() !== "" &&
-    window.location.pathname.startsWith("/puzzle/")
-  ) {
-    playSfx(soundUrl);
-  }
-
-  const hasNextPage  = <%= hasNext ? 'true' : 'false' %>;
-  const nextUrl      = "/puzzle/<%= puzzle._id %>/<%= pageIndex+1 %>";
-
-  const gpsDot = document.getElementById('gpsDot');
-  const statusText = document.getElementById('statusText');
-
-  let isRedirecting = false;
-
-  const map = L.map('map', { zoomControl:true }).setView([52,5], 7);
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:19 }).addTo(map);
-
-  const hasTarget = (targetLat !== null && targetLng !== null);
-  let targetCircle = null;
-
-  if (hasTarget && showTarget) {
-    targetCircle = L.circle([targetLat, targetLng], {
-      radius:Number(targetRadius),
-      color:'#ef4444', weight:2,
-      fillColor:'#ef4444', fillOpacity:0.18
-    }).addTo(map);
-    map.fitBounds(targetCircle.getBounds(), { padding:[20,20], maxZoom:17 });
-  }
-
-  function onLocationFound(e){
-    const pos = e.latlng;
-
-    if (autoNext && hasNextPage && !isRedirecting && hasTarget) {
-      const dist = pos.distanceTo([targetLat, targetLng]);
-
-      if (dist <= Number(targetRadius)) {
-        isRedirecting = true;
-        setTimeout(()=> window.location.href = nextUrl, 1000);
-      }
-    }
-  }
-
-  map.locate({ watch:true, enableHighAccuracy:true })
-    .on('locationfound', onLocationFound)
-    .on('locationerror', ()=> {});
-})();
-</script>
-
-<script>
-function checkMCBranch(evt, form, options, goodPage, badPage, puzzleId) {
-  evt.preventDefault(); // ✅ NU WERKT DIT ALTIJD
-
-  const fb = form.querySelector('[data-feedback]');
-  const checked = form.querySelector('input[name="answer"]:checked');
+function checkMCBranch(button, options, goodPage, badPage, puzzleId) {
+  const block = button.closest('[data-mc-block]');
+  const fb = block.querySelector('[data-feedback]');
+  const checked = block.querySelector('input[type="radio"]:checked');
 
   if (!checked) {
     fb.textContent = "Kies eerst een antwoord.";
@@ -279,24 +206,38 @@ function checkMCBranch(evt, form, options, goodPage, badPage, puzzleId) {
   const index = Number(checked.value);
   const isCorrect = !!options[index]?.correct;
 
-  let targetPage = null;
+  let target = null;
+  if (isCorrect && Number.isInteger(goodPage)) target = goodPage;
+  if (!isCorrect && Number.isInteger(badPage)) target = badPage;
 
-  if (isCorrect && Number.isInteger(goodPage)) {
-    targetPage = Number(goodPage);
-  }
-
-  if (!isCorrect && Number.isInteger(badPage)) {
-    targetPage = Number(badPage);
-  }
-
-  if (Number.isInteger(targetPage)) {
-    window.location.href = `/puzzle/${puzzleId}/${targetPage}`;
+  if (Number.isInteger(target)) {
+    window.location.href = `/puzzle/${puzzleId}/${target}`;
     return;
   }
 
-  // fallback feedback
   fb.textContent = isCorrect ? "Goed!" : "Fout!";
   fb.style.color = isCorrect ? "green" : "var(--accent)";
+}
+
+function checkOpenBranch(form, answer, goodPage, badPage, puzzleId){
+  event.preventDefault();
+  const fb = form.querySelector('[data-feedback]');
+  const val = form.answer.value.trim();
+
+  const ok = val.toLowerCase() === answer.toLowerCase();
+
+  let target = null;
+  if (ok && Number.isInteger(goodPage)) target = goodPage;
+  if (!ok && Number.isInteger(badPage)) target = badPage;
+
+  if (Number.isInteger(target)) {
+    window.location.href = `/puzzle/${puzzleId}/${target}`;
+    return false;
+  }
+
+  fb.textContent = ok ? "Goed!" : "Fout!";
+  fb.style.color = ok ? "green" : "var(--accent)";
+  return false;
 }
 </script>
 
