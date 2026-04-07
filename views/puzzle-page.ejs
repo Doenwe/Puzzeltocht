@@ -5,84 +5,89 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><%= puzzle.name %> — <%= page.title %></title>
 
-  <link rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script
-    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Leaflet (kaart) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <style>
-    body {
+    body{
       font-family: system-ui, sans-serif;
-      background: #f5f7fa;
-      padding: 24px;
-      margin: 0;
+      background:#f5f7fa;
+      padding:24px;
+      margin:0;
+    }
+    h1{ margin-top:0; }
+
+    .card{
+      background:#fff;
+      border-radius:12px;
+      padding:16px;
+      margin-bottom:16px;
+      box-shadow:0 4px 12px rgba(0,0,0,.08);
     }
 
-    .card {
-      background: white;
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 16px;
-      box-shadow: 0 4px 12px rgba(0,0,0,.08);
+    .btn{
+      display:inline-block;
+      padding:12px 18px;
+      border-radius:8px;
+      background:#2563eb;
+      color:#fff;
+      text-decoration:none;
+      border:none;
+      cursor:pointer;
+      font-size:15px;
+    }
+    .btn.secondary{
+      background:#334155;
+      margin-top:24px;
     }
 
-    .btn {
-      display: inline-block;
-      padding: 12px 18px;
-      border-radius: 8px;
-      background: #2563eb;
-      color: white;
-      text-decoration: none;
-      border: none;
-      cursor: pointer;
-      font-size: 15px;
+    .feedback{
+      margin-top:8px;
+      font-weight:600;
     }
 
-    .btn.secondary {
-      background: #334155;
-      margin-top: 24px;
-    }
-
-    .feedback {
-      margin-top: 8px;
-      font-weight: 600;
-    }
-
-    label {
-      display: flex;
-      gap: 8px;
-      margin-top: 6px;
-      cursor: pointer;
-      align-items: center;
+    label{
+      display:flex;
+      gap:8px;
+      margin-top:6px;
+      align-items:center;
+      cursor:pointer;
     }
 
     /* Images */
-    .img-thumb {
-      max-width: 100%;
-      border-radius: 8px;
-      cursor: zoom-in;
+    .img-thumb{
+      max-width:100%;
+      border-radius:8px;
+      cursor:zoom-in;
     }
 
-    .img-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,.75);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
+    .img-overlay{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.75);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index:1000;
     }
-
-    .img-overlay img {
-      max-width: 90%;
-      max-height: 90%;
-      border-radius: 12px;
+    .img-overlay img{
+      max-width:90%;
+      max-height:90%;
+      border-radius:12px;
     }
 
     /* Map */
-    #map {
-      height: 320px;
-      border-radius: 12px;
+    #map{
+      height:320px;
+      border-radius:12px;
+    }
+
+    /* Photo */
+    .photo-preview{
+      margin-top:10px;
+      max-width:100%;
+      border-radius:8px;
     }
   </style>
 </head>
@@ -101,21 +106,21 @@
 
 <!-- ================= MAP PAGE ================= -->
 <% if (page.isMap) { %>
-  <div class="card">
-    <div id="map"></div>
-    <div class="feedback" id="mapFeedback">
-      Locatie bepalen…
-    </div>
-  </div>
+<div class="card">
+  <div id="map"></div>
+  <div class="feedback" id="mapFeedback">Locatie bepalen…</div>
+</div>
 <% } %>
 
 <!-- ================= MODULES ================= -->
 <% (page.modules || []).forEach((mod, qIndex) => { %>
 
+  <!-- TEXT -->
   <% if (mod.type === "text") { %>
     <div class="card"><%- mod.data?.text || "" %></div>
   <% } %>
 
+  <!-- IMAGE -->
   <% if (mod.type === "image") { %>
     <div class="card">
       <img
@@ -125,6 +130,45 @@
     </div>
   <% } %>
 
+  <!-- PHOTO (NIEUW) -->
+  <% if (mod.type === "photo") { %>
+    <div class="card">
+      <strong>Maak een foto</strong>
+
+      <input
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onchange="uploadPhoto(
+          this,
+          '<%= puzzle._id %>',
+          <%= pageIndex %>,
+          <%= qIndex %>
+        )"
+      >
+
+      <input
+        type="hidden"
+        class="photo-url"
+        id="photo-url-<%= pageIndex %>-<%= qIndex %>"
+        value="<%= mod.data?.url || '' %>"
+      >
+
+      <div
+        class="feedback"
+        id="photo-feedback-<%= pageIndex %>-<%= qIndex %>">
+      </div>
+
+      <% if (mod.data?.url) { %>
+        <img
+          src="<%= mod.data.url %>"
+          class="photo-preview"
+          onclick="openImage(this.src)">
+      <% } %>
+    </div>
+  <% } %>
+
+  <!-- QUESTION -->
   <% if (mod.type === "question") { %>
     <div class="card">
       <strong><%= mod.data.question %></strong>
@@ -135,8 +179,8 @@
           data-options='<%- JSON.stringify(mod.data.options || []) %>'
           data-good="<%= mod.data.goodPage ?? "" %>"
           data-bad="<%= mod.data.badPage ?? "" %>"
-          data-puzzle="<%= puzzle._id %>"
-        >
+          data-puzzle="<%= puzzle._id %>">
+
           <% mod.data.options.forEach((o,i)=>{ %>
             <label>
               <input type="radio" name="mc-<%= qIndex %>" value="<%= i %>">
@@ -144,13 +188,11 @@
             </label>
           <% }) %>
 
-          <button class="btn" onclick="handleMC(this)">
-            Controleer
-          </button>
+          <button class="btn" onclick="handleMC(this)">Controleer</button>
           <div class="feedback"></div>
         </div>
       <% } else { %>
-        <form onsubmit="return handleOpen(event, this)">
+        <form onsubmit="return handleOpen(event,this)">
           <input name="answer" placeholder="Jouw antwoord">
           <button class="btn">Controleer</button>
           <div class="feedback"></div>
@@ -174,12 +216,12 @@
 %>
 
 <% if (hasNext) { %>
-  <a
-    id="nextBtn"
-    class="btn secondary"
-    href="/puzzle/<%= puzzle._id %>/<%= pageIndex + 1 %>">
-    Volgende pagina →
-  </a>
+<a
+  id="nextBtn"
+  class="btn secondary"
+  href="/puzzle/<%= puzzle._id %>/<%= pageIndex + 1 %>">
+  Volgende pagina →
+</a>
 <% } %>
 
 <!-- ================= IMAGE OVERLAY ================= -->
@@ -190,13 +232,13 @@
 
 <script>
 /* IMAGE VIEWER */
-function openImage(src) {
-  document.getElementById("overlayImg").src = src;
-  document.getElementById("imgOverlay").style.display = "flex";
+function openImage(src){
+  overlayImg.src = src;
+  imgOverlay.style.display = "flex";
 }
 
 /* QUESTIONS */
-function handleMC(btn) {
+function handleMC(btn){
   const b = btn.closest('[data-mc]');
   const fb = b.querySelector('.feedback');
   const r = b.querySelector('input:checked');
@@ -210,24 +252,76 @@ function handleMC(btn) {
     location.href = `/puzzle/${b.dataset.puzzle}/${go}`;
     return;
   }
-
   fb.textContent = ok ? "Goed!" : "Fout!";
   fb.style.color = ok ? "green" : "red";
 }
 
-function handleOpen(e,f) {
+function handleOpen(e,f){
   e.preventDefault();
-  const ok = f.answer.value.trim().toLowerCase()
-           === f.correct.value.trim().toLowerCase();
+  const ok =
+    f.answer.value.trim().toLowerCase() ===
+    f.correct.value.trim().toLowerCase();
+
   const go = ok ? f.good.value : f.bad.value;
   if (go !== "") {
     location.href = `/puzzle/${f.puzzle.value}/${go}`;
     return false;
   }
-  const fb=f.querySelector('.feedback');
+  const fb = f.querySelector('.feedback');
   fb.textContent = ok ? "Goed!" : "Fout!";
   fb.style.color = ok ? "green" : "red";
   return false;
+}
+
+/* PHOTO UPLOAD */
+async function uploadPhoto(input, puzzleId, pageIndex, moduleIndex){
+  const file = input.files?.[0];
+  if (!file) return;
+
+  const fb = document.getElementById(
+    `photo-feedback-${pageIndex}-${moduleIndex}`
+  );
+
+  const fd = new FormData();
+  fd.append("file", file);
+
+  try{
+    fb.textContent = "Uploaden…";
+
+    const res = await fetch("/admin-upload-media", {
+      method:"POST",
+      body:fd
+    });
+    if(!res.ok) throw new Error(await res.text());
+
+    const json = await res.json();
+    document.getElementById(
+      `photo-url-${pageIndex}-${moduleIndex}`
+    ).value = json.url;
+
+    fb.textContent = "✅ Foto opgeslagen";
+    fb.style.color = "green";
+  }
+  catch(err){
+    console.error(err);
+    fb.textContent = "❌ Upload mislukt";
+    fb.style.color = "red";
+  }
+}
+
+/* FOTO VERPLICHT (optioneel) */
+const nextBtn = document.getElementById("nextBtn");
+if (nextBtn) {
+  nextBtn.addEventListener("click", e => {
+    const photos = document.querySelectorAll(".photo-url");
+    for (const p of photos) {
+      if (!p.value) {
+        e.preventDefault();
+        alert("Je moet eerst een foto maken.");
+        return;
+      }
+    }
+  });
 }
 </script>
 
@@ -240,46 +334,33 @@ const showTarget = <%= page.showTarget ? "true" : "false" %>;
 const autoNext = <%= page.autoNext ? "true" : "false" %>;
 
 const map = L.map("map").setView(target, 16);
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-  attribution: "© OpenStreetMap"
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
+  attribution:"© OpenStreetMap"
 }).addTo(map);
 
 if (showTarget) {
   L.marker(target).addTo(map);
-  L.circle(target, {
-    radius,
-    color: "green",
-    fillOpacity: 0.15
-  }).addTo(map);
+  L.circle(target,{ radius, color:"green", fillOpacity:0.15 }).addTo(map);
 }
 
-const feedback = document.getElementById("mapFeedback");
-const nextBtn = document.getElementById("nextBtn");
-
-navigator.geolocation?.watchPosition(pos => {
-  const user = L.latLng(
-    pos.coords.latitude,
-    pos.coords.longitude
-  );
-
-  map.setView(user, 17);
+const fb = document.getElementById("mapFeedback");
+navigator.geolocation?.watchPosition(pos=>{
+  const user = L.latLng(pos.coords.latitude, pos.coords.longitude);
+  map.setView(user,17);
   L.marker(user).addTo(map);
-
-  const distance = map.distance(user, target);
-  if (distance <= radius) {
-    feedback.textContent = "✅ Doel bereikt!";
-    feedback.style.color = "green";
-
-    if (autoNext && nextBtn) {
-      setTimeout(() => location.href = nextBtn.href, 1000);
+  const d = map.distance(user, target);
+  if(d <= radius){
+    fb.textContent = "✅ Doel bereikt!";
+    fb.style.color = "green";
+    if(autoNext && nextBtn){
+      setTimeout(()=>location.href=nextBtn.href,1000);
     }
   } else {
-    feedback.textContent =
-      `Afstand tot doel: ${Math.round(distance)} meter`;
+    fb.textContent = `Afstand: ${Math.round(d)} m`;
   }
-}, () => {
-  feedback.textContent = "Locatie niet beschikbaar";
-  feedback.style.color = "red";
+},()=>{
+  fb.textContent="Locatie niet beschikbaar";
+  fb.style.color="red";
 });
 </script>
 <% } %>
