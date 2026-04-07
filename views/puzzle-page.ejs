@@ -105,23 +105,52 @@
         <% } %>
 
         <% if (mod.type === "question") { %>
-          <div class="card" style="display:grid; gap:.5rem;">
+          <div class="card" style="display:grid; gap:.75rem;">
             <p class="font-semibold"><%= mod.data?.question || "" %></p>
-
-            <form
-              onsubmit="return checkAnswerBranch(
-                this,
-                '<%= (mod.data?.answer||'').replace(/"/g,'&quot;') %>',
-                <%= Number.isInteger(mod.data?.goodPage) ? mod.data.goodPage : 'null' %>,
-                <%= Number.isInteger(mod.data?.badPage)  ? mod.data.badPage  : 'null' %>,
-                '<%= puzzle._id %>'
-              )"
-              style="display:grid; gap:.5rem;"
-            >
-              <input type="text" name="answer" placeholder="Jouw antwoord">
-              <button class="next-btn" type="submit">Controleer</button>
-              <div class="text-sm" data-feedback></div>
-            </form>
+        
+            <% if (mod.data?.questionType === "mc") { %>
+        
+              <!-- MULTIPLE CHOICE -->
+              <form
+                onsubmit="return checkMCBranch(
+                  this,
+                  <%- JSON.stringify(mod.data?.options || []) %>,
+                  <%= Number.isInteger(mod.data?.goodPage) ? mod.data.goodPage : 'null' %>,
+                  <%= Number.isInteger(mod.data?.badPage)  ? mod.data.badPage  : 'null' %>,
+                  '<%= puzzle._id %>'
+                )"
+                style="display:grid; gap:.5rem;"
+              >
+                <% (mod.data?.options || []).forEach((opt, i) => { %>
+                  <label style="display:flex; gap:.5rem; align-items:center;">
+                    <input type="radio" name="answer" value="<%= i %>">
+                    <%= opt.text %>
+                  </label>
+                <% }) %>
+        
+                <button class="next-btn" type="submit">Controleer</button>
+                <div class="text-sm" data-feedback></div>
+              </form>
+        
+            <% } else { %>
+        
+              <!-- OPEN VRAAG -->
+              <form
+                onsubmit="return checkAnswerBranch(
+                  this,
+                  '<%= (mod.data?.answer||'').replace(/"/g,'&quot;') %>',
+                  <%= Number.isInteger(mod.data?.goodPage) ? mod.data.goodPage : 'null' %>,
+                  <%= Number.isInteger(mod.data?.badPage)  ? mod.data.badPage  : 'null' %>,
+                  '<%= puzzle._id %>'
+                )"
+                style="display:grid; gap:.5rem;"
+              >
+                <input type="text" name="answer" placeholder="Jouw antwoord">
+                <button class="next-btn" type="submit">Controleer</button>
+                <div class="text-sm" data-feedback></div>
+              </form>
+        
+            <% } %>
           </div>
         <% } %>
 
@@ -231,6 +260,35 @@ function playSfx(url) {
     .on('locationfound', onLocationFound)
     .on('locationerror', ()=> {});
 })();
+</script>
+
+<script>
+function checkMCBranch(form, options, goodPage, badPage, puzzleId) {
+  const fb = form.querySelector('[data-feedback]');
+  const checked = form.querySelector('input[name="answer"]:checked');
+
+  if (!checked) {
+    fb.textContent = "Kies eerst een antwoord.";
+    fb.style.color = "var(--accent)";
+    return false;
+  }
+
+  const index = Number(checked.value);
+  const isCorrect = !!options[index]?.correct;
+
+  if (isCorrect && goodPage !== null) {
+    window.location.href = `/puzzle/${puzzleId}/${goodPage}`;
+  }
+  else if (!isCorrect && badPage !== null) {
+    window.location.href = `/puzzle/${puzzleId}/${badPage}`;
+  }
+  else {
+    fb.textContent = isCorrect ? "Goed!" : "Fout!";
+    fb.style.color = isCorrect ? "green" : "var(--accent)";
+  }
+
+  return false;
+}
 </script>
 
 </body>
