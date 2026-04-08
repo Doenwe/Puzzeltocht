@@ -180,6 +180,21 @@ app.post(
 );
 
 // ------------------------------------------
+// 8c. SET TEAM PROFILE PHOTO
+// ------------------------------------------
+app.post("/team/profile-photo", express.json(), (req, res) => {
+  const { photoUrl } = req.body;
+
+  if (!photoUrl || !photoUrl.startsWith("/uploads/")) {
+    return res.status(400).json({ error: "Ongeldige foto" });
+  }
+
+  req.session.teamProfilePhoto = photoUrl;
+
+  res.json({ ok: true });
+});
+
+// ------------------------------------------
 // 9. ROUTES
 // ------------------------------------------
 
