@@ -302,6 +302,7 @@
     <div>
       <button class="element-btn" type="button" data-type="text">📝 Tekst</button>
       <button class="element-btn" type="button" data-type="image">🖼️ Afbeelding</button>
+      <button class="element-btn" data-type="audio">🔊 Geluidsfragment</button>
       <button class="element-btn" type="button" data-type="question">❓ Vraag</button>
       <button class="element-btn" type="button" data-type="location">📍 Locatie</button>
       <button class="element-btn" type="button" data-type="photo">📸 Foto maken</button>
@@ -626,6 +627,42 @@
           helper.textContent = "Voeg een afbeelding URL toe of upload.";
           qs(".content", block).appendChild(helper);
         }
+      }
+
+      if (type === "audio") {
+        content.innerHTML = `
+          <label>Geluidsbestand</label>
+      
+          <div style="display:flex; gap:8px; margin-bottom:8px;">
+            <input
+              type="text"
+              data-field="url"
+              placeholder="/uploads/geluid.mp3"
+              style="flex:1;"
+            >
+      
+            <button
+              type="button"
+              class="btn-upload"
+              style="white-space:nowrap;"
+            >
+              Uploaden
+            </button>
+      
+            <input
+              type="file"
+              accept="audio/*"
+              class="file-hidden"
+              style="display:none;"
+            >
+          </div>
+      
+          <audio controls style="width:100%; display:none;"></audio>
+      
+          <div class="helper">
+            Upload een geluidsbestand of plak een bestaande link.
+          </div>
+        `;
       }
 
       if(m.type==="question"){
@@ -1029,6 +1066,21 @@ function createBlock(type){
       });
     }
 
+    // AUDIO PREVIEW
+    if (block.dataset.type === "audio" &&
+        e.target.matches('input[data-field="url"]')) {
+    
+      const url = e.target.value.trim();
+      const audio = block.querySelector("audio");
+    
+      if (url) {
+        audio.src = url;
+        audio.style.display = "block";
+      } else {
+        audio.style.display = "none";
+        audio.src = "";
+      }
+    }
 
     // BLOCK SELECTION
     block.addEventListener("click", ()=>{
@@ -1362,6 +1414,11 @@ function collect(){
       }
     
       if (type === "image") {
+        data.url =
+          qs('input[data-field="url"]', b)?.value?.trim() || "";
+      }
+
+      if (type === "audio") {
         data.url =
           qs('input[data-field="url"]', b)?.value?.trim() || "";
       }
