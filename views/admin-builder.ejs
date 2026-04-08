@@ -303,6 +303,20 @@
   .page-item:active {
     cursor: grabbing;
   }
+
+  /* Net uitgelijnde checkbox-rijen */
+  .check-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;              /* ruimte tussen checkbox en tekst */
+    margin-top: 8px;
+    font-size: 13px;
+  }
+  
+  .check-row input[type="checkbox"] {
+    margin: 0;             /* verwijdert browser-offset */
+    flex-shrink: 0;
+  }
 </style>
 
 <div class="builder-wrap">
