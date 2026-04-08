@@ -2,16 +2,18 @@
 
   <h1 class="text-2xl font-bold">Bestanden</h1>
   <p class="text-sm text-gray-600">
-    Overzicht van alle geüploade bestanden (afbeeldingen, audio en teamfoto’s).
+    Overzicht van alle geüploade bestanden. Je kunt links kopiëren voor gebruik in puzzels.
   </p>
 
-  <!-- ========= ROOT UPLOADS (images + audio) ========= -->
+  <!-- ========= ROOT UPLOADS ========= -->
   <% if (rootFiles && rootFiles.length) { %>
     <div class="card p-4 border rounded space-y-3">
       <h2 class="font-semibold text-lg">📂 uploads/ (root)</h2>
 
       <ul class="space-y-2">
-        <% rootFiles.forEach(file => { %>
+        <% rootFiles.forEach(file => { 
+          const filePath = `/uploads/${file.name}`;
+        %>
           <li class="flex items-center justify-between text-sm bg-gray-50 p-2 rounded">
 
             <div>
@@ -23,12 +25,19 @@
 
             <div class="space-x-3">
               <a
-                href="/uploads/<%= file.name %>"
+                href="<%= filePath %>"
                 target="_blank"
                 class="text-blue-600 underline"
               >
                 Bekijk
               </a>
+
+              <button
+                class="text-gray-700 underline"
+                onclick="copyToClipboard('<%= filePath %>')"
+              >
+                Kopieer link
+              </button>
 
               <button
                 class="text-red-600 underline"
@@ -44,7 +53,7 @@
     </div>
   <% } %>
 
-  <!-- ========= SUBFOLDERS (bijv. team-photos) ========= -->
+  <!-- ========= SUBFOLDERS ========= -->
   <% if (folders && folders.length) { %>
     <% folders.forEach(folder => { %>
       <div class="card p-4 border rounded space-y-3">
@@ -59,7 +68,9 @@
           </p>
         <% } else { %>
           <ul class="space-y-2">
-            <% folder.files.forEach(file => { %>
+            <% folder.files.forEach(file => { 
+              const filePath = `/uploads/${folder.name}/${file.name}`;
+            %>
               <li class="flex items-center justify-between text-sm bg-gray-50 p-2 rounded">
 
                 <div>
@@ -71,12 +82,19 @@
 
                 <div class="space-x-3">
                   <a
-                    href="/uploads/<%= folder.name %>/<%= file.name %>"
+                    href="<%= filePath %>"
                     target="_blank"
                     class="text-blue-600 underline"
                   >
                     Bekijk
                   </a>
+
+                  <button
+                    class="text-gray-700 underline"
+                    onclick="copyToClipboard('<%= filePath %>')"
+                  >
+                    Kopieer link
+                  </button>
 
                   <button
                     class="text-red-600 underline"
@@ -107,29 +125,56 @@
 </section>
 
 <script>
-async function deleteFile(folder, file) {
-  if (!confirm(`Bestand "${file}" verwijderen?`)) {
-    return;
+/* ✅ LINK KOPIËREN */
+async function copyToClipboard(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    toast(`Link gekopieerd: ${text}`);
+  } catch (err) {
+    alert("Kopiëren mislukt");
+    console.error(err);
   }
+}
+
+/* ✅ VERWIJDEREN */
+async function deleteFile(folder, file) {
+  if (!confirm(`Bestand "${file}" verwijderen?`)) return;
 
   try {
     const res = await fetch("/admin-files/delete", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ folder, file })
     });
 
-    if (!res.ok) {
-      throw new Error("Serverfout");
-    }
-
+    if (!res.ok) throw new Error();
     location.reload();
   }
   catch (err) {
-    console.error(err);
     alert("Verwijderen mislukt");
+    console.error(err);
   }
+}
+
+/* ✅ SIMPLE TOAST */
+function toast(msg) {
+  const t = document.createElement("div");
+  t.textContent = msg;
+
+  Object.assign(t.style, {
+    position: "fixed",
+    right: "20px",
+    bottom: "20px",
+    background: "#2563eb",
+    color: "#fff",
+    padding: "10px 14px",
+    borderRadius: "12px",
+    boxShadow: "0 8px 24px rgba(0,0,0,.2)",
+    zIndex: 9999,
+    fontSize: "14px"
+  });
+
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 1800);
 }
 </script>
