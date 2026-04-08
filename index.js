@@ -276,6 +276,37 @@ app.post("/team/name", express.json(), (req, res) => {
 // 9. ROUTES
 // ------------------------------------------
 
+// ------------------------------------------
+// ADMIN: BESTANDEN OVERZICHT
+// ------------------------------------------
+app.get("/admin-files", requireAdmin, (req, res) => {
+  const baseDir = uploadDir; // jouw bestaande uploads map
+
+  function readFiles(dir) {
+    if (!fs.existsSync(dir)) return [];
+    return fs.readdirSync(dir).map(name => {
+      const fullPath = path.join(dir, name);
+      const stat = fs.statSync(fullPath);
+
+      return {
+        name,
+        isDir: stat.isDirectory(),
+        size: stat.isFile() ? stat.size : null,
+        path: fullPath
+      };
+    });
+  }
+
+  const folders = readFiles(baseDir)
+    .filter(f => f.isDir)
+    .map(folder => ({
+      name: folder.name,
+      files: readFiles(path.join(baseDir, folder.name)).filter(f => !f.isDir)
+    }));
+
+  res.render("admin-files", { folders });
+});
+
 app.get("/", (req, res) => res.render("index", { error: null }));
 
 app.post("/check-code", async (req, res) => {
