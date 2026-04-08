@@ -15,7 +15,10 @@
     }
 
     return puz.pages.map(pg => ({
-      title: pg?.title || "Pagina",
+      title:
+        typeof pg?.title === "object"
+          ? pg.title
+          : (pg?.title || "Pagina"),
       showNext: typeof pg?.showNext === "boolean" ? pg.showNext : true,
       isMap: typeof pg?.isMap === "boolean" ? pg.isMap : false,
 
@@ -579,7 +582,13 @@
   function setPageTitleUI(){
     const page = pages[currentPage];
 
-    const title = page?.title || ("Pagina " + (currentPage+1));
+    const title =
+      typeof page.title === "string"
+        ? page.title
+        : page.title?.[activeLanguage]
+          || page.title?.[puzzle.defaultLanguage]
+          || ("Pagina " + (currentPage + 1));
+
     const isMap = !!page?.isMap;
 
     qs("#page-title-label").textContent = title;
