@@ -1705,7 +1705,11 @@ function collect(){
       const res = await fetch(`/admin-builder/${id}/save-all`, {
         method:"POST",
         headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ pages })
+        body: JSON.stringify({
+          pages,
+          languages: availableLanguages,
+          defaultLanguage: puzzle.defaultLanguage || activeLanguage
+        })
       });
 
       if(!res.ok) throw new Error(await res.text());
