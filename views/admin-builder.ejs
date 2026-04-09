@@ -312,7 +312,7 @@ const pagesSafe = normalizePages(puzzle);
   <strong>Taal:</strong>
 
   <select id="language-select">
-    <% (puzzleMeta.languages || ["nl"]).forEach(l => { %>
+    <% (puzzle.languages || ["nl"]).forEach(l => { %>
       <option value="<%= l %>"><%= l.toUpperCase() %></option>
     <% }) %>
   </select>
@@ -487,8 +487,8 @@ const pagesSafe = normalizePages(puzzle);
 (function(){  
   // ✅ PUZZLE OBJECT BESCHIKBAAR MAKEN IN JS
   const puzzleMeta = <%- JSON.stringify({
-    languages: puzzleMeta.languages || ["nl"],
-    defaultLanguage: puzzleMeta.defaultLanguage || "nl",
+    languages: puzzle.languages || ["nl"],
+    defaultLanguage: puzzle.defaultLanguage || "nl",
     _id: puzzleMeta._id
   }) %>;
 
