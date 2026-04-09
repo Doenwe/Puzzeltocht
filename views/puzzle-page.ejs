@@ -289,6 +289,132 @@ function openImage(src){
 }
 </script>
 
+<script>
+/* === QUESTIONS === */
+function handleMC(btn) {
+  const b = btn.closest('[data-mc]');
+  const fb = b.querySelector('.feedback');
+  const r = b.querySelector('input:checked');
+  if (!r) {
+    fb.textContent = "Kies een antwoord.";
+    fb.style.color = "red";
+    return;
+  }
+
+  const opts = JSON.parse(b.dataset.options || "[]");
+  const ok = !!opts[r.value]?.correct;
+  const go = ok ? b.dataset.good : b.dataset.bad;
+
+  if (go !== "") {
+    location.href = `/puzzle/${b.dataset.puzzle}/${go}`;
+    return;
+  }
+
+  fb.textContent = ok ? "Goed!" : "Fout!";
+  fb.style.color = ok ? "green" : "red";
+}
+
+function handleOpen(e, f) {
+  e.preventDefault();
+
+  const ok =
+    f.answer.value.trim().toLowerCase() ===
+    f.correct.value.trim().toLowerCase();
+
+  const go = ok ? f.good.value : f.bad.value;
+  if (go !== "") {
+    location.href = `/puzzle/${f.puzzle.value}/${go}`;
+    return false;
+  }
+
+  const fb = f.querySelector('.feedback');
+  fb.textContent = ok ? "Goed!" : "Fout!";
+  fb.style.color = ok ? "green" : "red";
+  return false;
+}
+
+/* === PHOTO UPLOAD === */
+async function uploadPhoto(input, pageIndex, moduleIndex) {
+  const file = input.files?.[0];
+  if (!file) return;
+
+  const fb = document.getElementById(
+    `photo-feedback-${pageIndex}-${moduleIndex}`
+  );
+
+  const fd = new FormData();
+  fd.append("file", file);
+
+  try {
+    fb.textContent = "Uploaden…";
+
+    const res = await fetch("/upload-photo", {
+      method: "POST",
+      body: fd
+    });
+
+    if (!res.ok) throw new Error();
+
+    const json = await res.json();
+    document.getElementById(
+      `photo-url-${pageIndex}-${moduleIndex}`
+    ).value = json.url;
+
+    fb.textContent = "✅ Foto opgeslagen";
+    fb.style.color = "green";
+  } catch {
+    fb.textContent = "❌ Upload mislukt";
+    fb.style.color = "red";
+  }
+}
+
+/* === TEAM PHOTO === */
+async function setAsTeamPhoto(photoUrl) {
+  if (!photoUrl) {
+    alert("Maak eerst een foto.");
+    return;
+  }
+
+  if (!confirm("Deze foto instellen als teamfoto?")) return;
+
+  const res = await fetch("/team/profile-photo", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ photoUrl })
+  });
+
+  if (!res.ok) {
+    alert("Instellen mislukt");
+    return;
+  }
+
+  location.reload();
+}
+
+/* === TEAM NAME === */
+async function saveTeamName(name) {
+  name = name.trim();
+  if (!name) return;
+
+  const fb = document.getElementById("teamname-feedback");
+
+  const res = await fetch("/team/name", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name })
+  });
+
+  if (!res.ok) {
+    fb.textContent = "❌ Opslaan mislukt";
+    fb.style.color = "red";
+    return;
+  }
+
+  fb.textContent = "✅ Teamnaam opgeslagen";
+  fb.style.color = "green";
+}
+</script>
+
 <!-- MAP SCRIPT (ongewijzigd) -->
 <% if (page.isMap) { %>
 <script>
