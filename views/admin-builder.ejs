@@ -793,12 +793,15 @@
           mcWrap.style.display = "block";
       
           qsa('[data-option]', mcWrap).forEach((opt, i) => {
+            const option = data?.options?.[i];
+          
             opt.querySelector('[data-text]').value =
-              typeof data?.options?.[i]?.text === "string"
-                ? data.options[i].text
-                : data.options[i].text?.[activeLanguage] || "";
+              typeof option?.text === "string"
+                ? option.text
+                : option?.text?.[activeLanguage] || "";
+          
             opt.querySelector('[data-correct]').checked =
-              !!data?.options?.[i]?.correct;
+              !!option?.correct;
           });
         } else {
           openWrap.style.display = "block";
