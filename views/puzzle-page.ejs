@@ -123,8 +123,6 @@
         || "";
 %>
 
-<h1><%= puzzle.name %></h1>
-
 <!-- 🌍 TAALKEUZE -->
 <form id="language-form"
       style="margin-bottom:16px;"
@@ -149,22 +147,6 @@
   <input type="hidden" name="redirect"
          value="/puzzle/<%= puzzle._id %>/<%= pageIndex %>">
 </form>
-
-<!-- TEAM HEADER -->
-<% if (session?.teamName || session?.teamProfilePhoto) { %>
-  <div class="team-header">
-    <% if (session?.teamProfilePhoto) { %>
-      <img src="<%= session.teamProfilePhoto %>"
-           class="team-photo">
-    <% } %>
-
-    <% if (session?.teamName) { %>
-      <strong><%= session.teamName %></strong>
-    <% } %>
-  </div>
-<% } %>
-
-<h2><%= t(page.title) %></h2>
 
 <!-- 🔊 AUDIO BIJ START -->
 <% if (page.playSoundOnStart && page.soundUrl) { %>
