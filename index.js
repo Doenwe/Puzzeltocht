@@ -13,6 +13,8 @@ import csv from "csv-parser";
 import fs from "fs";
 import crypto from "crypto";
 
+import Stripe from "stripe"; // STRIPE TOEGEVOEGD
+
 import Puzzle from "./models/Puzzle.js";
 import Admin from "./models/Admin.js";
 import Code from "./models/Code.js";
@@ -506,7 +508,7 @@ app.get("/puzzle/:id/:page", async (req, res) => {
     puzzle.defaultLanguage ||
     "nl";
 
-  res.render("puzzle-page", {
+ res.render("puzzle-page", {
     puzzle,
     page: puzzle.pages[Number(req.params.page)],
     pageIndex: Number(req.params.page),
@@ -514,6 +516,45 @@ app.get("/puzzle/:id/:page", async (req, res) => {
     session: req.session
   });
 });
+
+// ------------------------------------------
+// 9b. STRIPE PAYMENT ENDPOINT
+// ------------------------------------------
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+app.post("/create-checkout-session", async (req, res) => {
+  try {
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"], 
+      line_items: [
+        {
+          price_data: {
+            currency: "eur",
+            product_data: {
+              name: "Puzzeltocht Ticket",
+            },
+            unit_amount: 500, // Bedrag in centen (€5,00)
+          },
+          quantity: 1,
+        },
+      ],
+      mode: "payment",
+      // Redirect na betaling
+      success_url: `${process.env.YOUR_DOMAIN}/next`, 
+      cancel_url: `${process.env.YOUR_DOMAIN}/`,
+    });
+
+    res.json({ id: session.id });
+  } catch (error) {
+    console.error("Stripe fout:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ------------------------------------------
+// 10. 404
+// ------------------------------------------
+app.use((req, res) => res.status(404).send("Pagina niet gevonden"));
 
 // ------------------------------------------
 // 10. 404
