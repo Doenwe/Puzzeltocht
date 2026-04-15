@@ -261,12 +261,13 @@ app.post("/team/profile-photo", express.json(), (req, res) => {
   res.json({ ok: true });
 });
 // ------------------------------------------
-// 8d. AI FOTO CONTROLE (GEMINI API)
+// 8d. AI FOTO CONTROLE (DYNAMISCHE JURY)
 // ------------------------------------------
 app.post("/api/verify-aiphoto", uploadTeamPhoto.single("file"), async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ error: "Geen foto." });
+    if (!req.file) return res.status(400).json({ error: "Geen foto ontvangen." });
     
+    // Pak de opdracht en de punten uit de aanvraag (meegestuurd door de speler)
     const { prompt, maxPoints } = req.body;
     const limit = Number(maxPoints) || 10;
 
@@ -275,32 +276,35 @@ app.post("/api/verify-aiphoto", uploadTeamPhoto.single("file"), async (req, res)
 
     const fileData = fs.readFileSync(req.file.path);
     const imagePart = {
-      inlineData: { data: fileData.toString("base64"), mimeType: req.file.mimetype }
+      inlineData: {
+        data: fileData.toString("base64"),
+        mimeType: req.file.mimetype
+      }
     };
 
     const systemPrompt = `
-      Je bent een juryvoorzitter van een puzzeltocht.
-      Opdracht voor de speler: "${prompt}".
-      Beoordeel de foto op een schaal van 0 tot 100 (score).
-      - 0: De foto heeft niets met de opdracht te maken.
-      - 1-49: Poging gedaan, maar onvoldoende of onduidelijk.
-      - 50-79: Goede foto, voldoet aan de opdracht.
-      - 80-100: Uitstekend, creatief of perfect uitgevoerd.
+      Je bent de juryvoorzitter van een puzzeltocht. 
+      De beheerder heeft de volgende opdracht gegeven: "${prompt}".
+      
+      Jouw taak: Beoordeel of de foto voldoet aan deze opdracht op een schaal van 0 tot 100.
+      
+      STRIKTE BEOORDELINGSRICHTLIJNEN:
+      - 100 punten: Het gevraagde object staat duidelijk op de foto. (Geef ALTIJD 100 punten als het object aanwezig is. Negeer belichting, compositie of artistieke kwaliteit).
+      - 50-99 punten: Het object is aanwezig maar zeer onduidelijk, deels buiten beeld of extreem klein.
+      - 0-49 punten: Het gevraagde object ontbreekt of de foto is totaal irrelevant.
 
-      Antwoord ALLEEN met deze JSON:
+      Antwoord UITSLUITEND in deze JSON structuur:
       {
         "match": true, // alleen false als score < 50
-        "score": 85, // getal tussen 0 en 100
-        "reason": "Korte motivatie van de score."
+        "score": 100, 
+        "reason": "Korte, enthousiaste motivatie in het Nederlands (max 2 zinnen)."
       }
     `;
 
     const result = await model.generateContent([systemPrompt, imagePart]);
-    const responseText = result.response.text();
-    const cleanJson = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
-    const aiResult = JSON.parse(cleanJson);
+    const aiResult = JSON.parse(result.response.text().replace(/```json/g, "").replace(/```/g, "").trim());
 
-    // Bereken de uiteindelijke punten
+    // Berekening: (percentage / 100) * max punten uit de builder
     const awarded = Math.round((aiResult.score / 100) * limit);
 
     res.json({
@@ -314,8 +318,8 @@ app.post("/api/verify-aiphoto", uploadTeamPhoto.single("file"), async (req, res)
     });
 
   } catch (error) {
-    console.error("AI Fout:", error);
-    res.status(500).json({ error: "De jury kon de foto niet beoordelen." });
+    console.error("AI Jury Fout:", error);
+    res.status(500).json({ error: "De AI jury kon de foto niet beoordelen." });
   }
 });
 // ------------------------------------------
