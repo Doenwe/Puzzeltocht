@@ -322,7 +322,6 @@ app.post("/api/verify-aiphoto", uploadTeamPhoto.single("file"), async (req, res)
     res.status(500).json({ error: "De AI jury kon de foto niet beoordelen." });
   }
 });
-
 // ------------------------------------------
 // 8e. HISTORISCHE CHAT (LITE MODEL - 1000 REQS/DAG)
 // ------------------------------------------
@@ -336,7 +335,7 @@ app.post("/api/chat-persona", express.json(), async (req, res) => {
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     
-    // ⭐ VERANDERD NAAR FLASH-LITE VOOR HOGERE QUOTA
+    // Gebruik Flash-Lite voor hogere gratis quota
     const model = genAI.getGenerativeModel({ 
       model: "gemini-2.5-flash-lite",
       systemInstruction: `Je bent het volgende personage: ${characterName}. Jouw achtergrond en gedrag: ${systemPrompt}. Reageer altijd in karakter. Houd je antwoorden kort en krachtig (max 3 zinnen).`
@@ -351,7 +350,7 @@ app.post("/api/chat-persona", express.json(), async (req, res) => {
 
     res.json({ reply: responseText });
 
-} catch (error) {
+  } catch (error) { // <--- Hier stond de fout; de sluitende accolade hierboven ontbrak
     console.error("Chat Error:", error);
 
     // Als de daglimiet van Google op is (Error 429)
@@ -365,7 +364,8 @@ app.post("/api/chat-persona", express.json(), async (req, res) => {
     res.status(500).json({ 
         error: `Helaas, ${characterName} is even sprakeloos... Probeer het zo nog eens!` 
     });
-}
+  }
+});
 
 
 // ------------------------------------------
