@@ -400,109 +400,104 @@
 <% } %>
 //----------------------------------------- AI foto
 
+<% if (mod.type === 'aiphoto') { %>
+  <% 
+     // Data ophalen uit de database (ingevuld in de Builder)
+     const aiInstruction = t(mod.data.instruction);
+     const aiPrompt = t(mod.data.prompt);
+     const maxPoints = mod.data.points || 10;
+  %>
+  
+  <div class="card module-aiphoto" 
+       id="ai-mod-<%= qIndex %>"
+       data-prompt="<%= aiPrompt %>" 
+       data-maxpoints="<%= maxPoints %>" 
+       style="border: 2px solid #c7d2fe;">
+       
+    <h3 style="margin-top: 0; font-size: 1.2rem; font-weight: 800; color: #4f46e5; display: flex; align-items: center; gap: 8px;">
+      ✨ AI Opdracht
+    </h3>
+    <p style="margin-bottom: 16px; font-size: 1rem; color: #374151;">
+      <strong>Opdracht:</strong> <%= aiInstruction %>
+    </p>
 
-  <% if (mod.type === 'aiphoto') { %>
-    <% 
-       const aiInstruction = typeof mod.data.instruction === 'string' ? mod.data.instruction : (mod.data.instruction?.[lang] || '');
-       const aiPrompt = typeof mod.data.prompt === 'string' ? mod.data.prompt : (mod.data.prompt?.[lang] || '');
-    %>
-    
-    <div class="card module-aiphoto" data-prompt="<%= aiPrompt %>" 
-     data-maxpoints="<%= mod.data.points || 10 %>" 
-     style="border: 2px solid #c7d2fe;">
-      <h3 style="margin-top: 0; font-size: 1.2rem; font-weight: 800; color: #4f46e5; display: flex; align-items: center; gap: 8px;">
-        ✨ AI Opdracht
-      </h3>
-      <p style="margin-bottom: 16px; font-size: 1rem; color: #374151;">
-        <strong>Opdracht:</strong> <%= aiInstruction %>
-      </p>
-
-      <div class="ai-interaction-area" style="display: flex; flex-direction: column; gap: 12px;">
-        <input type="file" accept="image/*" capture="environment" class="ai-file-input" style="display: none;">
-        
-        <button type="button" class="btn ai-camera-btn" style="width: 100%; padding: 14px; font-weight: bold; font-size: 1.1rem; background: #4f46e5; color: white; border: none;">
-          📸 Maak Foto & Controleer
-        </button>
-        
-        <div class="ai-status" style="display: none; padding: 14px; border-radius: 8px; font-size: 0.95rem; font-weight: 600; line-height: 1.4;"></div>
-        
-        <img class="ai-preview" style="display: none; width: 100%; border-radius: 8px; margin-top: 4px; border: 1px solid #e5e7eb;">
-      </div>
+    <div class="ai-interaction-area" style="display: flex; flex-direction: column; gap: 12px;">
+      <input type="file" accept="image/*" capture="environment" class="ai-file-input" style="display: none;">
+      
+      <button type="button" class="btn ai-camera-btn" style="width: 100%; padding: 14px; font-weight: bold; background: #4f46e5; color: white; border: none;">
+        📸 Maak Foto & Controleer
+      </button>
+      
+      <div class="ai-status" style="display: none; padding: 14px; border-radius: 8px; font-size: 0.95rem; font-weight: 600; line-height: 1.4;"></div>
+      
+      <img class="ai-preview" style="display: none; width: 100%; border-radius: 8px; margin-top: 4px; border: 1px solid #e5e7eb;">
     </div>
+  </div>
 
-    <script>
-      (function() {
-        const scripts = document.getElementsByTagName('script');
-        const currentScript = scripts[scripts.length - 1];
-        const module = currentScript.previousElementSibling;
+  <script>
+    (function() {
+      const module = document.getElementById('ai-mod-<%= qIndex %>');
+      const btn = module.querySelector('.ai-camera-btn');
+      const fileInput = module.querySelector('.ai-file-input');
+      const statusDiv = module.querySelector('.ai-status');
+      const previewImg = module.querySelector('.ai-preview');
 
-        const btn = module.querySelector('.ai-camera-btn');
-        const fileInput = module.querySelector('.ai-file-input');
-        const statusDiv = module.querySelector('.ai-status');
-        const previewImg = module.querySelector('.ai-preview');
-        const hiddenPrompt = module.dataset.prompt;
+      btn.addEventListener('click', () => fileInput.click());
 
-        btn.addEventListener('click', () => fileInput.click());
+      fileInput.addEventListener('change', async () => {
+        const file = fileInput.files[0];
+        if (!file) return;
 
-fileInput.addEventListener('change', async () => {
-  const file = fileInput.files[0];
-  if (!file) return;
+        // UI naar loading state
+        btn.disabled = true;
+        btn.innerHTML = "🤖 AI jury overlegt...";
+        statusDiv.style.display = "block";
+        statusDiv.style.background = "#eef2ff";
+        statusDiv.style.color = "#4f46e5";
+        statusDiv.innerHTML = "De jury beoordeelt je foto...";
+        
+        previewImg.src = URL.createObjectURL(file);
+        previewImg.style.display = "block";
 
-  const maxPoints = module.dataset.maxpoints; // Pak de max punten uit de HTML
+        // Belangrijk: Pak de data die de admin in de builder heeft gezet
+        const fd = new FormData();
+        fd.append("file", file);
+        fd.append("prompt", module.dataset.prompt);
+        fd.append("maxPoints", module.dataset.maxpoints);
 
-  btn.disabled = true;
-  btn.innerHTML = "🤖 AI jury overlegt...";
-  btn.style.opacity = "0.7";
-  
-  statusDiv.style.display = "block";
-  statusDiv.style.background = "#eef2ff";
-  statusDiv.style.color = "#4f46e5";
-  statusDiv.innerHTML = "De AI jury beoordeelt je foto...";
-  
-  previewImg.src = URL.createObjectURL(file);
-  previewImg.style.display = "block";
+        try {
+          const res = await fetch('/api/verify-aiphoto', { method: 'POST', body: fd });
+          const result = await res.json();
 
-  const fd = new FormData();
-  fd.append("file", file);
-  fd.append("prompt", hiddenPrompt);
-  fd.append("maxPoints", maxPoints); // Stuur de max punten mee!
+          if (!res.ok) throw new Error(result.error);
 
-  try {
-    const res = await fetch('/api/verify-aiphoto', { method: 'POST', body: fd });
-    const result = await res.json();
+          if (result.match) {
+            statusDiv.style.background = "#dcfce7";
+            statusDiv.style.color = "#166534";
+            statusDiv.innerHTML = `✅ <strong>Goedgekeurd!</strong> (Score: ${result.score}%)<br>` +
+                                 `Je verdient <strong>${result.pointsAwarded} van de ${result.maxPoints} punten!</strong><br>` +
+                                 `<small style="font-weight:normal;">${result.reason}</small>`;
+            btn.style.display = "none"; 
+          } else {
+            statusDiv.style.background = "#fee2e2";
+            statusDiv.style.color = "#991b1b";
+            statusDiv.innerHTML = "❌ <strong>Helaas!</strong><br>" + result.reason;
+            btn.disabled = false;
+            btn.innerHTML = "📸 Probeer opnieuw";
+          }
+        } catch (err) {
+          statusDiv.style.background = "#fee2e2";
+          statusDiv.style.color = "#991b1b";
+          statusDiv.innerHTML = "⚠️ Fout: " + err.message;
+          btn.disabled = false;
+          btn.innerHTML = "📸 Probeer opnieuw";
+        }
+      });
+    })();
+  </script>
+<% } %>
 
-    if (!res.ok) throw new Error(result.error || "Fout bij analyse");
-
-    if (result.match === true) {
-      statusDiv.style.background = "#dcfce7";
-      statusDiv.style.color = "#166534";
-      // Toon de verdiende punten!
-      statusDiv.innerHTML = `✅ <strong>Goedgekeurd!</strong><br>
-                             Score: ${result.score}%<br>
-                             <strong>Je hebt ${result.pointsAwarded} van de ${result.maxPoints} punten verdiend!</strong><br>
-                             <small>${result.reason}</small>`;
-      btn.style.display = "none"; 
-    } else {
-      statusDiv.style.background = "#fee2e2";
-      statusDiv.style.color = "#991b1b";
-      statusDiv.innerHTML = "❌ <strong>Helaas!</strong><br>" + result.reason;
-      btn.disabled = false;
-      btn.innerHTML = "📸 Probeer opnieuw";
-      btn.style.opacity = "1";
-    }
-  } catch (err) {
-    statusDiv.style.background = "#fee2e2";
-    statusDiv.style.color = "#991b1b";
-    statusDiv.innerHTML = "⚠️ <strong>Fout:</strong> " + err.message;
-    btn.disabled = false;
-    btn.innerHTML = "📸 Probeer opnieuw";
-  }
-});
-      })();
-    </script>
-  <% } %>
-
-<% }) %>
+// ---------------------------------------- AI foto
 
 <!-- ▶ VOLGENDE PAGINA -->
 <% if (page.showNext && pageIndex + 1 < puzzle.pages.length) { %>
