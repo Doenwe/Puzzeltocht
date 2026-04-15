@@ -253,111 +253,6 @@
                      value="<%= i %>">
               <span><%= t(opt.text) %></span>
             </label>
-///////////////////////////////////////////////////// AI foto
-<% if (m.type === 'aiphoto') { %>
-  <% 
-     // Zorg dat we de juiste taalversie van de tekst pakken
-     const aiInstruction = typeof m.data.instruction === 'string' ? m.data.instruction : (m.data.instruction?.[lang] || '');
-     const aiPrompt = typeof m.data.prompt === 'string' ? m.data.prompt : (m.data.prompt?.[lang] || '');
-  %>
-  
-  <div class="module-aiphoto" data-prompt="<%= aiPrompt %>" style="margin-bottom: 20px; padding: 18px; background: #ffffff; border: 2px solid #eef2ff; border-radius: 16px; box-shadow: 0 4px 14px rgba(0,0,0,0.05);">
-    <h3 style="margin-top: 0; font-size: 1.2rem; font-weight: 800; color: #4f46e5; display: flex; align-items: center; gap: 8px;">
-      ✨ AI Opdracht
-    </h3>
-    <p style="margin-bottom: 16px; font-size: 1rem; color: #374151;">
-      <strong>Opdracht:</strong> <%= aiInstruction %>
-    </p>
-
-    <div class="ai-interaction-area" style="display: flex; flex-direction: column; gap: 12px;">
-      <input type="file" accept="image/*" capture="environment" class="ai-file-input" style="display: none;">
-      
-      <button type="button" class="btn-primary ai-camera-btn" style="width: 100%; padding: 14px; font-weight: bold; border-radius: 12px; font-size: 1.1rem; background: #4f46e5; color: white; border: none; cursor: pointer; transition: 0.2s;">
-        📸 Maak Foto & Controleer
-      </button>
-      
-      <div class="ai-status" style="display: none; padding: 14px; border-radius: 12px; font-size: 0.95rem; font-weight: 600; line-height: 1.4;"></div>
-      
-      <img class="ai-preview" style="display: none; width: 100%; border-radius: 12px; margin-top: 4px; border: 1px solid #e5e7eb;">
-    </div>
-  </div>
-
-  <script>
-    (function() {
-      // Zoek de zojuist ingeladen module (we gebruiken currentScript om exact deze div te vinden bij meerdere AI opdrachten op 1 pagina)
-      const scripts = document.getElementsByTagName('script');
-      const currentScript = scripts[scripts.length - 1];
-      const module = currentScript.previousElementSibling;
-
-      const btn = module.querySelector('.ai-camera-btn');
-      const fileInput = module.querySelector('.ai-file-input');
-      const statusDiv = module.querySelector('.ai-status');
-      const previewImg = module.querySelector('.ai-preview');
-      const hiddenPrompt = module.dataset.prompt;
-
-      btn.addEventListener('click', () => fileInput.click());
-
-      fileInput.addEventListener('change', async () => {
-        const file = fileInput.files[0];
-        if (!file) return;
-
-        // 1. UI Aanpassen: Loading State
-        btn.disabled = true;
-        btn.innerHTML = "🤖 AI is aan het nadenken...";
-        btn.style.opacity = "0.7";
-        
-        statusDiv.style.display = "block";
-        statusDiv.style.background = "#eef2ff";
-        statusDiv.style.color = "#4f46e5";
-        statusDiv.innerHTML = "Foto wordt geüpload en geanalyseerd door de AI...";
-        
-        previewImg.src = URL.createObjectURL(file);
-        previewImg.style.display = "block";
-
-        // 2. Data inpakken
-        const fd = new FormData();
-        fd.append("file", file);
-        fd.append("prompt", hiddenPrompt);
-
-        try {
-          // 3. Versturen naar de API die we net hebben gebouwd
-          const res = await fetch('/api/verify-aiphoto', { 
-            method: 'POST', 
-            body: fd 
-          });
-          const result = await res.json();
-
-          if (!res.ok) throw new Error(result.error || "Onbekende server fout");
-
-          // 4. Resultaat verwerken
-          if (result.match === true) {
-            statusDiv.style.background = "#dcfce7";
-            statusDiv.style.color = "#166534";
-            statusDiv.innerHTML = "✅ <strong>Goedgekeurd!</strong><br>" + result.reason;
-            btn.style.display = "none"; // Haal de knop weg, opdracht is voltooid!
-            
-            // TIP: Als Thijmen een 'Ga naar volgende pagina' logica heeft, roep die hier aan.
-          } else {
-            statusDiv.style.background = "#fee2e2";
-            statusDiv.style.color = "#991b1b";
-            statusDiv.innerHTML = "❌ <strong>Helaas!</strong><br>" + result.reason;
-            btn.disabled = false;
-            btn.innerHTML = "📸 Probeer opnieuw";
-            btn.style.opacity = "1";
-          }
-        } catch (err) {
-          statusDiv.style.background = "#fee2e2";
-          statusDiv.style.color = "#991b1b";
-          statusDiv.innerHTML = "⚠️ <strong>Er ging iets mis:</strong><br>" + err.message;
-          btn.disabled = false;
-          btn.innerHTML = "📸 Probeer opnieuw";
-          btn.style.opacity = "1";
-        }
-      });
-    })();
-  </script>
-<% } %>
-///////////////////////////////////////////////////////
           <% }) %>
 
           <button class="btn" onclick="handleMC(this)">
@@ -385,6 +280,103 @@
 
       <% } %>
     </div>
+  <% } %>
+
+<% (page.modules || []).forEach((mod, qIndex) => { %>
+  <% if (mod.type === 'aiphoto') { %>
+    <% 
+       const aiInstruction = typeof mod.data.instruction === 'string' ? mod.data.instruction : (mod.data.instruction?.[lang] || '');
+       const aiPrompt = typeof mod.data.prompt === 'string' ? mod.data.prompt : (mod.data.prompt?.[lang] || '');
+    %>
+    
+    <div class="card module-aiphoto" data-prompt="<%= aiPrompt %>" style="border: 2px solid #c7d2fe;">
+      <h3 style="margin-top: 0; font-size: 1.2rem; font-weight: 800; color: #4f46e5; display: flex; align-items: center; gap: 8px;">
+        ✨ AI Opdracht
+      </h3>
+      <p style="margin-bottom: 16px; font-size: 1rem; color: #374151;">
+        <strong>Opdracht:</strong> <%= aiInstruction %>
+      </p>
+
+      <div class="ai-interaction-area" style="display: flex; flex-direction: column; gap: 12px;">
+        <input type="file" accept="image/*" capture="environment" class="ai-file-input" style="display: none;">
+        
+        <button type="button" class="btn ai-camera-btn" style="width: 100%; padding: 14px; font-weight: bold; font-size: 1.1rem; background: #4f46e5; color: white; border: none;">
+          📸 Maak Foto & Controleer
+        </button>
+        
+        <div class="ai-status" style="display: none; padding: 14px; border-radius: 8px; font-size: 0.95rem; font-weight: 600; line-height: 1.4;"></div>
+        
+        <img class="ai-preview" style="display: none; width: 100%; border-radius: 8px; margin-top: 4px; border: 1px solid #e5e7eb;">
+      </div>
+    </div>
+
+    <script>
+      (function() {
+        const scripts = document.getElementsByTagName('script');
+        const currentScript = scripts[scripts.length - 1];
+        const module = currentScript.previousElementSibling;
+
+        const btn = module.querySelector('.ai-camera-btn');
+        const fileInput = module.querySelector('.ai-file-input');
+        const statusDiv = module.querySelector('.ai-status');
+        const previewImg = module.querySelector('.ai-preview');
+        const hiddenPrompt = module.dataset.prompt;
+
+        btn.addEventListener('click', () => fileInput.click());
+
+        fileInput.addEventListener('change', async () => {
+          const file = fileInput.files[0];
+          if (!file) return;
+
+          btn.disabled = true;
+          btn.innerHTML = "🤖 AI denkt na...";
+          btn.style.opacity = "0.7";
+          
+          statusDiv.style.display = "block";
+          statusDiv.style.background = "#eef2ff";
+          statusDiv.style.color = "#4f46e5";
+          statusDiv.innerHTML = "Foto wordt geüpload en geanalyseerd door de AI...";
+          
+          previewImg.src = URL.createObjectURL(file);
+          previewImg.style.display = "block";
+
+          const fd = new FormData();
+          fd.append("file", file);
+          fd.append("prompt", hiddenPrompt);
+
+          try {
+            const res = await fetch('/api/verify-aiphoto', { 
+              method: 'POST', 
+              body: fd 
+            });
+            const result = await res.json();
+
+            if (!res.ok) throw new Error(result.error || "Onbekende server fout");
+
+            if (result.match === true) {
+              statusDiv.style.background = "#dcfce7";
+              statusDiv.style.color = "#166534";
+              statusDiv.innerHTML = "✅ <strong>Goedgekeurd!</strong><br>" + result.reason;
+              btn.style.display = "none"; 
+            } else {
+              statusDiv.style.background = "#fee2e2";
+              statusDiv.style.color = "#991b1b";
+              statusDiv.innerHTML = "❌ <strong>Helaas!</strong><br>" + result.reason;
+              btn.disabled = false;
+              btn.innerHTML = "📸 Probeer opnieuw";
+              btn.style.opacity = "1";
+            }
+          } catch (err) {
+            statusDiv.style.background = "#fee2e2";
+            statusDiv.style.color = "#991b1b";
+            statusDiv.innerHTML = "⚠️ <strong>Er ging iets mis:</strong><br>" + err.message;
+            btn.disabled = false;
+            btn.innerHTML = "📸 Probeer opnieuw";
+            btn.style.opacity = "1";
+          }
+        });
+      })();
+    </script>
   <% } %>
 
 <% }) %>
