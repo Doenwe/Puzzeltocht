@@ -398,7 +398,7 @@
     })();
   </script>
 <% } %>
-////////////////////////////////////////////////////////////////////// AI foto
+//----------------------------------------- AI foto
 
 
   <% if (mod.type === 'aiphoto') { %>
@@ -407,7 +407,9 @@
        const aiPrompt = typeof mod.data.prompt === 'string' ? mod.data.prompt : (mod.data.prompt?.[lang] || '');
     %>
     
-    <div class="card module-aiphoto" data-prompt="<%= aiPrompt %>" style="border: 2px solid #c7d2fe;">
+    <div class="card module-aiphoto" data-prompt="<%= aiPrompt %>" 
+     data-maxpoints="<%= mod.data.points || 10 %>" 
+     style="border: 2px solid #c7d2fe;">
       <h3 style="margin-top: 0; font-size: 1.2rem; font-weight: 800; color: #4f46e5; display: flex; align-items: center; gap: 8px;">
         ✨ AI Opdracht
       </h3>
@@ -442,57 +444,60 @@
 
         btn.addEventListener('click', () => fileInput.click());
 
-        fileInput.addEventListener('change', async () => {
-          const file = fileInput.files[0];
-          if (!file) return;
+fileInput.addEventListener('change', async () => {
+  const file = fileInput.files[0];
+  if (!file) return;
 
-          btn.disabled = true;
-          btn.innerHTML = "🤖 AI denkt na...";
-          btn.style.opacity = "0.7";
-          
-          statusDiv.style.display = "block";
-          statusDiv.style.background = "#eef2ff";
-          statusDiv.style.color = "#4f46e5";
-          statusDiv.innerHTML = "Foto wordt geüpload en geanalyseerd door de AI...";
-          
-          previewImg.src = URL.createObjectURL(file);
-          previewImg.style.display = "block";
+  const maxPoints = module.dataset.maxpoints; // Pak de max punten uit de HTML
 
-          const fd = new FormData();
-          fd.append("file", file);
-          fd.append("prompt", hiddenPrompt);
+  btn.disabled = true;
+  btn.innerHTML = "🤖 AI jury overlegt...";
+  btn.style.opacity = "0.7";
+  
+  statusDiv.style.display = "block";
+  statusDiv.style.background = "#eef2ff";
+  statusDiv.style.color = "#4f46e5";
+  statusDiv.innerHTML = "De AI jury beoordeelt je foto...";
+  
+  previewImg.src = URL.createObjectURL(file);
+  previewImg.style.display = "block";
 
-          try {
-            const res = await fetch('/api/verify-aiphoto', { 
-              method: 'POST', 
-              body: fd 
-            });
-            const result = await res.json();
+  const fd = new FormData();
+  fd.append("file", file);
+  fd.append("prompt", hiddenPrompt);
+  fd.append("maxPoints", maxPoints); // Stuur de max punten mee!
 
-            if (!res.ok) throw new Error(result.error || "Onbekende server fout");
+  try {
+    const res = await fetch('/api/verify-aiphoto', { method: 'POST', body: fd });
+    const result = await res.json();
 
-            if (result.match === true) {
-              statusDiv.style.background = "#dcfce7";
-              statusDiv.style.color = "#166534";
-              statusDiv.innerHTML = "✅ <strong>Goedgekeurd!</strong><br>" + result.reason;
-              btn.style.display = "none"; 
-            } else {
-              statusDiv.style.background = "#fee2e2";
-              statusDiv.style.color = "#991b1b";
-              statusDiv.innerHTML = "❌ <strong>Helaas!</strong><br>" + result.reason;
-              btn.disabled = false;
-              btn.innerHTML = "📸 Probeer opnieuw";
-              btn.style.opacity = "1";
-            }
-          } catch (err) {
-            statusDiv.style.background = "#fee2e2";
-            statusDiv.style.color = "#991b1b";
-            statusDiv.innerHTML = "⚠️ <strong>Er ging iets mis:</strong><br>" + err.message;
-            btn.disabled = false;
-            btn.innerHTML = "📸 Probeer opnieuw";
-            btn.style.opacity = "1";
-          }
-        });
+    if (!res.ok) throw new Error(result.error || "Fout bij analyse");
+
+    if (result.match === true) {
+      statusDiv.style.background = "#dcfce7";
+      statusDiv.style.color = "#166534";
+      // Toon de verdiende punten!
+      statusDiv.innerHTML = `✅ <strong>Goedgekeurd!</strong><br>
+                             Score: ${result.score}%<br>
+                             <strong>Je hebt ${result.pointsAwarded} van de ${result.maxPoints} punten verdiend!</strong><br>
+                             <small>${result.reason}</small>`;
+      btn.style.display = "none"; 
+    } else {
+      statusDiv.style.background = "#fee2e2";
+      statusDiv.style.color = "#991b1b";
+      statusDiv.innerHTML = "❌ <strong>Helaas!</strong><br>" + result.reason;
+      btn.disabled = false;
+      btn.innerHTML = "📸 Probeer opnieuw";
+      btn.style.opacity = "1";
+    }
+  } catch (err) {
+    statusDiv.style.background = "#fee2e2";
+    statusDiv.style.color = "#991b1b";
+    statusDiv.innerHTML = "⚠️ <strong>Fout:</strong> " + err.message;
+    btn.disabled = false;
+    btn.innerHTML = "📸 Probeer opnieuw";
+  }
+});
       })();
     </script>
   <% } %>
