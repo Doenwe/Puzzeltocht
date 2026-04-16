@@ -4,11 +4,15 @@
 
   <div style="display: flex; flex-direction: column; gap: 12px;">
     <% if (scores && scores.length > 0) { %>
-      <% scores.forEach((score, index) => { %>
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-radius: 10px; border: 1px solid #e5e7eb; background: <%= index === 0 ? '#fef3c7' : (index === 1 ? '#f3f4f6' : (index === 2 ? '#fff7ed' : '#ffffff')) %>;">
+      <% scores.forEach((score) => { %>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-radius: 10px; border: <%= score.isOwn ? '3px solid #3b82f6' : '1px solid #e5e7eb' %>; background: <%= score.realRank === 1 ? '#fef3c7' : (score.realRank === 2 ? '#f3f4f6' : (score.realRank === 3 ? '#fff7ed' : (score.isOwn ? '#eff6ff' : '#ffffff'))) %>;">
           <div style="display: flex; align-items: center; gap: 15px;">
-            <strong style="font-size: 24px; color: #374151; width: 30px;"><%= index === 0 ? '🥇' : (index === 1 ? '🥈' : (index === 2 ? '🥉' : index + 1)) %></strong>
-            <span style="font-size: 18px; font-weight: 700; color: #111827;"><%= score.teamName %></span>
+            <strong style="font-size: 24px; color: #374151; width: 35px; text-align: center;">
+              <%= score.realRank === 1 ? '🥇' : (score.realRank === 2 ? '🥈' : (score.realRank === 3 ? '🥉' : '#' + score.realRank)) %>
+            </strong>
+            <span style="font-size: 18px; font-weight: 700; color: <%= score.isOwn ? '#1d4ed8' : '#111827' %>;">
+              <%= score.teamName %> <%= score.isOwn ? '(Jij)' : '' %>
+            </span>
           </div>
           <div style="text-align: right;">
             <strong style="color: #d97706; font-size: 20px;"><%= score.totalScore %> pt</strong>
