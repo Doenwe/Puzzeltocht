@@ -18,6 +18,8 @@ import Admin from "./models/Admin.js";
 import { checkCode } from "./models/Code.js";
 import Theme from "./models/Theme.js";
 import Team from "./models/Team.js"; 
+import "./models/cron.js";
+
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
