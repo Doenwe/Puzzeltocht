@@ -289,7 +289,7 @@ app.post("/api/verify-aiphoto", uploadTeamPhoto.single("file"), async (req, res)
       Jouw taak: Beoordeel of de foto voldoet aan deze opdracht op een schaal van 0 tot 100.
       
       STRIKTE BEOORDELINGSRICHTLIJNEN:
-      - 100 punten: Het gevraagde object staat duidelijk op de foto. (Geef ALTIJD 100 punten als het object aanwezig is. Negeer belichting, compositie of artistieke kwaliteit).
+      - 100 punten: Het gevraagde object staat duidelijk op de foto. (Geef ALTIJD 100 punten als het object volledig aanwezig is. Negeer belichting, compositie of artistieke kwaliteit).
       - 50-99 punten: Het object is aanwezig maar zeer onduidelijk, deels buiten beeld of extreem klein.
       - 0-49 punten: Het gevraagde object ontbreekt of de foto is totaal irrelevant.
 
@@ -319,7 +319,7 @@ app.post("/api/verify-aiphoto", uploadTeamPhoto.single("file"), async (req, res)
 
   } catch (error) {
     console.error("AI Jury Fout:", error);
-    res.status(500).json({ error: "De AI jury kon de foto niet beoordelen." });
+    res.status(500).json({ error: "De jury kon de foto niet beoordelen." });
   }
 });
 // ------------------------------------------
@@ -350,7 +350,7 @@ app.post("/api/chat-persona", express.json(), async (req, res) => {
 
     res.json({ reply: responseText });
 
-  } catch (error) { // <--- Hier stond de fout; de sluitende accolade hierboven ontbrak
+  } catch (error) { 
     console.error("Chat Error:", error);
 
     // Als de daglimiet van Google op is (Error 429)
