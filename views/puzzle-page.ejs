@@ -399,7 +399,165 @@
     })();
   </script>
 <% } %>
-//----------------------------------------- AI foto
+<% if (mod.type === 'historychat') { %>
+  <% 
+     const charName = t(mod.data.characterName);
+     const sysPrompt = t(mod.data.systemPrompt);
+     const targetLat = mod.data.lat || null;
+     const targetLng = mod.data.lng || null;
+     const targetRadius = mod.data.radius || 50;
+     const hasLocation = targetLat !== null && targetLng !== null;
+  %>
+  
+  <div class="card module-historychat" style="border: 2px solid #fee2e2; overflow: hidden; padding: 0; display: flex; flex-direction: column;">
+    <div style="background: #fee2e2; padding: 12px 16px; display: flex; align-items: center; gap: 12px;">
+      <div style="width: 44px; height: 44px; background: #991b1b; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+      </div>
+      <div>
+        <strong style="display: block; color: #991b1b; font-size: 1.1rem;"><%= charName %></strong>
+        <span style="font-size: 12px; color: #b91c1c;">Historisch figuur</span>
+      </div>
+    </div>
+
+    <div id="chat-locker-<%= qIndex %>" style="display: <%= hasLocation ? 'flex' : 'none' %>; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; background: #fffcfc; text-align: center;">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#991b1b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 12px; opacity: 0.8;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+      <strong style="color: #991b1b; font-size: 1.1rem;">Locatie Vergrendeld</strong>
+      <p style="font-size: 0.9rem; color: #6b7280; margin: 6px 0 16px;">Loop naar de locatie om in gesprek te gaan met <%= charName %>.</p>
+      <div id="chat-distance-<%= qIndex %>" style="font-weight: bold; color: #991b1b; padding: 10px 16px; background: #fee2e2; border-radius: 20px; font-size: 0.95rem;">
+        📍 Zoeken naar GPS...
+      </div>
+    </div>
+
+    <div id="chat-container-<%= qIndex %>" style="display: <%= hasLocation ? 'none' : 'flex' %>; flex-direction: column;">
+      <div id="chat-win-<%= qIndex %>" style="height: 50vh; min-height: 280px; max-height: 450px; overflow-y: auto; padding: 16px; background: #fffcfc; display: flex; flex-direction: column; gap: 12px; scroll-behavior: smooth;">
+        <div style="background: #f3f4f6; padding: 10px 14px; border-radius: 14px 14px 14px 0; align-self: flex-start; font-size: 0.95rem; max-width: 85%; color: #111827; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+          Gegroet reiziger! Ik ben <%= charName %>. Heb je vragen voor mij?
+        </div>
+      </div>
+
+      <div style="padding: 12px; border-top: 1px solid #fee2e2; display: flex; gap: 10px; background: white;">
+        <input type="text" id="chat-input-<%= qIndex %>" placeholder="Typ je vraag..." style="flex: 1; border: 1px solid #e5e7eb; padding: 12px 16px; border-radius: 24px; font-size: 0.95rem; outline: none; background: #f9fafb;">
+        <button id="chat-btn-<%= qIndex %>" style="background: #991b1b; color: white; border: none; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; flex-shrink: 0;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const qIndex = "<%= qIndex %>";
+      const config = <%- JSON.stringify({ charName: charName, sysPrompt: sysPrompt, targetLat: targetLat, targetLng: targetLng, targetRadius: targetRadius, hasLocation: hasLocation }) %>;
+      
+      const win = document.getElementById('chat-win-' + qIndex);
+      const input = document.getElementById('chat-input-' + qIndex);
+      const btn = document.getElementById('chat-btn-' + qIndex);
+      
+      const locker = document.getElementById('chat-locker-' + qIndex);
+      const container = document.getElementById('chat-container-' + qIndex);
+      const distanceDiv = document.getElementById('chat-distance-' + qIndex);
+      
+      let history = [];
+
+      // Wiskundige formule om afstand te meten (Haversine)
+      function getDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371e3; 
+        const p1 = lat1 * Math.PI/180;
+        const p2 = lat2 * Math.PI/180;
+        const dp = (lat2-lat1) * Math.PI/180;
+        const dl = (lon2-lon1) * Math.PI/180;
+        const a = Math.sin(dp/2) * Math.sin(dp/2) + Math.cos(p1) * Math.cos(p2) * Math.sin(dl/2) * Math.sin(dl/2);
+        return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+      }
+
+      // GPS Watcher Logic
+      if (config.hasLocation) {
+        if ("geolocation" in navigator) {
+          navigator.geolocation.watchPosition(
+            (pos) => {
+              const dist = getDistance(pos.coords.latitude, pos.coords.longitude, config.targetLat, config.targetLng);
+              if (dist <= config.targetRadius) {
+                locker.style.display = 'none';
+                container.style.display = 'flex';
+              } else {
+                locker.style.display = 'flex';
+                container.style.display = 'none';
+                distanceDiv.innerHTML = `Nog <strong>${Math.max(1, Math.round(dist - config.targetRadius))}m</strong> lopen...`;
+              }
+            },
+            (err) => {
+              distanceDiv.innerHTML = "⚠️ Locatie-toegang nodig.";
+              distanceDiv.style.background = "#fff";
+              distanceDiv.style.border = "1px solid #fecaca";
+            },
+            { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
+          );
+        } else {
+          distanceDiv.innerHTML = "Geen GPS ondersteuning.";
+        }
+      }
+
+      // Chat Logic
+      async function send() {
+        const msg = input.value.trim();
+        if(!msg) return;
+        
+        input.value = '';
+        input.disabled = true;
+        btn.disabled = true;
+        btn.style.opacity = '0.5';
+
+        const userDiv = document.createElement('div');
+        userDiv.style.cssText = "background: #991b1b; color: white; padding: 10px 14px; border-radius: 14px 14px 0 14px; align-self: flex-end; font-size: 0.95rem; max-width: 85%; box-shadow: 0 1px 2px rgba(0,0,0,0.1);";
+        userDiv.textContent = msg;
+        win.appendChild(userDiv);
+        win.scrollTop = win.scrollHeight;
+
+        const loadDiv = document.createElement('div');
+        loadDiv.style.cssText = "color: #991b1b; font-size: 0.8rem; align-self: flex-start; font-style: italic;";
+        loadDiv.textContent = config.charName + " typt...";
+        win.appendChild(loadDiv);
+        win.scrollTop = win.scrollHeight;
+
+        try {
+          const res = await fetch('/api/chat-persona', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ message: msg, characterName: config.charName, systemPrompt: config.sysPrompt, history: history })
+          });
+          
+          const data = await res.json();
+          if (win.contains(loadDiv)) win.removeChild(loadDiv);
+          if(!res.ok) throw new Error(data.error);
+          
+          const botDiv = document.createElement('div');
+          botDiv.style.cssText = "background: #f3f4f6; color: #111827; padding: 10px 14px; border-radius: 14px 14px 14px 0; align-self: flex-start; font-size: 0.95rem; max-width: 85%; box-shadow: 0 1px 2px rgba(0,0,0,0.05);";
+          botDiv.textContent = data.reply;
+          win.appendChild(botDiv);
+          win.scrollTop = win.scrollHeight;
+          
+          history.push({ role: "user", parts: [{ text: msg }] });
+          history.push({ role: "model", parts: [{ text: data.reply }] });
+        } catch (e) {
+          if (win.contains(loadDiv)) win.removeChild(loadDiv);
+          const errDiv = document.createElement('div');
+          errDiv.style.cssText = "color: #ef4444; font-size: 0.85rem; text-align: center; font-weight: bold;";
+          errDiv.textContent = e.message || "Verbinding met het verleden verbroken...";
+          win.appendChild(errDiv);
+        } finally {
+          input.disabled = false;
+          btn.disabled = false;
+          btn.style.opacity = '1';
+          input.focus();
+        }
+      }
+
+      btn.addEventListener('click', send);
+      input.addEventListener('keypress', (e) => { if(e.key === 'Enter') send(); });
+    })();
+  </script>
+<% } %>
 
 <% if (mod.type === 'aiphoto') { %>
   <% 
@@ -499,7 +657,7 @@
 <% } %>
 
 <% }) %>
-// ---------------------------------------- AI foto
+
 
 <!-- ▶ VOLGENDE PAGINA -->
 <% if (page.showNext && pageIndex + 1 < puzzle.pages.length) { %>
