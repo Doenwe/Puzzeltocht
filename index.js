@@ -15,7 +15,7 @@ import crypto from "crypto";
 
 import Puzzle from "./models/Puzzle.js";
 import Admin from "./models/Admin.js";
-import Code from "./models/Code.js";
+import { checkCode } from "./models/Code.js";
 import Theme from "./models/Theme.js";
 import Team from "./models/Team.js"; 
 
@@ -205,12 +205,32 @@ app.post("/admin-files/delete", requireAdmin, express.json(), (req, res) => {
 
 app.get("/", (req, res) => res.render("index", { error: null }));
 app.post("/check-code", async (req, res) => {
-  const code = (req.body.code || "").trim();
-  const found = await Code.findOne({ code });
-  if (!found) return res.render("index", { error: "Code niet gevonden" });
-  if (found.type === "admin") return res.redirect("/admin-login");
-  res.redirect("/next");
+  const rawCode = req.body.code || "";
+  
+  if (result.admin) {
+    return res.redirect("/admin-login");
+  }
+  try {
+    const result = await checkCode(rawCode);
+
+    // ❌ Ongeldige code
+    if (!result.valid) {
+      return res.render("index", {
+        error: result.error,
+      });
+    }
+
+    // ✅ Geldige code → door
+    return res.redirect("/next");
+
+  } catch (err) {
+    console.error("Check-code fout:", err);
+    return res.render("index", {
+      error: "Er ging iets mis, probeer opnieuw",
+    });
+  }
 });
+
 
 app.get("/next", async (req, res) => {
   const puzzles = await Puzzle.find().sort({ createdAt: -1 });
@@ -229,11 +249,6 @@ app.post("/admin-login", async (req, res) => {
 });
 app.get("/admin-logout", (req, res) => req.session.destroy(() => res.redirect("/admin-login")));
 app.get("/admin-dashboard", requireAdmin, (req, res) => res.render("admin-dashboard"));
-
-app.post("/admin-add-code", requireAdmin, async (req, res) => {
-  if (req.body.code) await Code.create({ code: req.body.code.trim(), type: req.body.type || "user" });
-  res.redirect("/admin-dashboard");
-});
 
 app.get("/admin-theme", requireAdmin, async (req, res) => {
   const theme = await Theme.findOne() || { primaryColor: "#2563eb", backgroundColor: "#ffffff", textColor: "#111827", borderRadius: "0.75rem", fontFamily: "Inter, sans-serif" };
