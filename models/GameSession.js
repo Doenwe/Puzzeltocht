@@ -7,7 +7,7 @@ const GameSessionSchema = new mongoose.Schema({
   sessionScore: { type: Number, default: 0 },
   logbook: { type: [String], default: [] },
   isFinished: { type: Boolean, default: false },
-  // De magische TTL Index: Verwijdert het document na 86400 seconden (24 uur)
+  // De magische TTL Index: Verwijdert dit bestand automatisch na 24 uur (86400 sec)
   createdAt: { type: Date, default: Date.now, expires: 86400 } 
 });
 
