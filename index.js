@@ -239,11 +239,6 @@ app.post("/admin-files/delete", requireAdmin, express.json(), (req, res) => {
 });
 
 app.get("/", (req, res) => res.render("index", { error: null }));
-import GlobalTeam from "./models/GlobalTeam.js";
-import GameSession from "./models/GameSession.js";
-import AirtableMap from "./models/AirtableMap.js";
-import base from "./models/airtable.js";
-
 app.post("/check-code", checkCodeLimiter, async (req, res) => {
   try {
     const result = await checkCode(req.body.code);
