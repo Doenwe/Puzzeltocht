@@ -263,16 +263,45 @@ const pagesSafe = normalizePages(puzzle);
     qs("#map-target-settings").style.display = pg.isMap ? "block" : "none";
   }
 
+let draggedPageIndex = null;
+
   function renderPageList(){
     const wrap = qs("#page-list"); wrap.innerHTML = "";
     pages.forEach((p,i)=>{
       const item = document.createElement("div");
       item.className = "page-item" + (i===currentPage ? " active" : "");
+      item.draggable = true; // Dragging geactiveerd
+      item.dataset.index = i;
+      
       const title = typeof p.title === "string" ? p.title : p.title?.[activeLanguage] || `Pagina ${i+1}`;
-      item.innerHTML = `<span>${i+1}. ${title}</span>`;
+      // Toegevoegd: Een klein sleep-icoontje (≡) zodat het duidelijk is dat je kunt slepen
+      item.innerHTML = `<span>${i+1}. ${title}</span><span style="color:#94a3b8; cursor:grab; font-size:16px;">≡</span>`;
+      
       item.onclick = () => { savePageSettings(); pages[currentPage].modules = collect(); currentPage = i; renderPageList(); renderPage(i); };
+      
+      // DRAG & DROP EVENTS
+      item.ondragstart = (e) => { draggedPageIndex = i; item.style.opacity = 0.5; e.dataTransfer.effectAllowed = "move"; };
+      item.ondragend = () => { item.style.opacity = 1; draggedPageIndex = null; };
+      item.ondragover = (e) => e.preventDefault();
+      item.ondrop = (e) => {
+        e.preventDefault();
+        const targetIndex = Number(item.dataset.index);
+        if (draggedPageIndex === null || draggedPageIndex === targetIndex) return;
+        movePage(draggedPageIndex, targetIndex);
+      };
+
       wrap.appendChild(item);
     });
+  }
+
+  function movePage(fromIndex, toIndex){
+    savePageSettings(); pages[currentPage].modules = collect();
+    const moved = pages.splice(fromIndex, 1)[0];
+    pages.splice(toIndex, 0, moved);
+    if (currentPage === fromIndex) currentPage = toIndex;
+    else if (currentPage > fromIndex && currentPage <= toIndex) currentPage--;
+    else if (currentPage < fromIndex && currentPage >= toIndex) currentPage++;
+    renderPageList(); renderPage(currentPage);
   }
 
   // Blocks Logic
