@@ -239,33 +239,38 @@ app.post("/admin-files/delete", requireAdmin, express.json(), (req, res) => {
 });
 
 app.get("/", (req, res) => res.render("index", { error: null }));
+import GlobalTeam from "./models/GlobalTeam.js";
+import GameSession from "./models/GameSession.js";
+import AirtableMap from "./models/AirtableMap.js";
+import base from "./models/airtable.js";
+
 app.post("/check-code", checkCodeLimiter, async (req, res) => {
   try {
     const result = await checkCode(req.body.code);
 
-    // ❌ Ongeldige code
-    if (!result.valid) {
-      return res.render("index", {
-        error: result.error,
-      });
+    if (!result.valid) return res.render("index", { error: result.error });
+    if (result.admin) return res.redirect("/admin-login");
+
+    // AIRTABLE MAPPING LOGICA
+    // Zoek in onze MongoDB welke Puzzel ID hoort bij de naam uit Airtable (bijv. "Borger")
+    const mapping = await AirtableMap.findOne({ airtableString: result.airtablePuzzleName });
+    
+    if (!mapping) {
+      console.error("Geen mapping gevonden voor:", result.airtablePuzzleName);
+      return res.render("index", { error: "Deze puzzeltocht is nog niet geconfigureerd in het systeem." });
     }
 
-    // ✅ Admin-code (alleen als je dit ondersteunt)
-    if (result.admin) {
-      return res.redirect("/admin-login");
-    }
-
-    // ✅ Geldige gebruikerscode
-    return res.redirect("/next");
+    // Sla de gevonden puzzel ID op in de express-sessie voor de volgende stap
+    req.session.pendingPuzzleId = mapping.internalPuzzleId;
+    
+    // Stuur door naar de startpagina waar teamnaam & email gevraagd worden
+    return res.redirect(`/puzzle/${mapping.internalPuzzleId}`);
 
   } catch (err) {
-    console.error("check-code error:", err);
-    return res.render("index", {
-      error: "Er ging iets mis, probeer opnieuw",
-    });
+    console.error("Check-code error:", err);
+    return res.render("index", { error: "Er ging iets mis bij het inloggen." });
   }
 });
-
 
 app.get("/next", async (req, res) => {
   const puzzles = await Puzzle.find().sort({ createdAt: -1 });
