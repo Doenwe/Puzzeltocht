@@ -10,6 +10,37 @@
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
   <style>
+<% 
+  // Thema configuratie logica
+  const presets = {
+    iceage: { bg: "#e0f2fe", card: "rgba(255,255,255,0.8)", font: "'Courier New', monospace", border: "#7dd3fc" },
+    medieval: { bg: "#fef3c7", card: "#fffbeb", font: "'Georgia', serif", border: "#b45309" },
+    future: { bg: "#0f172a", card: "rgba(30,41,59,0.9)", font: "'Orbitron', sans-serif", border: "#38bdf8", text: "#f8fafc" },
+    standard: { bg: "#f5f7fa", card: "#ffffff", font: "'Inter', sans-serif", border: "#f3f4f6" }
+  };
+  const activeTheme = presets[puzzle.theme?.preset || "standard"];
+%>
+
+:root {
+  --primary: <%= puzzle.theme?.primaryColor || '#4f46e5' %>;
+  --bg: <%= activeTheme.bg %>;
+  --card-bg: <%= activeTheme.card %>;
+  --text: <%= activeTheme.text || '#111827' %>;
+  --border: <%= activeTheme.border %>;
+}
+
+body { 
+  background-color: var(--bg); 
+  color: var(--text); 
+  font-family: <%= activeTheme.font %>; 
+  background-image: <%= puzzle.theme?.preset === 'future' ? 'radial-gradient(circle at center, #1e293b 0%, #0f172a 100%)' : 'none' %>;
+}
+
+.card { 
+  background: var(--card-bg); 
+  border: 2px solid var(--border); 
+  backdrop-filter: blur(8px);
+}
     .typing-indicator { padding: 12px; background: #f3f4f6; border-radius: 12px; align-self: flex-start; }
 .typing-indicator span { height: 8px; width: 8px; float: left; margin: 0 1px; background-color: #991b1b; display: block; border-radius: 50%; opacity: 0.4; }
 .typing-indicator span:nth-child(1) { animation: 1s blink infinite 0.3333s; }
