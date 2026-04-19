@@ -1,0 +1,53 @@
+<section class="max-w-6xl mx-auto p-6">
+  <div class="flex justify-between items-center mb-8">
+    <h1 class="text-3xl font-extrabold text-gray-900">⭐ Speler Feedback & Resultaten</h1>
+    <a href="/admin-dashboard" class="text-blue-600 font-bold hover:underline">← Terug naar Dashboard</a>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+    <% if (typeof teams !== 'undefined' && teams.length > 0) { %>
+      <% teams.forEach(team => { %>
+        <% (team.feedbackHistory || []).forEach(entry => { %>
+          <div class="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100 hover:shadow-md transition-shadow">
+            <div class="p-6">
+              <div class="flex items-center gap-4 mb-4">
+                <div class="h-14 w-14 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 text-xl font-bold shadow-inner overflow-hidden">
+                  <% if (team.permanentPhoto) { %>
+                    <img src="<%= team.permanentPhoto %>" class="h-full w-full object-cover">
+                  <% } else { %>
+                    <%= (team.teamName || "T").charAt(0) %>
+                  <% } %>
+                </div>
+                <div>
+                  <h2 class="text-lg font-bold text-gray-800"><%= team.teamName %></h2>
+                  <p class="text-xs text-gray-500"><%= team.email %></p>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-3 mb-4">
+                <div class="bg-indigo-50 p-3 rounded-xl text-center border border-indigo-100">
+                  <span class="block text-[10px] font-bold text-indigo-400 uppercase tracking-wider">Score</span>
+                  <span class="text-lg font-black text-indigo-800"><%= entry.score || 0 %> pt</span>
+                </div>
+                <div class="bg-emerald-50 p-3 rounded-xl text-center border border-emerald-100">
+                  <span class="block text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Datum</span>
+                  <span class="text-sm font-bold text-emerald-800"><%= new Date(entry.date).toLocaleDateString('nl-NL') %></span>
+                </div>
+              </div>
+
+              <div class="bg-gray-50 p-4 rounded-xl border border-gray-100 relative">
+                <p class="text-gray-600 italic text-sm leading-relaxed">
+                  "<%= entry.feedback || 'Geen tekstuele feedback achtergelaten.' %>"
+                </p>
+              </div>
+            </div>
+          </div>
+        <% }) %>
+      <% }) %>
+    <% } else { %>
+      <div class="col-span-full text-center py-16 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
+        <p class="text-gray-400 font-medium italic">Nog geen feedback ontvangen van teams.</p>
+      </div>
+    <% } %>
+  </div>
+</section>
