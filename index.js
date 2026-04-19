@@ -1,4 +1,5 @@
 // index.js – Geoptimaliseerd: Gamified AI Puzzeltocht Engine (Fase 1 t/m 5)
+import AirtableMap from "./models/AirtableMap.js";
 import express from "express";
 import mongoose from "mongoose";
 import session from "express-session";
@@ -21,7 +22,7 @@ import Theme from "./models/Theme.js";
 import Team from "./models/Team.js"; 
 import GlobalTeam from "./models/GlobalTeam.js";
 import GameSession from "./models/GameSession.js";
-import AirtableMap from "./models/AirtableMap.js";
+
 import base from "./models/airtable.js";
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -252,21 +253,22 @@ app.post("/check-code", checkCodeLimiter, async (req, res) => {
     if (!result.valid) return res.render("index", { error: result.error });
     if (result.admin) return res.redirect("/admin-login");
 
-    // Controleer of er een specifieke puzzel is opgegeven in Airtable
+    // AIRTABLE MAPPING LOGICA
     if (result.airtablePuzzleName) {
       const mapping = await AirtableMap.findOne({ airtableString: result.airtablePuzzleName });
+      
       if (mapping) {
         req.session.pendingPuzzleId = mapping.internalPuzzleId;
         return res.redirect(`/puzzle/${mapping.internalPuzzleId}`);
       }
     }
 
-    // FALLBACK: Code is goed, maar geen specifieke koppeling gevonden.
+    // FALLBACK: Geen specifieke tocht ingesteld in Airtable? Stuur naar overzicht!
     return res.redirect("/next");
 
   } catch (err) {
-    console.error("Check-code error:", err);
-    return res.render("index", { error: "Database verbindingsfout." });
+    console.error("Check-code route error:", err);
+    return res.render("index", { error: "Fout bij het verifiëren van de code." });
   }
 });
 
