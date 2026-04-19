@@ -4,6 +4,17 @@
 
 <!-- Puzzeltochten -->
 
+<div class="card p-4 border bg-blue-50">
+  <h2 class="font-semibold mb-3 text-blue-800">📍 Airtable Koppeling (Redirect)</h2>
+  <p class="text-xs text-blue-600 mb-4">Koppel een naam uit Airtable (bijv. "Borger") aan een interne Puzzel ID.</p>
+  
+  <form action="/admin/map-airtable" method="POST" class="space-y-3">
+    <input type="text" name="airtableString" placeholder="Naam in Airtable (exact)" required class="border p-2 rounded w-full"/>
+    <input type="text" name="internalId" placeholder="MongoDB Puzzel ID" required class="border p-2 rounded w-full"/>
+    <button class="bg-blue-600 text-white px-4 py-2 rounded w-full font-bold">Koppeling Opslaan</button>
+  </form>
+</div>
+
 <a class="block p-4 border rounded card hover:ring-2 ring-blue-200" href="/admin-puzzles">
 <h2 class="font-semibold mb-1">Puzzeltochten</h2>
 <p class="text-sm text-gray-600">Maak en beheer puzzeltochten.</p>
