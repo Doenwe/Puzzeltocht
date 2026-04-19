@@ -252,23 +252,21 @@ app.post("/check-code", checkCodeLimiter, async (req, res) => {
     if (!result.valid) return res.render("index", { error: result.error });
     if (result.admin) return res.redirect("/admin-login");
 
-    // Controleer of de admin in Airtable een 'Puzzeltocht' heeft ingevuld
+    // Controleer of er een specifieke puzzel is opgegeven in Airtable
     if (result.airtablePuzzleName) {
       const mapping = await AirtableMap.findOne({ airtableString: result.airtablePuzzleName });
-      
       if (mapping) {
         req.session.pendingPuzzleId = mapping.internalPuzzleId;
         return res.redirect(`/puzzle/${mapping.internalPuzzleId}`);
       }
     }
 
-    // FALLBACK: De code is geldig, maar we weten niet exact welke puzzel het is.
-    // Stuur de speler naar de lijst met alle puzzels.
+    // FALLBACK: Code is goed, maar geen specifieke koppeling gevonden.
     return res.redirect("/next");
 
   } catch (err) {
     console.error("Check-code error:", err);
-    return res.render("index", { error: "Database verbindingsfout. Controleer je Airtable instellingen." });
+    return res.render("index", { error: "Database verbindingsfout." });
   }
 });
 
