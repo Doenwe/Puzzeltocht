@@ -1,0 +1,54 @@
+<section class="max-w-6xl mx-auto p-6">
+  <div class="flex justify-between items-center mb-8">
+    <h1 class="text-3xl font-extrabold text-gray-900">⭐ Speler Feedback & Resultaten</h1>
+    <a href="/admin-dashboard" class="text-blue-600 font-bold">← Terug naar Dashboard</a>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+    <% if (teams && teams.length > 0) { %>
+      <% teams.forEach(team => { %>
+        <% team.feedbackHistory.forEach(entry => { %>
+          <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 hover:scale-[1.02] transition-transform">
+            <div class="p-6">
+              <div class="flex items-center gap-4 mb-4">
+                <div class="h-16 w-16 bg-blue-600 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-inner">
+                  <% if (team.permanentPhoto) { %>
+                    <img src="<%= team.permanentPhoto %>" class="h-full w-full rounded-full object-cover">
+                  <% } else { %>
+                    <%= team.teamName.charAt(0) %>
+                  <% } %>
+                </div>
+                <div>
+                  <h2 class="text-xl font-bold text-gray-800"><%= team.teamName %></h2>
+                  <p class="text-sm text-gray-500"><%= team.email %></p>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-4 mb-4">
+                <div class="bg-blue-50 p-3 rounded-lg text-center">
+                  <span class="block text-xs font-bold text-blue-400 uppercase">Score</span>
+                  <span class="text-xl font-black text-blue-800"><%= entry.score %> pt</span>
+                </div>
+                <div class="bg-green-50 p-3 rounded-lg text-center">
+                  <span class="block text-xs font-bold text-green-400 uppercase">Datum</span>
+                  <span class="text-sm font-bold text-green-800"><%= new Date(entry.date).toLocaleDateString('nl-NL') %></span>
+                </div>
+              </div>
+
+              <div class="relative bg-gray-50 p-4 rounded-xl border border-gray-200">
+                <span class="absolute -top-3 left-4 bg-gray-50 px-2 text-xs font-bold text-gray-400 uppercase">Bericht</span>
+                <p class="text-gray-700 italic leading-relaxed">
+                  "<%= entry.feedback || 'Geen tekstuele feedback achtergelaten.' %>"
+                </p>
+              </div>
+            </div>
+          </div>
+        <% }) %>
+      <% }) %>
+    <% } else { %>
+      <div class="col-span-full text-center py-20 bg-gray-100 rounded-3xl border-2 border-dashed border-gray-300">
+        <p class="text-gray-500 font-bold text-lg">Nog geen feedback ontvangen van teams.</p>
+      </div>
+    <% } %>
+  </div>
+</section>
