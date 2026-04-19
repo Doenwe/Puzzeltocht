@@ -7,7 +7,7 @@ export async function checkCode(rawCode) {
   try {
     // Let op: De tabel MOET 'Codes' heten en de kolom 'Toegangscode'
     const records = await base("Codes").select({
-      filterByFormula: `{Toegangscode} = '${code}'`,
+      filterByFormula: `{Code} = '${code}'`,
       maxRecords: 1
     }).firstPage();
 
