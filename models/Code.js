@@ -1,4 +1,4 @@
-import base from "./airtable.js"; // We gebruiken nu de veilige, centrale connectie!
+import base from "./airtable.js"; 
 
 export async function checkCode(rawCode) {
   const code = rawCode.trim().toUpperCase();
@@ -18,7 +18,6 @@ export async function checkCode(rawCode) {
 
     if (status === "Gebruikt") return { valid: false, error: "Deze code is al verbruikt." };
 
-    // Code is geldig! We geven de naam mee voor de redirect-logica
     return { 
       valid: true, 
       recordId: record.id, 
@@ -26,6 +25,6 @@ export async function checkCode(rawCode) {
     };
   } catch (error) {
     console.error("Airtable API Error:", error);
-    return { valid: false, error: "Systeemfout: Kan niet verbinden met de database." };
+    return { valid: false, error: "Verbindingsfout met Airtable. Controleer API Keys." };
   }
 }
