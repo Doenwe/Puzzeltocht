@@ -154,24 +154,26 @@ const pagesSafe = normalizePages(puzzle);
       <button class="element-btn" type="button" data-type="feedback" style="border-color:#06b6d4; background:#ecfeff; color:#0891b2;">⭐ Feedback & Finale</button>
     </div>
 
-<div class="panel-section" style="border-top: 1px solid #e5e7eb; padding-top: 15px; margin-top: 15px;">
-  <h3 style="font-size: 14px; font-weight: 800; color: #374151; margin-bottom: 10px;">🎨 Puzzel Thema</h3>
-  <label style="font-size: 12px; font-weight: 700;">Stijl Preset:</label>
-  <select id="theme-preset-select" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd;">
-    <option value="standard">Standaard (Modern)</option>
-    <option value="iceage">🥶 De Ijstijd</option>
-    <option value="medieval">🏰 Middeleeuwen</option>
-    <option value="future">🚀 De Toekomst</option>
-  </select>
+<div class="p-4 border-t bg-gray-50">
+  <h3 class="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">🎨 Visueel Thema</h3>
   
-  <label style="font-size: 12px; font-weight: 700; margin-top: 10px; display: block;">Hoofdkleur:</label>
-  <input type="color" id="theme-color-input" value="<%= puzzle.theme?.primaryColor || '#4f46e5' %>" style="width: 100%; height: 35px; border: none; padding: 0; cursor: pointer;">
-</div>
-    <div class="sidebar-actions">
-      <button class="btn" type="button" id="btn-reset">Reset</button>
-      <button class="btn btn-primary" type="button" id="btn-save">Opslaan</button>
+  <div class="space-y-3">
+    <div>
+      <label class="text-[10px] font-bold text-gray-500 block mb-1">Preset Stijl</label>
+      <select id="theme-preset" class="w-full p-2 border rounded bg-white text-sm">
+        <option value="standard" <%= puzzle.theme?.preset === 'standard' ? 'selected' : '' %>>Standaard</option>
+        <option value="medieval" <%= puzzle.theme?.preset === 'medieval' ? 'selected' : '' %>>🏰 Middeleeuwen (Perkament)</option>
+        <option value="future" <%= puzzle.theme?.preset === 'future' ? 'selected' : '' %>>🚀 De Toekomst (Cyber)</option>
+        <option value="iceage" <%= puzzle.theme?.preset === 'iceage' ? 'selected' : '' %>>🥶 De Ijstijd (Bevroren)</option>
+      </select>
     </div>
-  </aside>
+
+    <div>
+      <label class="text-[10px] font-bold text-gray-500 block mb-1">Accent Kleur</label>
+      <input type="color" id="theme-color" value="<%= puzzle.theme?.primaryColor || '#4f46e5' %>" class="w-full h-8 rounded border p-0 overflow-hidden">
+    </div>
+  </div>
+</div>
 
   <section class="canvas">
     <div class="phone" id="phone" data-id="<%= puzzle._id %>">
