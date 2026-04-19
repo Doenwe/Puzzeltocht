@@ -438,32 +438,31 @@ app.post("/admin-puzzles/new", requireAdmin, async (req, res) => {
 app.get("/admin-builder/:id", requireAdmin, async (req, res) => {
   const puzzle = await Puzzle.findById(req.params.id).lean();
   res.render("admin-builder", { puzzle, builderPage: true });
-});
+
 app.post("/admin-builder/:id/save-all", requireAdmin, async (req, res) => {
   try {
     const puzzle = await Puzzle.findById(req.params.id);
-    if (!puzzle) return res.status(404).send("Puzzel niet gevonden");
+    if (!puzzle) return res.status(404).json({ error: "Puzzeltocht niet gevonden" });
 
-    // VEILIGHEIDSCHECK: Als de pages array volledig ontbreekt, breek de save af.
-    if (!req.body.pages || !Array.isArray(req.body.pages)) {
-      return res.status(400).json({ error: "Ongeldige data: geen pagina's gevonden." });
+    // Veiligheidscheck: Nooit de database overschrijven met lege 'undefined' data
+    if (req.body.pages && Array.isArray(req.body.pages)) {
+      puzzle.pages = req.body.pages;
     }
 
-    puzzle.pages = req.body.pages;
-    puzzle.languages = req.body.languages || ["nl"];
-    puzzle.defaultLanguage = req.body.defaultLanguage || "nl";
+    if (req.body.languages) puzzle.languages = req.body.languages;
+    if (req.body.defaultLanguage) puzzle.defaultLanguage = req.body.defaultLanguage;
     
-    // Sla thema op
+    // Thema Opslaan
     if (req.body.theme) {
       puzzle.theme = req.body.theme;
     }
 
     await puzzle.save();
-    console.log(`✅ Puzzel ${puzzle._id} succesvol opgeslagen.`);
+    console.log(`✅ Puzzel '${puzzle.name}' succesvol opgeslagen.`);
     res.json({ success: true });
   } catch (err) {
-    console.error("❌ Opslag Error:", err);
-    res.status(500).json({ error: "Server fout bij opslaan" });
+    console.error("❌ Fout bij opslaan puzzel:", err);
+    res.status(500).json({ error: "Interne serverfout bij opslaan." });
   }
 });
 
