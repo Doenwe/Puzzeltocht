@@ -61,35 +61,18 @@ const PageSchema = new mongoose.Schema(
 |--------------------------------------------------------------------------
 */
 
-const PuzzleSchema = new mongoose.Schema(
-  {
-    name:  { type: String, required: true, trim: true },
-    
-    // 🌍 MEERTALIGHEID
-    languages: {
-      type: [String],
-      default: ["nl"]
-    },
-    defaultLanguage: {
-      type: String,
-      default: "nl"
-    },
-    
-    pages: { type: [PageSchema], default: [] },
+const PuzzleSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  defaultLanguage: { type: String, default: "nl" },
+  languages: { type: [String], default: ["nl"] },
+  // NIEUW: Thema instellingen per puzzel
+  theme: {
+    preset: { type: String, default: "standard" }, // standard, iceage, medieval, future
+    primaryColor: { type: String, default: "#4f46e5" },
+    fontFamily: { type: String, default: "Inter" }
   },
-  {
-    timestamps: true,
-    toJSON: {
-      virtuals: true,
-      versionKey: false,
-      transform: (_doc, ret) => {
-        ret.id = ret._id?.toString();
-        delete ret._id;
-        return ret;
-      },
-    },
-  }
-);
+  pages: { type: Array, default: [] }
+}, { timestamps: true });
 
 // Index — jouw huidige code
 PuzzleSchema.index({ updatedAt: -1, createdAt: -1 });
