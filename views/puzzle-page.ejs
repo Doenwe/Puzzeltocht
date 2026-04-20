@@ -93,8 +93,19 @@
   <% } else if (theme === 'medieval') { %>
     body { background: #1a120e url('https://www.transparenttextures.com/patterns/wood-pattern.png'); font-family: 'Georgia', serif; color: #3e2723; }
     
-    body::after { content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: radial-gradient(circle, transparent 30%, rgba(0,0,0,0.85) 100%); pointer-events: none; z-index: 5; animation: torchflicker 3s infinite alternate; }
-    @keyframes torchflicker { 0%, 100% { opacity: 0.85; } 50% { opacity: 0.95; } }
+    /* Statische, rustige donkere rand zonder irritant geflikker */
+    body::after { content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: radial-gradient(circle, transparent 20%, rgba(0,0,0,0.85) 100%); pointer-events: none; z-index: 5; }
+    
+    /* Bewegende Ridder Silhouette (Geen laadfouten!) */
+    .knight-runner {
+      position: fixed; bottom: 8%; left: -30vw; font-size: 130px; z-index: 1; pointer-events: none;
+      color: transparent; text-shadow: 0 0 0 #0f0a07; opacity: 0.8;
+      animation: ride-across 25s linear infinite; filter: drop-shadow(0 5px 15px rgba(0,0,0,0.9));
+    }
+    @keyframes ride-across {
+      0%   { left: -30vw; transform: scaleX(-1); }
+      100% { left: 120vw; transform: scaleX(-1); }
+    }
     
     .card { background: #f4e4bc url('https://www.transparenttextures.com/patterns/papyros.png'); border: 2px solid #8b4513; box-shadow: 10px 10px 25px rgba(0,0,0,0.7), inset 0 0 40px rgba(139,69,19,0.3); border-radius: 2px 15px 4px 20px; }
     .title-module { border-bottom: 2px solid #8b4513; padding-bottom: 10px; font-style: italic; color: #4e342e; text-shadow: 1px 1px 0px rgba(255,255,255,0.5); }
@@ -129,39 +140,36 @@
       font-size: 22px;
     }
     
+    /* Rustige, trage vuurgloed zonder irritante snelle flikkering */
     body::after {
       content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100vh;
-      background: radial-gradient(circle at 50% 50%, rgba(255, 120, 0, 0.15) 0%, rgba(0,0,0,0.85) 85%);
+      background: radial-gradient(circle at 50% 50%, rgba(255, 120, 0, 0.1) 0%, rgba(0,0,0,0.85) 85%);
       pointer-events: none; z-index: 5;
-      mix-blend-mode: multiply;
-      animation: flicker 0.2s infinite alternate;
+      animation: slowGlow 6s infinite alternate ease-in-out;
     }
 
-    /* Bewegende FOTO-REALISTISCHE Mammoet en Holbewoner! */
+    /* 100% Betrouwbare Silhouetten in plaats van web-afbeeldingen */
     .mammoth-runner {
-      position: fixed; bottom: 8%; left: -40vw; height: 35vh; width: auto; z-index: 1; pointer-events: none;
-      animation: run-across 18s linear infinite; filter: drop-shadow(0 0 15px rgba(0,0,0,0.9)) brightness(0.6) sepia(0.3);
-      object-fit: contain;
+      position: fixed; bottom: 8%; left: -40vw; font-size: 160px; z-index: 1; pointer-events: none;
+      color: transparent; text-shadow: 0 0 0 #0f0a07; opacity: 0.9;
+      animation: run-across 20s linear infinite; filter: drop-shadow(0 0 10px rgba(0,0,0,0.9));
     }
     .caveman-runner {
-      position: fixed; bottom: 8%; left: -40vw; height: 22vh; width: auto; z-index: 1; pointer-events: none;
-      animation: run-across 18s linear infinite; animation-delay: 1.2s; filter: drop-shadow(0 0 15px rgba(0,0,0,0.9)) brightness(0.7) sepia(0.3);
-      object-fit: contain; font-size: 110px;
+      position: fixed; bottom: 8%; left: -40vw; font-size: 110px; z-index: 1; pointer-events: none;
+      color: transparent; text-shadow: 0 0 0 #0f0a07; opacity: 0.9;
+      animation: run-across 20s linear infinite; animation-delay: 1.5s; filter: drop-shadow(0 0 10px rgba(0,0,0,0.9));
     }
     @keyframes run-across {
       0%   { left: -40vw; transform: scaleX(-1) translateY(0); }
-      25%  { transform: scaleX(-1) translateY(-12px); }
+      25%  { transform: scaleX(-1) translateY(-8px); }
       50%  { transform: scaleX(-1) translateY(0); }
-      75%  { transform: scaleX(-1) translateY(-12px); }
+      75%  { transform: scaleX(-1) translateY(-8px); }
       100% { left: 120vw; transform: scaleX(-1) translateY(0); }
     }
 
-    @keyframes flicker {
-      0%   { opacity: 0.85; transform: scale(1); background: radial-gradient(circle at 50% 50%, rgba(255, 120, 0, 0.15) 0%, rgba(0,0,0,0.85) 85%); }
-      25%  { opacity: 0.95; transform: scale(1.02); background: radial-gradient(circle at 51% 49%, rgba(255, 130, 0, 0.18) 0%, rgba(0,0,0,0.88) 85%); }
-      50%  { opacity: 0.90; transform: scale(0.99); background: radial-gradient(circle at 49% 51%, rgba(255, 110, 0, 0.14) 0%, rgba(0,0,0,0.82) 85%); }
-      75%  { opacity: 0.98; transform: scale(1.01); background: radial-gradient(circle at 50% 52%, rgba(255, 140, 0, 0.20) 0%, rgba(0,0,0,0.90) 85%); }
-      100% { opacity: 0.88; transform: scale(1); background: radial-gradient(circle at 50% 50%, rgba(255, 120, 0, 0.16) 0%, rgba(0,0,0,0.86) 85%); }
+    @keyframes slowGlow {
+      0%   { opacity: 0.9; background: radial-gradient(circle at 50% 50%, rgba(255, 120, 0, 0.1) 0%, rgba(0,0,0,0.85) 85%); }
+      100% { opacity: 1; background: radial-gradient(circle at 50% 50%, rgba(255, 140, 0, 0.15) 0%, rgba(0,0,0,0.9) 85%); }
     }
     
     .card { 
@@ -234,9 +242,11 @@
 <body>
 
 <% if (theme === 'caveman') { %>
-  <!-- Holbewoner & Mammoet Animatie -->
-  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/Woolly_Mammoth.png/600px-Woolly_Mammoth.png" class="mammoth-runner" alt="Mammoet" onerror="this.style.display='none'">
-  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/76/Neanderthal_man.png/600px-Neanderthal_man.png" class="caveman-runner" alt="Holbewoner" onerror="this.outerHTML='<div class=\\'caveman-runner\\'>🏃🏾‍♂️</div>'">
+  <!-- Betrouwbare Silhouetten zonder inlaad fouten -->
+  <div class="mammoth-runner">🐘</div>
+  <div class="caveman-runner">🏃</div>
+<% } else if (theme === 'medieval') { %>
+  <div class="knight-runner">🏇</div>
 <% } %>
 
 <%
