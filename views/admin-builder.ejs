@@ -577,10 +577,14 @@ if (type === "historychat") {
   qs("#page-ismap").onchange = (e) => { pages[currentPage].isMap = e.target.checked; qs("#map-target-settings").style.display = e.target.checked ? "block" : "none"; renderPage(currentPage); };
 
 qs("#btn-save").onclick = async () => {
+    const saveBtn = qs("#btn-save");
+    saveBtn.textContent = "⏳ Opslaan...";
+    saveBtn.disabled = true;
+
     savePageSettings(); 
     pages[currentPage].modules = collect();
     
-    // Lees live de thema-instellingen uit het rechter menu
+    // Haal thema live uit de UI
     const themeData = {
       preset: qs("#auto-theme-preset")?.value || 'standard',
       primaryColor: qs("#auto-theme-color")?.value || '#4f46e5'
@@ -588,19 +592,29 @@ qs("#btn-save").onclick = async () => {
 
     try {
       const res = await fetch(`/admin-builder/${phone.dataset.id}/save-all`, {
-        method:"POST", 
-        headers:{ "Content-Type":"application/json" },
+        method: "POST", 
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           pages: pages, 
           languages: availableLanguages, 
           defaultLanguage: activeLanguage,
-          theme: themeData // <-- Hier sturen we het thema direct en veilig mee!
+          theme: themeData
         })
       });
-      if(!res.ok) throw new Error(); 
-      toast("✅ Puzzeltocht succesvol opgeslagen!");
-    } catch { 
-      toast("❌ Fout bij opslaan.", true); 
+      
+      if (!res.ok) throw new Error("Server error");
+      
+      // Valideer of 'toast' bestaat, anders gebruiken we een betrouwbare alert()
+      if (typeof toast === "function") { toast("✅ Puzzeltocht succesvol opgeslagen!"); } 
+      else { alert("✅ Puzzeltocht succesvol opgeslagen!"); }
+      
+    } catch (err) {
+      console.error(err);
+      if (typeof toast === "function") { toast("❌ Fout bij opslaan.", true); } 
+      else { alert("❌ Fout bij opslaan."); }
+    } finally {
+      saveBtn.textContent = "💾 Puzzeltocht Opslaan";
+      saveBtn.disabled = false;
     }
   };
   qs("#btn-reset").onclick = () => location.reload();
