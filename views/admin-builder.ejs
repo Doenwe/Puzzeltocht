@@ -490,14 +490,22 @@ if (type === "historychat") {
          if(m.data.questionType==="open") qs('[data-field="answer"]',b).value = typeof m.data.answer==="string"?m.data.answer:m.data.answer?.[activeLanguage]||"";
          else { qs('[data-options]',b).innerHTML=""; (m.data.options||[]).forEach(o=> b.createOption(typeof o.text==="string"?o.text:o.text?.[activeLanguage]||"", o.correct)); }
       }
-      if(m.type==="historychat"){
+    if(m.type==="historychat"){
          qs('[data-field="chat-name"]',b).value = typeof m.data.characterName==="string"?m.data.characterName:m.data.characterName?.[activeLanguage]||"";
          qs('[data-field="chat-prompt"]',b).value = typeof m.data.systemPrompt==="string"?m.data.systemPrompt:m.data.systemPrompt?.[activeLanguage]||"";
+         
+         if(qs('[data-field="chat-max-turns"]',b)) qs('[data-field="chat-max-turns"]',b).value = m.data.maxTurns || 3;
+         if(qs('[data-field="chat-lat"]',b)) qs('[data-field="chat-lat"]',b).value = m.data.lat ?? "";
+         if(qs('[data-field="chat-lng"]',b)) qs('[data-field="chat-lng"]',b).value = m.data.lng ?? "";
+         if(qs('[data-field="chat-radius"]',b)) qs('[data-field="chat-radius"]',b).value = m.data.radius ?? 50;
       }
-      if(m.type==="aiphoto"){
+
+    if(m.type==="aiphoto"){
          qs('[data-field="ai-instruction"]',b).value = typeof m.data.instruction==="string"?m.data.instruction:m.data.instruction?.[activeLanguage]||"";
          qs('[data-field="ai-prompt"]',b).value = typeof m.data.prompt==="string"?m.data.prompt:m.data.prompt?.[activeLanguage]||"";
+         if(qs('[data-field="ai-points"]',b)) qs('[data-field="ai-points"]',b).value = m.data.points || 10;
       }
+
       // Hints
       if(qs('[data-field="aiknowledge"]',b)) qs('[data-field="aiknowledge"]',b).value = m.data.aiKnowledge||"";
       if(qs('[data-field="hinttype"]',b)) qs('[data-field="hinttype"]',b).value = m.data.hintType||"ai";
