@@ -165,6 +165,42 @@ const pagesSafe = normalizePages(puzzle);
       </div>
     </div>
 
+<div style="background: #f8fafc; border: 1px solid #cbd5e1; padding: 15px; border-radius: 12px; margin-bottom: 24px;">
+      <h3 style="font-size: 11px; font-weight: 900; color: #475569; text-transform: uppercase; letter-spacing: 1px; margin-top: 0;">📜 AI Eindverslag</h3>
+      <label>Instructie voor de AI:</label>
+      <textarea id="final-report-prompt" rows="4" placeholder="Bijv: Je bent een prehistorisch stamhoofd. Schrijf een oordeel over..."><%= puzzle.finalPrompt || '' %></textarea>
+    </div>
+
+### Stap 2: De Prompt opslaan in de Database
+**Bestand: `index.js`**
+
+Zoek in je `index.js` naar de route `/admin-builder/:id/save-all`. Vervang het begin van die functie door dit blok, we voegen hier `puzzle.finalPrompt` en de belangrijke `express.json()` (die we eerder bespraken) toe:
+
+```javascript
+app.post("/admin-builder/:id/save-all", requireAdmin, express.json(), async (req, res) => {
+  try {
+    const puzzle = await Puzzle.findById(req.params.id);
+    if (!puzzle) return res.status(404).json({ error: "Niet gevonden" });
+
+    puzzle.pages = req.body.pages;
+    puzzle.languages = req.body.languages;
+    puzzle.defaultLanguage = req.body.defaultLanguage;
+    
+    // --- NIEUW: Sla de prompt op! ---
+    puzzle.finalPrompt = req.body.finalPrompt;
+
+    // Verbeterde thema toewijzing
+    if (req.body.theme) {
+      puzzle.theme = {
+        preset: req.body.theme.preset || "standard",
+        primaryColor: req.body.theme.primaryColor || "#4f46e5"
+      };
+      puzzle.markModified('theme');
+    }
+
+    await puzzle.save();
+    res.json({ success: true });
+
     <h3>Pagina's</h3>
     <div id="page-list" style="display:flex; flex-direction:column; gap:6px;"></div>
     <button id="add-page-btn" class="btn" style="width:100%; margin-top:10px; border:1px dashed #cbd5e1;">+ Nieuwe Pagina</button>
