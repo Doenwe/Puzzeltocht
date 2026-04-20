@@ -438,7 +438,8 @@ app.post("/admin-puzzles/new", requireAdmin, async (req, res) => {
 app.get("/admin-builder/:id", requireAdmin, async (req, res) => {
   const puzzle = await Puzzle.findById(req.params.id).lean();
   res.render("admin-builder", { puzzle, builderPage: true });
-
+});
+  
 app.post("/admin-builder/:id/save-all", requireAdmin, async (req, res) => {
   try {
     const puzzle = await Puzzle.findById(req.params.id);
