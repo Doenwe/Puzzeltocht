@@ -916,5 +916,16 @@ async function saveTeamName() {
 </script>
 <% } %>
 
+<script src="/js/ArtifactEngine.js"></script>
+<script>
+    // Boot the engine met de triggers van de huidige pagina!
+    // JSON.stringify zorgt dat de backend data direct een JS array wordt
+    const sceneTriggers = <%- JSON.stringify(page.triggers || []) %>;
+    window.Artifact.boot(sceneTriggers);
+</script>
+
+<body data-scene-id="<%= pageIndex %>" data-puzzle-id="<%= puzzle._id %>">
+
+
 </body>
 </html>
