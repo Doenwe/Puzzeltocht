@@ -74,10 +74,18 @@
 
           <!-- Info -->
           <div class="p-4">
-            <p class="text-sm font-bold text-gray-800 truncate"
-               title="<%= file.name %>">
-              <%= file.name %>
-            </p>
+            <input
+              type="text"
+              value="<%= file.name %>"
+              class="w-full text-sm font-bold text-gray-800 bg-transparent border
+                     border-transparent rounded px-1 focus:border-indigo-400 focus:outline-none"
+              onblur="renameFile('<%= folder === '__root__' ? '' : folder %>',
+                                 '<%= file.name %>',
+                                 this.value)"
+              onkeydown="if (event.key === 'Enter') this.blur()"
+              title="Klik om naam te wijzigen"
+            />
+          
             <p class="text-xs text-gray-400 mt-1">
               <%= (file.size / 1024).toFixed(1) %> KB
             </p>
@@ -119,6 +127,26 @@ async function deleteFile(folder, file) {
     }
   } catch (e) {
     alert('Netwerkfout');
+  }
+}
+
+async function renameFile(folder, oldName, newName) {
+  if (!newName || newName === oldName) return;
+
+  try {
+    const res = await fetch('/admin-files/rename', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ folder, oldName, newName })
+    });
+
+    if (!res.ok) {
+      alert('Hernoemen mislukt');
+      location.reload();
+    }
+  } catch (e) {
+    alert('Netwerkfout');
+    location.reload();
   }
 }
 </script>
