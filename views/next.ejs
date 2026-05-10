@@ -1,17 +1,31 @@
-<div class="space-y-6">
+<!-- Background overschrijft layout.ejs -->
+<div class="fixed inset-0 z-[-1] bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)]"></div>
 
-  <h1 class="text-2xl font-bold mb-4">Kies een puzzeltocht</h1>
+<div class="space-y-8 relative z-10 text-white">
+
+  <h1 class="text-3xl font-extrabold mb-6 tracking-tight drop-shadow-md text-center">Kies een puzzeltocht</h1>
 
   <% if (puzzles.length === 0) { %>
-      <p class="text-gray-500">Er zijn nog geen puzzeltochten beschikbaar.</p>
+      <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 text-center">
+        <p class="text-white/80 font-medium">Er zijn nog geen puzzeltochten beschikbaar.</p>
+      </div>
   <% } %>
 
   <div class="space-y-4">
     <% puzzles.forEach(p => { %>
       <a href="/puzzle/<%= p._id %>" 
-         class="block p-4 border rounded-xl bg-white shadow hover:shadow-lg transition">
-        <div class="font-semibold text-lg"><%= p.name %></div>
-        <div class="text-sm text-gray-500">
+         class="block p-5 border border-white/20 rounded-2xl bg-white/10 backdrop-blur-md shadow-[0_8px_32px_0_rgba(0,0,0,0.2)] 
+                hover:bg-white/20 hover:-translate-y-1 hover:shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] 
+                transition-all duration-300 group relative overflow-hidden">
+        
+        <!-- Glans effect -->
+        <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
+
+        <div class="font-bold text-xl mb-1 text-white tracking-wide"><%= p.name %></div>
+        <div class="text-sm text-white/70 font-medium flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+          </svg>
           <%= p.pages.length %> pagina’s
         </div>
       </a>
@@ -19,3 +33,12 @@
   </div>
 
 </div>
+
+<style>
+  @keyframes shimmer {
+    100% { transform: translateX(100%); }
+  }
+  /* Navigatie (uit layout.ejs) overschrijven voor deze pagina */
+  header.sticky { background: rgba(255,255,255,0.1) !important; border-bottom: 1px solid rgba(255,255,255,0.2); }
+  header.sticky a { color: white !important; }
+</style>

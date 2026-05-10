@@ -13,16 +13,29 @@
   <% 
     const theme = puzzle.theme?.preset || 'standard'; 
     const primary = puzzle.theme?.primaryColor || '#0066cc';
+    const bgMap = {
+      standard: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+      medieval: "url('https://www.transparenttextures.com/patterns/aged-paper.png'), #d4b483",
+      future: "linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%)",
+      iceage: "linear-gradient(to bottom, #e0eafc, #cfdef3)",
+      caveman: "url('https://www.transparenttextures.com/patterns/stucco.png'), #57534e"
+    };
+    const defaultBg = "linear-gradient(135deg, #667eea 0%, #764ba2 100%)";
   %>
 
   :root { 
     --primary: <%= primary %>; 
+    --bg-layer: <%- bgMap[theme] || defaultBg %>;
+    --text-main: <%= ['standard', 'future', 'caveman'].includes(theme) ? '#f8fafc' : '#1e293b' %>;
+    --glass-bg: <%= ['standard', 'future', 'caveman'].includes(theme) ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.4)' %>;
+    --glass-border: <%= ['standard', 'future', 'caveman'].includes(theme) ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.6)' %>;
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
     --chat-bg: #f8fafc;
     --chat-header-bg: #e2e8f0;
     --chat-header-text: #1e293b;
     --chat-text-ai: #334155;
     --chat-bubble-ai: #f1f5f9;
-    --chat-bubble-user: #991b1b;
+    --chat-bubble-user: var(--primary);
     --chat-text-user: #ffffff;
   }
 
@@ -30,84 +43,127 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   
   body { 
-    background: #2a312a; /* Donkere mos/natuur achtergrond */
-    background-image: radial-gradient(circle at 50% 0%, #3a423a, #1a1e1a);
-    font-family: 'Georgia', serif; /* Klassiek en leesbaar */
-    color: #e2e8f0;
+    background: var(--bg-layer);
+    background-size: cover;
+    background-attachment: fixed;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    color: var(--text-main);
     min-height: 100vh;
     overflow-x: hidden;
     padding-bottom: 60px;
+    transition: background 0.5s ease;
   }
 
-  /* HUNEBED MODULES (De 3D Keien) */
+  /* GLASSMORPHISM MODULES */
   .module {
-    background-color: #57534e; /* Stenen grijs */
-    background-image: url('https://www.transparenttextures.com/patterns/stucco.png');
-    border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px; /* Organische steen vorm */
+    background: var(--glass-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-radius: 20px;
+    border: 1px solid var(--glass-border);
     padding: 30px 25px;
     margin: 20px auto 35px auto;
     max-width: 600px;
     width: 90%;
-    box-shadow: 
-      8px 12px 20px rgba(0,0,0,0.5), /* Drop shadow (diepte op de grond) */
-      inset -5px -10px 20px rgba(0,0,0,0.5), /* Schaduw onderkant steen */
-      inset 5px 5px 15px rgba(255,255,255,0.1); /* Highlight bovenkant steen */
-    border: 2px solid #292524;
-    text-align: center; /* Simplistisch en gecentreerd */
+    box-shadow: var(--glass-shadow);
+    text-align: center;
     position: relative;
-    animation: popIn 0.6s ease-out backwards;
+    animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) backwards;
   }
-  @keyframes popIn { 0% { opacity: 0; transform: translateY(20px) scale(0.98); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
 
-  /* Variatie in stenen */
-  .module:nth-child(even) {
-    border-radius: 15px 255px 15px 225px / 225px 15px 255px 15px;
+  @keyframes slideUpFade { 
+    0% { opacity: 0; transform: translateY(30px); } 
+    100% { opacity: 1; transform: translateY(0); } 
+  }
+
+  @keyframes floatPulse {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
   }
 
   h2.title-module {
-    font-size: 28px; color: #d6d3d1; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
-    font-weight: normal; margin-bottom: 10px;
+    font-size: 28px; 
+    font-weight: 700;
+    margin-bottom: 10px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
   }
 
   p { font-size: 16px; line-height: 1.6; margin-bottom: 15px; }
 
-  /* STENEN KNOPPEN */
+  /* Knoppen - Modern, met hover effecten */
   .btn {
     display: block; width: 100%; padding: 16px; margin: 15px 0;
-    background-color: #44403c; background-image: url('https://www.transparenttextures.com/patterns/stucco.png');
-    border-radius: 50px;
-    box-shadow: 4px 6px 10px rgba(0,0,0,0.5), inset -2px -4px 10px rgba(0,0,0,0.4), inset 2px 2px 8px rgba(255,255,255,0.1);
-    border: 1px solid #1c1917; color: #fff; font-family: inherit; font-weight: bold; font-size: 16px;
-    text-transform: uppercase; letter-spacing: 1px; cursor: pointer; transition: 0.1s;
+    background: var(--glass-bg);
+    backdrop-filter: blur(5px);
+    border-radius: 12px;
+    border: 1px solid var(--glass-border);
+    color: var(--text-main);
+    font-family: inherit; font-weight: 600; font-size: 16px;
+    text-transform: uppercase; letter-spacing: 0.5px; 
+    cursor: pointer; transition: all 0.2s ease;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+  }
+  .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    background: rgba(255, 255, 255, 0.1);
   }
   .btn:active {
-    transform: translateY(4px); box-shadow: 1px 2px 5px rgba(0,0,0,0.5), inset -2px -4px 10px rgba(0,0,0,0.4);
+    transform: translateY(1px) scale(0.98);
   }
-  .btn.accent { background-color: var(--primary); /* Accent steen */ }
+  .btn.accent { 
+    background-color: var(--primary); 
+    color: #fff;
+    border: none;
+    box-shadow: 0 4px 15px var(--primary);
+  }
+  .btn.accent:hover {
+    opacity: 0.9;
+  }
 
-  /* INPUTS (Uitgehakt in de steen) */
+  /* Invoervelden */
   input[type="text"], input[type="email"], input[type="number"], select, textarea {
     width: 100%; padding: 14px; margin-bottom: 15px;
-    background: rgba(0,0,0,0.3); border: 2px solid #292524; border-radius: 10px;
-    color: #fff; font-size: 16px; font-family: sans-serif;
-    box-shadow: inset 3px 3px 8px rgba(0,0,0,0.6); outline: none;
+    background: rgba(255, 255, 255, 0.1); 
+    border: 1px solid var(--glass-border); 
+    border-radius: 12px;
+    color: #fff; 
+    font-size: 16px; font-family: sans-serif;
+    outline: none; transition: border 0.3s;
   }
-  input::placeholder, textarea::placeholder { color: rgba(255,255,255,0.4); }
+  input:focus, textarea:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
+  }
+  input::placeholder, textarea::placeholder { color: inherit; opacity: 0.7; }
   
-  /* MEERKEUZE UITGEHAKT */
+  /* Meerkeuze Opties */
   .mc-option {
     display: block; padding: 14px; text-align: left;
-    background: rgba(0,0,0,0.2); border-radius: 10px; margin-bottom: 10px;
-    border: 1px solid rgba(0,0,0,0.5); cursor: pointer;
+    background: rgba(255, 255, 255, 0.05); border-radius: 12px; margin-bottom: 10px;
+    border: 1px solid var(--glass-border); cursor: pointer; transition: all 0.2s;
+  }
+  .mc-option:hover {
+    background: rgba(255, 255, 255, 0.1);
   }
   .mc-option input[type="radio"] { display: none; }
-  .mc-option:has(input:checked) { background: rgba(0,0,0,0.5); border: 1px solid var(--primary); }
+  .mc-option:has(input:checked) { 
+    background: var(--primary); 
+    color: white; 
+    border-color: var(--primary);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  }
 
-  /* SIMPELE SCORE WEERGAVE BOVENAAN */
+  /* Status / Score Tag bovenaan */
   .stone-tag {
-    display: inline-block; padding: 8px 20px; background: #44403c;
-    border-radius: 0 0 20px 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-    border: 1px solid #1c1917; border-top: none; font-weight: bold; font-family: sans-serif;
+    display: inline-block; padding: 10px 24px; 
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    border-radius: 0 0 20px 20px; 
+    border: 1px solid var(--glass-border); 
+    border-top: none; font-weight: 600; 
+    box-shadow: var(--glass-shadow);
+    animation: floatPulse 4s ease-in-out infinite;
   }
 
   </style>
